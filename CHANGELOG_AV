@@ -1,0 +1,5 @@
+# v0.1.0
+
+- REMOVE: Default network mode for the docker-executor to support user defined network.
+- REMOVE: Docker CGroup V1 check. Docker already support V2, we does not need the check for the docker 
+          executor.
