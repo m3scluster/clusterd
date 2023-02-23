@@ -17,13 +17,6 @@ repos:
     entry: python ./support/check-license.py
     types: [text]
     files: '.*\.(cpp|hpp|py)$' # TODO(bbannier): also check shell scripts.
-  - id: cpplint
-    name: cpplint
-    entry: python ./support/cpplint.py
-    language: python
-    language_version: 'python2'
-    types: [c++]
-    args: ['--extensions=hpp,cpp']
 - repo: https://github.com/jorisroovers/gitlint
   rev:  v0.12.0
   hooks:
