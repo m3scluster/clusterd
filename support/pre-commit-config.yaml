@@ -21,7 +21,7 @@ repos:
     name: cpplint
     entry: python ./support/cpplint.py
     language: python
-    language_version: 'python2'
+    language_version: 'python3'
     types: [c++]
     args: ['--extensions=hpp,cpp']
 - repo: https://github.com/jorisroovers/gitlint

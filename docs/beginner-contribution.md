@@ -1,66 +1,148 @@
----
-title: Apache Mesos - Beginner Contribution Guide
-layout: documentation
----
+# Contributing
 
-# Beginner Contributor Guide
+When contributing to this repository, please first discuss the change you wish to make via issue,
+email, or any other method with the owners of this repository before making a change. 
 
-## Introduction
+Please note we have a code of conduct, please follow it in all your interactions with the project.
 
-The purpose of this document is to provide a first-time introduction to the process of contributing to Mesos. It focuses on submitting small documentation-only patches or trivial fixes via GitHub pull requests. If you'd like an introduction to the standard day-to-day workflow for advanced Mesos contributors, see our [advanced contribution guide](advanced-contribution.md).
+## Pull Request Process
 
-## Quick Summary
+1. Ensure any install or build dependencies are removed before the end of the layer when doing a 
+   build.
+2. Update the README.md with details of changes to the interface, this includes new environment 
+   variables, exposed ports, useful file locations and container parameters.
 
-To propose a small change to Mesos, simply open a PR against our public GitHub mirror at [https://github.com/apache/mesos](https://github.com/apache/mesos). Further instructions can be found below if needed.
 
-## Download the Mesos Repository
+# Contributor Covenant Code of Conduct
 
-First, download the latest development version of the Mesos codebase. In order to submit changes via GitHub pull requests, you need to fork the [Apache Mesos GitHub mirror](https://github.com/apache/mesos). Once you have your own fork, clone it to your local machine using Git.
+## Our Pledge
 
-If you're proposing a documentation-only change, then you don't need to build Mesos to get started.
+We as members, contributors, and leaders pledge to make participation in our
+community a harassment-free experience for everyone, regardless of age, body
+size, visible or invisible disability, ethnicity, sex characteristics, gender
+identity and expression, level of experience, education, socio-economic status,
+nationality, personal appearance, race, caste, color, religion, or sexual
+identity and orientation.
 
-If you're making a functional change to the code, then you should build Mesos first. Once you have the Mesos source code on your local machine, you can install the necessary dependencies and build it. Instructions for this process can be found in the [building](building.md) page. Note that the `./support/setup-dev.sh` script will install git hooks which will help you adhere to Mesos style when committing.
+We pledge to act and interact in ways that contribute to an open, welcoming,
+diverse, inclusive, and healthy community.
 
-## Find a Problem to Solve
+## Our Standards
 
-If you already have a specific issue in mind which you want to address in the codebase, that's great! Reach out to some of the [committers](committers.md) on [Mesos Slack](/community) or on the developer mailing list to discuss the improvement you'd like to make. If you want to contribute but aren't sure what to work on, you can find open issues in [JIRA](http://issues.apache.org/jira/browse/MESOS), our issue tracker. Asking on [Mesos Slack](/community) or on the developer mailing list is a great way to find out what you might work on that could have a high impact on the community.
+Examples of behavior that contributes to a positive environment for our
+community include:
 
-From past experience, we have found that it's best if contributors talk to committers about their fix before writing code. This ensures that the contributor has the context necessary to make the change in a way consistent with the rest of the codebase, and helps avoid time spent on solutions which need major edits in order to get merged. Please chat with us before writing code, we'll help you design a solution!
+* Demonstrating empathy and kindness toward other people
+* Being respectful of differing opinions, viewpoints, and experiences
+* Giving and gracefully accepting constructive feedback
+* Accepting responsibility and apologizing to those affected by our mistakes,
+  and learning from the experience
+* Focusing on what is best not just for us as individuals, but for the overall
+  community
 
-This GitHub workflow is most appropriate for documentation-only changes and small, trivial fixes. For more significant changes, please use the [advanced contribution workflow](advanced-contribution.md).
+Examples of unacceptable behavior include:
 
-## Make Modifications
+* The use of sexualized language or imagery, and sexual attention or advances of
+  any kind
+* Trolling, insulting or derogatory comments, and personal or political attacks
+* Public or private harassment
+* Publishing others' private information, such as a physical or email address,
+  without their explicit permission
+* Other conduct which could reasonably be considered inappropriate in a
+  professional setting
 
-Once you know what you're going to change, you can make your intended modifications to the codebase and then commit the changes to your local build repository. When making changes, also consider the following:
+## Enforcement Responsibilities
 
-* Does documentation need to be updated to accommodate this change? (see the `docs/` folder in the repository)
-* Do tests need to be added or updated? (see the `src/tests/` folder in the repository)
+Community leaders are responsible for clarifying and enforcing our standards of
+acceptable behavior and will take appropriate and fair corrective action in
+response to any behavior that they deem inappropriate, threatening, offensive,
+or harmful.
 
-## Build and Test
+Community leaders have the right and responsibility to remove, edit, or reject
+comments, commits, code, wiki edits, issues, and other contributions that are
+not aligned to this Code of Conduct, and will communicate reasons for moderation
+decisions when appropriate.
 
-If your changes are documentation-only, then you should view them with a markdown viewer to verify their appearance when rendered.
+## Scope
 
-If you are changing any code in Mesos, then you should build and run the tests before opening a PR. You should run `make check` and ensure that all tests pass before opening a PR.
+This Code of Conduct applies within all community spaces, and also applies when
+an individual is officially representing the community in public spaces.
+Examples of representing our community include using an official e-mail address,
+posting via an official social media account, or acting as an appointed
+representative at an online or offline event.
 
-## Open a Pull Request
+## Enforcement
 
-Once changes are completed and tested, it's time to open a Pull Request (PR) so that they can be reviewed. When your local branch is clean and ready to submit, push it to your Mesos fork. You can then open a PR against the Apache Mesos GitHub repository. Once your PR is open, you can notify the community on [Mesos Slack](/community) or on the developer mailing list.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be
+reported to the community leaders responsible for enforcement at
+[https://matrix.to/#/#avEnterSupport:matrix.aventer.biz].
+All complaints will be reviewed and investigated promptly and fairly.
 
-# Getting Started Guidance
+All community leaders are obligated to respect the privacy and security of the
+reporter of any incident.
 
-The following links provide additional guidance as you get started contributing to Apache Mesos.
+## Enforcement Guidelines
 
-## JIRA
+Community leaders will follow these Community Impact Guidelines in determining
+the consequences for any action they deem in violation of this Code of Conduct:
 
-[JIRA](http://issues.apache.org/jira/browse/MESOS) is the issue tracking system for all bug fixes and feature additions in Mesos. When contributing to Mesos, all assignments, discussions, and resolution proposals for a specific issue should be documented as comments within the JIRA item. If you contribute something which is more than a trivial fix, it should probably be tracked in JIRA.
+### 1. Correction
 
-## Identifying a JIRA Issue
+**Community Impact**: Use of inappropriate language or other behavior deemed
+unprofessional or unwelcome in the community.
 
-If you'd like to find an existing issue to work on yourself, identify a Mesos JIRA ticket that is currently unassigned. It is highly recommended to start contributing to beginner-level issues and move to more advanced issues over time. The JIRA issue-tracking system can be filtered based on labels. The following labels can be used to identify beginner-level JIRA tickets:
+**Consequence**: A private, written warning from community leaders, providing
+clarity around the nature of the violation and an explanation of why the
+behavior was inappropriate. A public apology may be requested.
 
-* newbie
-* newbie++
-* beginner
-* beginners
+### 2. Warning
 
-If you'd like to work on existing issues in Mesos, this will likely require the submission of patches large enough that you should use the [advanced contribution workflow](advanced-contribution.md).
+**Community Impact**: A violation through a single incident or series of
+actions.
+
+**Consequence**: A warning with consequences for continued behavior. No
+interaction with the people involved, including unsolicited interaction with
+those enforcing the Code of Conduct, for a specified period of time. This
+includes avoiding interactions in community spaces as well as external channels
+like social media. Violating these terms may lead to a temporary or permanent
+ban.
+
+### 3. Temporary Ban
+
+**Community Impact**: A serious violation of community standards, including
+sustained inappropriate behavior.
+
+**Consequence**: A temporary ban from any sort of interaction or public
+communication with the community for a specified period of time. No public or
+private interaction with the people involved, including unsolicited interaction
+with those enforcing the Code of Conduct, is allowed during this period.
+Violating these terms may lead to a permanent ban.
+
+### 4. Permanent Ban
+
+**Community Impact**: Demonstrating a pattern of violation of community
+standards, including sustained inappropriate behavior, harassment of an
+individual, or aggression toward or disparagement of classes of individuals.
+
+**Consequence**: A permanent ban from any sort of public interaction within the
+community.
+
+## Attribution
+
+This Code of Conduct is adapted from the [Contributor Covenant][homepage],
+version 2.1, available at
+[https://www.contributor-covenant.org/version/2/1/code_of_conduct.html][v2.1].
+
+Community Impact Guidelines were inspired by
+[Mozilla's code of conduct enforcement ladder][Mozilla CoC].
+
+For answers to common questions about this code of conduct, see the FAQ at
+[https://www.contributor-covenant.org/faq][FAQ]. Translations are available at
+[https://www.contributor-covenant.org/translations][translations].
+
+[homepage]: https://www.contributor-covenant.org
+[v2.1]: https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
+[Mozilla CoC]: https://github.com/mozilla/diversity
+[FAQ]: https://www.contributor-covenant.org/faq
+[translations]: https://www.contributor-covenant.org/translations
+
