@@ -5,11 +5,9 @@ Clusterd is a cluster manager that provides efficient resource isolation
 and sharing across distributed applications, or frameworks. It can run 
 workload on a dynamically shared pool of nodes.
 
-Visit us at [www.m3scluster.org](https://www.m3scluster.org).
-
 # Documentation
 
-Documentation is available in the [docs](https://github.com/m3scluster/clusterd_docs) repository. 
+Documentation is available in the [docs](https://github.com/m3scluster/clusterd-docs) repository. 
 
 # Installation
 
