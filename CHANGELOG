@@ -1,3 +1,10 @@
+Release Notes - Mesos/ClusterD
+-------------------------------------------
+This master branch contains the following changes:
+
+  * Docker Containerize now supports CNI.
+
+
 Release Notes - Mesos - Version 1.11.0
 -------------------------------------------
 This release contains the following highlights:
