@@ -1,2 +1,0 @@
-Redirect 301 /documentation/index.html https://mesos.apache.org/documentation/latest/index.html
-Redirect 301 /documentation/latest/working-groups/ https://mesos.apache.org/community/#working-groups
