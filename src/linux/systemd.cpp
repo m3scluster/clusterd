@@ -59,6 +59,11 @@ Flags::Flags()
       "cgroups_hierarchy",
       "The path to the cgroups hierarchy root\n",
       "/sys/fs/cgroup");
+
+  add(&Flags::enable_cgroupsv2,
+      "enable_cgroupsv2",
+      "Enable CGroupsV2 Support (ALPHA).",
+      false);      
 }
 
 
@@ -178,15 +183,17 @@ Try<Nothing> initialize(const Flags& flags)
                  "': " + start.error());
   }
 
-  // Now the `MESOS_EXECUTORS_SLICE` is ready for us to assign any pids. We can
-  // verify that our cgroups assignments will work by testing the hierarchy.
-  Try<Nothing> cgroupsVerify = cgroups::verify(
-      systemd::hierarchy(),
-      mesos::MESOS_EXECUTORS_SLICE);
-
-  if (cgroupsVerify.isError()) {
-    return Error("Failed to locate systemd cgroups hierarchy: " +
-                 cgroupsVerify.error());
+  // cgroupsv2 does not have a systemd cgroups hierarchy
+  if (!flags.enable_cgroupsv2) {
+    // Now the `MESOS_EXECUTORS_SLICE` is ready for us to assign any pids. We can
+    // verify that our cgroups assignments will work by testing the hierarchy.
+    Try<Nothing> cgroupsVerify = cgroups::verify(
+        systemd::hierarchy(),
+        mesos::MESOS_EXECUTORS_SLICE);
+      if (cgroupsVerify.isError()) {
+      return Error("Failed to locate systemd cgroups hierarchy: " +
+                   cgroupsVerify.error());
+    }
   }
 
   initialized->done();

@@ -128,6 +128,7 @@ public:
   bool enabled;
   std::string runtime_directory;
   std::string cgroups_hierarchy;
+  bool enable_cgroupsv2;
 };
 
 

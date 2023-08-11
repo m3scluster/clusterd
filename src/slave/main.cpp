@@ -491,6 +491,7 @@ int main(int argc, char** argv)
     systemdFlags.enabled = flags.systemd_enable_support;
     systemdFlags.runtime_directory = flags.systemd_runtime_directory;
     systemdFlags.cgroups_hierarchy = flags.cgroups_hierarchy;
+    systemdFlags.enable_cgroupsv2 = flags.enable_cgroupsv2;
 
     Try<Nothing> initialize = systemd::initialize(systemdFlags);
     if (initialize.isError()) {
