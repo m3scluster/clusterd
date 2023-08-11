@@ -375,6 +375,12 @@ mesos::internal::slave::Flags::Flags()
       "environment or find hadoop on `PATH`)");
 
 #ifndef __WINDOWS__
+
+  add(&Flags::enable_cgroupsv2,
+      "enable_cgroupsv2",
+      "Enable CGroupsV2 Support (ALPHA).",
+      false);
+
   add(&Flags::switch_user,
       "switch_user",
       "If set to `true`, the agent will attempt to run tasks as\n"

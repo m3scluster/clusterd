@@ -365,26 +365,28 @@ Try<string> prepare(
     // Attempt to mount the hierarchy ourselves.
     hierarchy = path::join(baseHierarchy, subsystem);
 
-    if (os::exists(hierarchy.get())) {
-      // The path specified by the given hierarchy already exists in
-      // the file system. We try to remove it if it is an empty
-      // directory. This will helps us better deal with slave restarts
-      // since we won't need to manually remove the directory.
-      Try<Nothing> rmdir = os::rmdir(hierarchy.get(), false);
-      if (rmdir.isError()) {
+    if (!cgroups::cgroupsv2) {
+      if (os::exists(hierarchy.get())) {
+        // The path specified by the given hierarchy already exists in
+        // the file system. We try to remove it if it is an empty
+        // directory. This will helps us better deal with slave restarts
+        // since we won't need to manually remove the directory.
+        Try<Nothing> rmdir = os::rmdir(hierarchy.get(), false);
+        if (rmdir.isError()) {
+          return Error(
+              "Failed to mount cgroups hierarchy at '" + hierarchy.get() +
+              "' because we could not remove the existing directory: " +
+              rmdir.error());
+        }
+      }
+
+      // Mount the subsystem.
+      Try<Nothing> mount = cgroups::mount(hierarchy.get(), subsystem);
+      if (mount.isError()) {
         return Error(
             "Failed to mount cgroups hierarchy at '" + hierarchy.get() +
-            "' because we could not remove the existing directory: " +
-            rmdir.error());
+            "': " + mount.error());
       }
-    }
-
-    // Mount the subsystem.
-    Try<Nothing> mount = cgroups::mount(hierarchy.get(), subsystem);
-    if (mount.isError()) {
-      return Error(
-          "Failed to mount cgroups hierarchy at '" + hierarchy.get() +
-          "': " + mount.error());
     }
   }
 
@@ -441,6 +443,17 @@ bool enabled()
 {
   return os::exists("/proc/cgroups");
 }
+
+bool cgroupsv2()
+{
+  // /sys/fs/cgroup/cpu does not exist in cgroupsv2
+  if (!os::exists("/sys/fs/cgroup/cpu")) {
+    return true;
+  }
+
+  return false;
+}
+
 
 
 Try<set<string>> hierarchies()
@@ -589,7 +602,7 @@ Try<set<string>> subsystems(const string& hierarchy)
   // Check if hierarchy is a mount point of type cgroup.
   Option<fs::MountTable::Entry> hierarchyEntry;
   foreach (const fs::MountTable::Entry& entry, table->entries) {
-    if (entry.type == "cgroup") {
+    if (entry.type == "cgroup" || entry.type == "cgroup2") {
       Result<string> dirAbsPath = os::realpath(entry.dir);
       if (!dirAbsPath.isSome()) {
         return Error(
