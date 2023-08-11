@@ -120,6 +120,7 @@ Try<Owned<Docker>> Docker::create(
     const string& path,
     const string& socket,
     bool validate,
+    bool enableCgroupsV2,
     const Option<JSON::Object>& config)
 {
 #ifndef __WINDOWS__
@@ -143,16 +144,18 @@ Try<Owned<Docker>> Docker::create(
 #ifdef __linux__
   // Make sure that cgroups are mounted, and at least the 'cpu'
   // subsystem is attached.
-  Result<string> hierarchy = cgroups::hierarchy("cpu");
+  if (!enableCgroupsV2) {
+    Result<string> hierarchy = cgroups::hierarchy("cpu");
 
-  if (hierarchy.isNone()) {
-    return Error("Failed to find a mounted cgroups hierarchy "
+    if (hierarchy.isNone()) {
+        return Error("Failed to find a mounted cgroups hierarchy "
                  "for the 'cpu' subsystem; you probably need "
                  "to mount cgroups manually");
+    }
   }
 #endif // __linux__
 
-  Try<Nothing> validateVersion = docker->validateVersion(Version(1, 8, 0));
+Try<Nothing> validateVersion = docker->validateVersion(Version(1, 8, 0));
   if (validateVersion.isError()) {
     return Error(validateVersion.error());
   }

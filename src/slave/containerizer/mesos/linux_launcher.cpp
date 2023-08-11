@@ -125,15 +125,17 @@ Try<Launcher*> LinuxLauncher::create(const Flags& flags)
   }
 
   // Ensure that no other subsystem is attached to the freezer hierarchy.
-  Try<set<string>> subsystems = cgroups::subsystems(freezerHierarchy.get());
-  if (subsystems.isError()) {
-    return Error(
-        "Failed to get the list of attached subsystems for hierarchy " +
-        freezerHierarchy.get());
-  } else if (subsystems->size() != 1) {
-    return Error(
-        "Unexpected subsystems found attached to the hierarchy " +
-        freezerHierarchy.get());
+  if (!flags.enable_cgroupsv2) {
+    Try<set<string>> subsystems = cgroups::subsystems(freezerHierarchy.get());
+    if (subsystems.isError()) {
+      return Error(
+          "Failed to get the list of attached subsystems for hierarchy " +
+          freezerHierarchy.get());
+    } else if (subsystems->size() != 1) {
+      return Error(
+          "Unexpected subsystems found attached to the hierarchy " +
+          freezerHierarchy.get());
+    }
   }
 
   LOG(INFO) << "Using " << freezerHierarchy.get()

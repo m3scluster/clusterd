@@ -62,6 +62,7 @@ public:
       const std::string& path,
       const std::string& socket,
       bool validate = true,
+      bool enableCgroupsV2 = false,
       const Option<JSON::Object>& config = None());
 
   virtual ~Docker() {}

@@ -185,6 +185,7 @@ Try<DockerContainerizer*> DockerContainerizer::create(
       flags.docker,
       flags.docker_socket,
       true,
+      flags.enable_cgroupsv2,
       flags.docker_config);
 
   if (create.isError()) {
