@@ -184,7 +184,7 @@ Try<Nothing> initialize(const Flags& flags)
   }
 
   // cgroupsv2 does not have a systemd cgroups hierarchy
-  if (!flags.enable_cgroupsv2) {
+  if (!systemd_flags->enable_cgroupsv2) {
     // Now the `MESOS_EXECUTORS_SLICE` is ready for us to assign any pids. We can
     // verify that our cgroups assignments will work by testing the hierarchy.
     Try<Nothing> cgroupsVerify = cgroups::verify(
