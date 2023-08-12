@@ -380,11 +380,13 @@ Try<string> prepare(
     }
 
     // Mount the subsystem.
-    Try<Nothing> mount = cgroups::mount(hierarchy.get(), subsystem);
-    if (mount.isError()) {
-      return Error(
-          "Failed to mount cgroups hierarchy at '" + hierarchy.get() +
-          "': " + mount.error());
+    if (!cgroups::cgroupsv2()) {
+      Try<Nothing> mount = cgroups::mount(hierarchy.get(), subsystem);
+      if (mount.isError()) {
+        return Error(
+            "Failed to mount cgroups hierarchy at '" + hierarchy.get() +
+            "': " + mount.error());
+      }
     }
   }
 
@@ -441,6 +443,17 @@ bool enabled()
 {
   return os::exists("/proc/cgroups");
 }
+
+bool cgroupsv2()
+{
+  // /sys/fs/cgroup/cpu does not exist in cgroupsv2
+  if (os::exists("/sys/fs/cgroup/cpu")) {
+    return false;
+  }
+
+  return true;
+}
+
 
 
 Try<set<string>> hierarchies()

@@ -487,6 +487,11 @@ int main(int argc, char** argv)
   if (flags.systemd_enable_support && systemd::exists()) {
     LOG(INFO) << "Initializing systemd state";
 
+    // under cgroupsv2, systemd does not have it's own cgroups hierarchy.
+    if (flags.enable_cgroupsv2) {
+      flags.cgroups_hierarchy = "/sys/fs/cgroup";
+    }
+
     systemd::Flags systemdFlags;
     systemdFlags.enabled = flags.systemd_enable_support;
     systemdFlags.runtime_directory = flags.systemd_runtime_directory;

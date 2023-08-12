@@ -283,6 +283,9 @@ Path runtimeDirectory()
 
 Path hierarchy()
 {
+  if (flags().enable_cgroupsv2) {
+    return Path(flags().cgroups_hierarchy);
+  }
   return Path(path::join(flags().cgroups_hierarchy, "systemd"));
 }
 
