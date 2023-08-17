@@ -91,6 +91,12 @@ Try<Nothing> verify(
 bool enabled();
 
 
+// Check whether cgroupsv2 module is enabled on the current machine.
+// @return  True if cgroupsv2 module is enabled.
+//          False if cgroupsv2 module is not available.
+bool cgroupsv2();
+
+
 // Return the currently active hierarchies.
 // @return  A set of active hierarchy paths (e.g., '/cgroup').
 //          Error if unexpected happens.
@@ -115,7 +121,6 @@ Result<std::string> hierarchy(const std::string& subsystems);
 //          False if any of the given subsystems is not enabled.
 //          Error if something unexpected happens.
 Try<bool> enabled(const std::string& subsystems);
-
 
 // Return true if any of the given subsystems is currently attached to a
 // hierarchy.

@@ -108,6 +108,7 @@ public:
       const map<string, string>& taskEnvironment,
       const Option<ContainerDNSInfo>& defaultContainerDNS,
       bool cgroupsEnableCfs,
+      bool enableCgroupsV2,
       const string& network_cni_plugins_dir,
       const string& network_cni_config_dir)
     : ProcessBase(ID::generate("docker-executor")),
@@ -124,6 +125,7 @@ public:
       taskEnvironment(taskEnvironment),
       defaultContainerDNS(defaultContainerDNS),
       cgroupsEnableCfs(cgroupsEnableCfs),
+      enableCgroupsV2(enableCgroupsV2),
       network_cni_plugins_dir(network_cni_plugins_dir),
       network_cni_config_dir(network_cni_config_dir),
       stop(Nothing()),
@@ -1129,6 +1131,7 @@ private:
   map<string, string> taskEnvironment;
   Option<ContainerDNSInfo> defaultContainerDNS;
   bool cgroupsEnableCfs;
+  bool enableCgroupsV2;
   string network_cni_plugins_dir;
   string network_cni_config_dir;
   string containerId;
@@ -1157,6 +1160,7 @@ DockerExecutor::DockerExecutor(
     const map<string, string>& taskEnvironment,
     const Option<ContainerDNSInfo>& defaultContainerDNS,
     bool cgroupsEnableCfs,
+    bool enableCgroupsV2,
     const string& network_cni_plugins_dir,
     const string& network_cni_config_dir)
 {
@@ -1170,6 +1174,7 @@ DockerExecutor::DockerExecutor(
       taskEnvironment,
       defaultContainerDNS,
       cgroupsEnableCfs,
+      enableCgroupsV2,
       network_cni_plugins_dir,
       network_cni_config_dir));
 

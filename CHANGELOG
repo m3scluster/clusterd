@@ -1,8 +1,21 @@
-Release Notes - Mesos/ClusterD
--------------------------------------------
+Release Notes - Clusterd
+-----------------------------------------------
 This master branch contains the following changes:
 
-  * Docker Containerize now supports CNI.
+  * Docker Containerizer now supports CGroupsV2. It will be enabled by the Mesos Agent flag "--enable_cgroupv2". At the current state, it will
+  break the mesos containerizer.
+
+Release Notes - Clusterd - Version 1.11.0-0.3.0
+-----------------------------------------------
+This release contains the following highlights:
+
+  * Docker Containerizer now supports CNI.
+  * Add CNI support for the Docker Executor.
+  * Fix random SlaveRecoveryTest.PingTimeoutDuringRecovery test failure.
+  * Fix Blkio isolator. handled missing CFQ statistics.
+  * Fix mesos-tidy build with new gRPC version.
+  * Upgraded grpc to 1.11.1
+  * Add s390x support
 
 
 Release Notes - Mesos - Version 1.11.0
