@@ -1,10 +1,10 @@
 [Unit]
-Description=Mesos Agent
+Description=ClusterD Agent
 After=network.target
 Wants=network.target
 
 [Service]
-ExecStart=/usr/bin/mesos-init-wrapper agent
+ExecStart=@RUN_PATH@/bin/mesos-init-wrapper agent
 KillMode=process
 Restart=always
 RestartSec=20

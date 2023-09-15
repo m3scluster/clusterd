@@ -17,30 +17,20 @@ repos:
     entry: python ./support/check-license.py
     types: [text]
     files: '.*\.(cpp|hpp|py)$' # TODO(bbannier): also check shell scripts.
-- repo: https://github.com/jorisroovers/gitlint
-  rev:  v0.12.0
-  hooks:
-  - id: gitlint
-    stages: [commit-msg]
 - repo: https://github.com/pre-commit/mirrors-pylint
-  rev: v2.3.1
+  rev: v3.0.0a5
   hooks:
   - id: pylint
     args: ['--score=n', '--rcfile=support/pylint.config']
     files: '(support).*'
 - repo: https://github.com/pre-commit/mirrors-eslint
-  rev: v6.3.0
+  rev: v8.49.0
   hooks:
   - id: eslint
     args: ['-c', 'support/.eslintrc.js']
     exclude: '^(site/source/assets/js/|src/webui/assets/libs/)'
-- repo: https://github.com/jumanjihouse/pre-commit-hooks
-  rev: 1.11.0
-  hooks:
-    - id: require-ascii
-      exclude: '^(docs/(committers.md|contributors.yaml))|(site|src/webui)/'
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.3.0
+  rev: v4.4.0
   hooks:
   - id: check-yaml
   - id: check-json

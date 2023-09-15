@@ -4,6 +4,7 @@ This master branch contains the following changes:
 
   * Docker Containerizer now supports CGroupsV2. It will be enabled by the Mesos Agent flag "--enable_cgroupv2". At the current state, it will
   break the mesos containerizer.
+  * Cleanup repository and remove more unneeded files.
 
 Release Notes - Clusterd - Version 1.11.0-0.3.0
 -----------------------------------------------

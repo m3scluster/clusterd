@@ -22,10 +22,11 @@ else ()
   cmake_minimum_required(VERSION 3.8.0)
 endif ()
 
-project(Mesos)
+project(aventer-mesos)
 set(MESOS_MAJOR_VERSION 1)
-set(MESOS_MINOR_VERSION 12)
+set(MESOS_MINOR_VERSION 11)
 set(MESOS_PATCH_VERSION 0)
+set(MESOS_SUB_VERSION 4)
 set(PACKAGE_VERSION
   ${MESOS_MAJOR_VERSION}.${MESOS_MINOR_VERSION}.${MESOS_PATCH_VERSION})
 
@@ -67,9 +68,12 @@ endif ()
 
 # PACKAGING.
 ############
-# Set the basename of any packages to 'mesos-<version>'.
-set(CPACK_PACKAGE_FILE_NAME "mesos-${MESOS_PACKAGE_VERSION}")
+# Set the basename of any packages to 'aventer-mesos-<version>'.
+set(CPACK_PACKAGE_FILE_NAME "aventer-mesos-${MESOS_PACKAGE_VERSION}-${MESOS_SUB_VERSION}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
+set(CPACK_PACKAGE_CONTACT "https://github.com/m3scluster/clusterd")
+set(CPACK_PACKAGE_MAINTAINER "AVENTER UG")
+set(ENABLE_SSL "true")
 
 # By default, all forms of binary packages are disabled.
 option(CPACK_BINARY_BUNDLE       "Enable to build OSX bundles"              OFF)
@@ -93,6 +97,27 @@ option(CPACK_SOURCE_TBZ2 "Enable to build TBZ2 source packages" OFF)
 option(CPACK_SOURCE_TXZ  "Enable to build TXZ source packages"  OFF)
 option(CPACK_SOURCE_TZ   "Enable to build TZ source packages"   OFF)
 option(CPACK_SOURCE_ZIP  "Enable to build ZIP source packages"  OFF)
+
+set(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION})
+set(CPACK_PACKAGE_VERSION_MAJOR ${MESOS_MAJOR_VERSION})
+set(CPACK_PACKAGE_VERSION_MINOR ${MESOS_MINOR_VERSION})
+set(CPACK_PACKAGE_VERSION_PATCH ${MESOS_PATCH_VERSION})
+set(CPACK_PACKAGE_VENDOR ${CPACK_PACKAGE_MAINTAINER})
+
+# configure systemd files
+
+set(RUN_PATH /usr)
+set(SERVICE_MASTER mesos-master.service)
+set(SERVICE_AGENT mesos-agent.service)
+set(SERVICE_INIT mesos-init-wrapper)
+
+configure_file(support/packaging/common/${SERVICE_MASTER}.in ${CMAKE_CURRENT_BINARY_DIR}/${SERVICE_MASTER} @ONLY)
+configure_file(support/packaging/common/${SERVICE_AGENT}.in ${CMAKE_CURRENT_BINARY_DIR}/${SERVICE_AGENT} @ONLY)
+configure_file(support/packaging/common/${SERVICE_INIT}.in ${CMAKE_CURRENT_BINARY_DIR}/${SERVICE_INIT} @ONLY)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SERVICE_MASTER} DESTINATION lib/systemd/system)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SERVICE_AGENT} DESTINATION lib/systemd/system)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SERVICE_INIT} DESTINATION bin)
 
 include(CPack)
 

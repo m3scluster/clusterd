@@ -365,7 +365,7 @@ Try<string> prepare(
     // Attempt to mount the hierarchy ourselves.
     hierarchy = path::join(baseHierarchy, subsystem);
 
-    if (!cgroups::cgroupsv2) {
+    if (!cgroups::cgroupsv2()) {
       if (os::exists(hierarchy.get())) {
         // The path specified by the given hierarchy already exists in
         // the file system. We try to remove it if it is an empty

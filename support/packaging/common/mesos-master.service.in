@@ -1,10 +1,10 @@
 [Unit]
-Description=Mesos Master
+Description=ClusterD Master
 After=network.target
 Wants=network.target
 
 [Service]
-ExecStart=/usr/bin/mesos-init-wrapper master
+ExecStart=@RUN_PATH@/bin/mesos-init-wrapper master
 Restart=always
 RestartSec=20
 LimitNOFILE=16384
