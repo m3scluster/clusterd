@@ -2,7 +2,7 @@ Release Notes - Clusterd
 -----------------------------------------------
 This master branch contains the following changes:
 
-  * Docker Containerizer now supports CGroupsV2. It will be enabled by the Agent flag "--enable_cgroupv2". If its enabled, currently it will
+  * Docker Containerizer now supports CGroupsV2. It will be enabled by the Mesos Agent flag "--enable_cgroupv2". At the current state, it will
   break the mesos containerizer.
   * Add cleanup_log_files flag to the agent and the master to keep only log files from the last 'n days.
   * Cleanup repository and remove more unneeded files. It will be enabled by the Agent flag "--cleanup_log_file" and the number of days that it should keep log files. 
@@ -19,7 +19,7 @@ This release contains the following highlights:
   * Fix random SlaveRecoveryTest.PingTimeoutDuringRecovery test failure.
   * Fix Blkio isolator. handled missing CFQ statistics.
   * Fix mesos-tidy build with new gRPC version.
-  * Update grpc to version 1.11.1
+  * Upgraded grpc to 1.11.1
   * Add s390x support
 
 
