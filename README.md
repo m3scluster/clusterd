@@ -18,3 +18,16 @@ Instructions are included on the [Getting Started](http://mesos.apache.org/getti
 Clusterd is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 For additional information, see the LICENSE and NOTICE files.
+
+# Building
+
+To Compile Clusterd please use `cmake` and not the deprecated `configure`.
+
+## Compile with SSL support
+
+```bash
+mkdir build
+cd build
+cmake -DUNBUNDLED_LIBEVENT=true -DENABLE_SSL=true -DENABLE_LIBEVENT=true ../
+make
+```

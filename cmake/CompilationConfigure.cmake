@@ -272,7 +272,7 @@ endif ()
 # builds, because building on MSVC 1900 requires newer versions of some
 # dependencies than the ones bundled in the Mesos repository.
 set(
-  3RDPARTY_DEPENDENCIES "https://github.com/mesos/3rdparty/raw/master"
+  3RDPARTY_DEPENDENCIES "https://github.com/m3scluster/clusterd/3rdparty/downloads/raw/master"
   CACHE STRING
     "URL or filesystem path with a fork of the canonical 3rdparty repository")
 

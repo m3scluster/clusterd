@@ -49,7 +49,7 @@
 // Declare FLAGS_drop_log_memory flag for glog. This declaration is based on the
 // the DECLARE_XXX macros from glog/logging.h.
 namespace fLB {
-  extern GOOGLE_GLOG_DLL_DECL bool FLAGS_drop_log_memory;
+  extern GLOG_EXPORT bool FLAGS_drop_log_memory;
 }
 using fLB::FLAGS_drop_log_memory;
 #endif
@@ -422,9 +422,11 @@ void initialize(
     FLAGS_log_dir = flags.log_dir.get();
     // Do not log to stderr instead of log files.
     FLAGS_logtostderr = false;
+    FLAGS_logtostdout = false;
   } else {
     // Log to stderr instead of log files.
     FLAGS_logtostderr = true;
+    FLAGS_logtostdout = true;
   }
 
   // Log everything to stderr IN ADDITION to log files unless
@@ -452,8 +454,13 @@ void initialize(
     FLAGS_drop_log_memory = false;
   }
 #endif
-
   google::InitGoogleLogging(argv0.c_str());
+
+  if (flags.cleanup_log_files > 0) {
+    LOG_AT_LEVEL(FLAGS_minloglevel) << "Enable cleanup log files";
+    google::EnableLogCleaner(flags.cleanup_log_files);
+  }
+
   if (flags.log_dir.isSome()) {
     // Log this message in order to create the log file; this is because GLOG
     // creates the log file once the first log message occurs; also recreate

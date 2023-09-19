@@ -105,8 +105,8 @@ EXTRA_DIST =			\
 
 # We need to patch glog in order to deal with a compilation issue when
 # compiling with clang (and C++11); see MESOS-860, MESOS-966.
-EXTRA_DIST +=			\
-  $(GLOG).patch
+#EXTRA_DIST +=			\
+#  $(GLOG).patch
 
 # We need to patch gRPC for non-SSL build; see MEOS-9149.
 EXTRA_DIST +=			\

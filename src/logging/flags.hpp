@@ -35,6 +35,7 @@ public:
   std::string logging_level;
   Option<std::string> log_dir;
   int logbufsecs;
+  int cleanup_log_files;
   bool initialize_driver_logging;
   Option<std::string> external_log_file;
 };

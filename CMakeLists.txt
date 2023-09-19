@@ -73,7 +73,6 @@ set(CPACK_PACKAGE_FILE_NAME "aventer-mesos-${MESOS_PACKAGE_VERSION}-${MESOS_SUB_
 set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
 set(CPACK_PACKAGE_CONTACT "https://github.com/m3scluster/clusterd")
 set(CPACK_PACKAGE_MAINTAINER "AVENTER UG")
-set(ENABLE_SSL "true")
 
 # By default, all forms of binary packages are disabled.
 option(CPACK_BINARY_BUNDLE       "Enable to build OSX bundles"              OFF)

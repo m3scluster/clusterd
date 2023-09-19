@@ -22,6 +22,7 @@ else ()
   set(FETCH_URL ${3RDPARTY_DEPENDENCIES})
 endif ()
 
+
 # TODO(andschwa): Move each URL to the dependency itself.
 set(BOOST_URL           ${FETCH_URL}/boost-${BOOST_VERSION}.tar.gz)
 set(BZIP2_URL           ${FETCH_URL}/bzip2-${BZIP2_VERSION}.tar.gz)
@@ -29,9 +30,7 @@ set(CONCURRENTQUEUE_URL ${FETCH_URL}/concurrentqueue-${CONCURRENTQUEUE_VERSION}.
 set(CSI_V0_URL          ${FETCH_URL}/csi-${CSI_V0_VERSION}.tar.gz)
 set(CSI_V1_URL          ${FETCH_URL}/csi-${CSI_V1_VERSION}.tar.gz)
 set(ELFIO_URL           ${FETCH_URL}/elfio-${ELFIO_VERSION}.tar.gz)
-set(GLOG_URL            ${FETCH_URL}/glog-${GLOG_VERSION}.tar.gz)
 set(GOOGLETEST_URL      ${FETCH_URL}/googletest-release-${GOOGLETEST_VERSION}.tar.gz)
-set(GRPC_URL            ${FETCH_URL}/grpc-${GRPC_VERSION}.tar.gz)
 set(HTTP_PARSER_URL     ${FETCH_URL}/http-parser-${HTTP_PARSER_VERSION}.tar.gz)
 set(JEMALLOC_URL        ${FETCH_URL}/jemalloc-${JEMALLOC_VERSION}.tar.gz)
 set(LEVELDB_URL         ${FETCH_URL}/leveldb-${LEVELDB_VERSION}.tar.gz)
@@ -45,10 +44,9 @@ set(RAPIDJSON_URL       ${FETCH_URL}/rapidjson-${RAPIDJSON_VERSION}.tar.gz)
 set(RE2_URL             ${FETCH_URL}/re2-${RE2_VERSION}.tar.gz)
 set(XZ_URL              ${FETCH_URL}/xz-${XZ_VERSION}-modified.tar.gz)
 set(ZOOKEEPER_URL       ${FETCH_URL}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz)
-
-# NOTE: libevent doesn't come rebundled, so this URL is always the same. But,
-# it's only downloaded if `ENABLE_LIBEVENT` is set.
-set(LIBEVENT_URL ${3RDPARTY_DEPENDENCIES}/libevent-release-${LIBEVENT_VERSION}.tar.gz)
+set(GRPC_URL            ${FETCH_URL}/downloads/grpc-${GRPC_VERSION}.tar.gz)
+set(GLOG_URL            ${FETCH_URL}/downloads/glog-${GLOG_VERSION}.tar.gz)
+set(LIBEVENT_URL        ${FETCH_URL}/downloads/libevent-${LIBEVENT_VERSION}-stable.tar.gz)
 
 if (WIN32)
   # NOTE: These dependencies are only rebundled on Windows because they

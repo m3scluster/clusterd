@@ -56,6 +56,13 @@ mesos::internal::logging::Flags::Flags()
       "By default, this option is true.",
       true);
 
+  add(&Flags::cleanup_log_files,
+      "cleanup_log_files",
+      "Keep log files from the last 'n days.\n"
+      "By default, the cleanup is disabled (0)",
+      0);
+
+
   add(&Flags::external_log_file,
       "external_log_file",
       "Location of the externally managed log file.  Mesos does not write to\n"
