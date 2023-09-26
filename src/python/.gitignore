@@ -1,6 +1,0 @@
-*.pyc
-.virtualenv
-.coverage
-.tox
-build/
-mesos.egg-info

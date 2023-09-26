@@ -8,6 +8,10 @@ This master branch contains the following changes:
   * Cleanup repository and remove more unneeded files. It will be enabled by the Agent flag "--cleanup_log_file" and the number of days that it should keep log files. 
   * Update glog to version 0.6.0.
   * Update libevent to version 2.1.12.
+  * Move mesos-mini to it's own repository (https://github.com/m3scluster/mesos-mini).
+  * Remove mesos-tidy and mesos-website builder.
+  * Remove python dependencies and move the "new" mesos-cli to it's on repository (https://github.com/AVENTER-UG/mesos-cli).
+  * Remove the old mesos-cli.
 
 
 Release Notes - Clusterd - Version 1.11.0-0.3.0

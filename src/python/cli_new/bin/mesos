@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-CURRDIR="$(cd "$(dirname "$0")" && pwd)"
-
-python ${CURRDIR}/main.py "$@"

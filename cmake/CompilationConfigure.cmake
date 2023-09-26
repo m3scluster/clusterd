@@ -186,86 +186,9 @@ option(
   TRUE)
 
 option(
-  PYTHON
-  "Command for the Python interpreter, set to `python` if not given."
-  "python")
-
-option(
-  PYTHON_3
-  "Command for the Python 3 interpreter, set to the option PYTHON if not given."
-  "")
-
-option(
   ENABLE_NEW_CLI
   "Build the new CLI instead of the old one."
   FALSE)
-
-if (ENABLE_NEW_CLI)
-  # We always want to have PYTHON_3 set as it will be used to build the CLI.
-  if (NOT PYTHON_3)
-    if (PYTHON)
-      # Set PYTHON_3 to PYTHON if PYTHON is set but not PYTHON_3.
-      set(PYTHON_3 ${PYTHON})
-    else ()
-      # Set PYTHON_3 to the one CMake finds if PYTHON is not set.
-      # PythonInterp sets PYTHON_EXECUTABLE by looking for an interpreter
-      # from newest to oldest,, we then use it to set PYTHON and PYTHON_3.
-      find_package(PythonInterp)
-      if (NOT PYTHONINTERP_FOUND)
-        message(FATAL_ERROR "You must have Python set up in order to continue.")
-      endif ()
-      set(PYTHON ${PYTHON_EXECUTABLE})
-      set(PYTHON_3 ${PYTHON})
-    endif ()
-  endif ()
-
-  # Find `tox` for testing `src/python/lib/`.
-  find_program(TOX tox)
-  if (NOT TOX)
-    message(FATAL_ERROR "'tox' is required in order to run Mesos Python library tests.")
-  endif ()
-
-  execute_process(
-    COMMAND ${PYTHON_3} -c
-      "import sys; print('%d.%d' % (sys.version_info[0], sys.version_info[1]))"
-    OUTPUT_VARIABLE PYTHON_3_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  if (PYTHON_3_VERSION VERSION_LESS "3.6.0")
-    message(FATAL_ERROR
-    "You must be running python 3.6 or newer in order to continue.\n"
-    "You appear to be running Python ${PYTHON_3_VERSION}.\n"
-    "Set the CMake option 'PYTHON_3' to define which interpreter to use.")
-  endif ()
-endif ()
-
-option(
-  ENABLE_JAVA
-  "Build Java components. Warning: this is SLOW."
-  FALSE)
-
-if (ENABLE_JAVA)
-  include(FindJava)
-  find_package(Java COMPONENTS Development)
-
-  if (NOT JAVA_FOUND)
-    message(FATAL_ERROR "Java was not found!")
-  endif ()
-
-  include(FindJNI)
-  if (NOT JNI_FOUND)
-    message(FATAL_ERROR "JNI Java libraries were not found!")
-  endif ()
-
-  find_program(MVN mvn)
-  if (NOT MVN)
-    message(FATAL_ERROR "Maven was not found!")
-  endif ()
-
-  if (Java_FOUND AND JNI_FOUND AND MVN)
-    set(HAS_JAVA TRUE)
-  endif ()
-endif ()
 
 # If 'REBUNDLED' is set to FALSE, this will cause Mesos to build against the
 # specified dependency repository. This is especially useful for Windows

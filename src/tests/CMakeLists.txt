@@ -397,13 +397,6 @@ if (NOT WIN32)
       test-csi-plugin)
   endif ()
 
-  if (NOT ENABLE_NEW_CLI)
-    add_dependencies(mesos-tests
-      mesos-cli)
-  else ()
-    add_dependencies(mesos-tests
-      cli)
-  endif ()
 endif ()
 
 if (MESOS_INSTALL_TESTS)
