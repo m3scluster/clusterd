@@ -12,7 +12,8 @@ This master branch contains the following changes:
   * Remove mesos-tidy and mesos-website builder.
   * Remove python dependencies and move the "new" mesos-cli to it's on repository (https://github.com/AVENTER-UG/mesos-cli).
   * Remove the old mesos-cli.
-  - Update zookeeper client to version 3.8.2.
+  * Update zookeeper client to version 3.8.2.
+  * Update libboost to version 1.83.0.
 
 
 Release Notes - Clusterd - Version 1.11.0-0.3.0

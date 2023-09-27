@@ -24,7 +24,6 @@ endif ()
 
 
 # TODO(andschwa): Move each URL to the dependency itself.
-set(BOOST_URL           ${FETCH_URL}/boost-${BOOST_VERSION}.tar.gz)
 set(BZIP2_URL           ${FETCH_URL}/bzip2-${BZIP2_VERSION}.tar.gz)
 set(CONCURRENTQUEUE_URL ${FETCH_URL}/concurrentqueue-${CONCURRENTQUEUE_VERSION}.tar.gz)
 set(CSI_V0_URL          ${FETCH_URL}/csi-${CSI_V0_VERSION}.tar.gz)
@@ -43,10 +42,12 @@ set(PROTOBUF_URL        ${FETCH_URL}/protobuf-${PROTOBUF_VERSION}.tar.gz)
 set(RAPIDJSON_URL       ${FETCH_URL}/rapidjson-${RAPIDJSON_VERSION}.tar.gz)
 set(RE2_URL             ${FETCH_URL}/re2-${RE2_VERSION}.tar.gz)
 set(XZ_URL              ${FETCH_URL}/xz-${XZ_VERSION}-modified.tar.gz)
+set(BOOST_URL           https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_${BOOST_VERSION}.tar.gz)
 set(ZOOKEEPER_URL       ${FETCH_URL}/downloads/apache-zookeeper-${ZOOKEEPER_VERSION}.tar.gz)
 set(GRPC_URL            ${FETCH_URL}/downloads/grpc-${GRPC_VERSION}.tar.gz)
 set(GLOG_URL            ${FETCH_URL}/downloads/glog-${GLOG_VERSION}.tar.gz)
 set(LIBEVENT_URL        ${FETCH_URL}/downloads/libevent-${LIBEVENT_VERSION}-stable.tar.gz)
+
 
 if (WIN32)
   # NOTE: These dependencies are only rebundled on Windows because they
@@ -213,9 +214,6 @@ if ("${BOOST_ROOT_DIR}" STREQUAL "")
     target_compile_options(boost INTERFACE -Wno-unused-local-typedefs)
   endif ()
   target_include_directories(boost INTERFACE ${BOOST_ROOT})
-
-  # Patch Boost to avoid repeated "Unknown compiler warnings" on Windows.
-  PATCH_CMD(BOOST_PATCH_CMD boost-${BOOST_VERSION}.patch)
 
   ExternalProject_Add(
     ${BOOST_TARGET}
