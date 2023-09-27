@@ -1,0 +1,15 @@
+diff --color -ruN zookeeper/zookeeper-client/zookeeper-client-c/CMakeLists.txt zookeeper_new/zookeeper-client/zookeeper-client-c/CMakeLists.txt
+--- zookeeper/zookeeper-client/zookeeper-client-c/CMakeLists.txt        2023-09-26 21:14:02.381920444 +0200
++++ zookeeper_new/zookeeper-client/zookeeper-client-c/CMakeLists.txt    2023-09-26 21:22:06.710179600 +0200
+@@ -90,6 +90,11 @@
+   set(${out} "HAVE_${str}" PARENT_SCOPE)
+ endfunction()
+ 
++execute_process (
++    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../zookeeper-jute"
++    COMMAND bash -c "mvn compile"
++)
++
+ # include file checks
+ foreach(f generated/zookeeper.jute.h generated/zookeeper.jute.c)
+   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
