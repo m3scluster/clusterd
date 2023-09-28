@@ -48,6 +48,8 @@ set(GRPC_URL            ${FETCH_URL}/downloads/grpc-${GRPC_VERSION}.tar.gz)
 set(GLOG_URL            ${FETCH_URL}/downloads/glog-${GLOG_VERSION}.tar.gz)
 set(LIBEVENT_URL        ${FETCH_URL}/downloads/libevent-${LIBEVENT_VERSION}-stable.tar.gz)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (WIN32)
   # NOTE: These dependencies are only rebundled on Windows because they

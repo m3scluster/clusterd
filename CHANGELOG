@@ -14,6 +14,7 @@ This master branch contains the following changes:
   * Remove the old mesos-cli.
   * Update zookeeper client to version 3.8.2.
   * Update libboost to version 1.83.0.
+  * Change to c++14
 
 
 Release Notes - Clusterd - Version 1.11.0-0.3.0

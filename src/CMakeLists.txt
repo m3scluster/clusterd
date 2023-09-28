@@ -22,6 +22,9 @@ set(PUBLIC_PROTOBUF_SRC "")
 set(INTERNAL_PROTOBUF_SRC "")
 set(JAVA_PROTOBUF_SRC "")
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Build the protobuf structs.
 #
 # NOTE: The following `PROTOC_GENERATE` calls will list append to
