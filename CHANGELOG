@@ -15,6 +15,7 @@ This master branch contains the following changes:
   * Update zookeeper client to version 3.8.2.
   * Update libboost to version 1.83.0.
   * Change to c++14
+  * Update jquery to version 3.7.1.
 
 
 Release Notes - Clusterd - Version 1.11.0-0.3.0
