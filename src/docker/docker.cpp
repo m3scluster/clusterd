@@ -837,12 +837,14 @@ Try<Docker::RunOptions> Docker::RunOptions::create(
   if (dockerInfo.has_network()) {
     network = dockerInfo.network();
   } else {
-    // If no network was given, then use the OS specific default.
+    // If no network and no docker network options was given, then use the OS specific default.
+    if (!options.network.isSome()) {
 #ifdef __WINDOWS__
-    network = ContainerInfo::DockerInfo::BRIDGE;
+      network = ContainerInfo::DockerInfo::BRIDGE;
 #else
-    network = ContainerInfo::DockerInfo::HOST;
+      network = ContainerInfo::DockerInfo::HOST;
 #endif // __WINDOWS__
+    }
   }
 
   // See https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/container-networking // NOLINT(whitespace/line_length)
