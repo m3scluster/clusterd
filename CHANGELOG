@@ -17,6 +17,7 @@ This master branch contains the following changes:
   * Change to c++14
   * Update jquery to version 3.7.1.
   * Change docker networking. If no docker network and no docker net attribute was given, add default networking.
+  * Cleanup CNI if the docker container exited due to an error.
 
 
 Release Notes - Clusterd - Version 1.11.0-0.3.0
