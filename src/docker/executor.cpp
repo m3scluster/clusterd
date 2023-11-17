@@ -784,6 +784,8 @@ private:
       message = "Container " + WSTRINGIFY(status);
     }
 
+    // detach container network
+    detachCNI();
     LOG(INFO) << message;
 
     CHECK_SOME(taskId);
