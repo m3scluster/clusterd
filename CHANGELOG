@@ -2,6 +2,13 @@ Release Notes - Clusterd
 -----------------------------------------------
 This master branch contains the following changes:
 
+  * Currently none
+
+
+Release Notes - Clusterd - Version 1.11.0-0.4.0
+-----------------------------------------------
+This release contains the following highlights:
+
   * Docker Containerizer now supports CGroupsV2. It will be enabled by the Agent flag "--enable_cgroupv2". If its enabled, currently it will
   break the mesos containerizer.
   * Add cleanup_log_files flag to the agent and the master to keep only log files from the last 'n days.
