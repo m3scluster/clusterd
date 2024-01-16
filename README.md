@@ -31,3 +31,14 @@ cd build
 cmake -DUNBUNDLED_LIBEVENT=true -DENABLE_SSL=true -DENABLE_LIBEVENT=true ../
 make
 ```
+
+## Compile and build debian package
+
+```bash
+mkdir build
+cd build
+cmake -DUNBUNDLED_LIBEVENT=true -DENABLE_SSL=true -DENABLE_LIBEVENT=true -DCMAKE_BUILD_TYPE=Release -DCPACK_BINARY_DEB=true ../
+make
+make package
+```
+
