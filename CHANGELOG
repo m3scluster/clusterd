@@ -3,7 +3,18 @@ Release Notes - Clusterd
 This master branch contains the following changes:
 
   * Add support to isolators/port_mapping for optionally scaling egress 
-    bandwidth with CPU and with minimum and maximum limits. (https://github.com/apache/mesos/pull/461)
+    bandwidth with CPU and with minimum and maximum limits 
+    (Import from: https://github.com/apache/mesos/pull/461)
+  * Fixed inf scalar value parsing 
+    (Import from: https://github.com/apache/mesos/pull/466)
+  * Fixed tests in PortMappingMesosTest suite 
+    (Import from: https://github.com/apache/mesos/pull/470)
+  * Reduced the number of jemalloc arenas 
+    (Import from: https://github.com/apache/mesos/pull/465)
+  * Expose new metrics for memory usage in the cgroup 
+    (Import from: https://github.com/apache/mesos/pull/462)
+  * Added ECN configuration copying from the host to the container
+    (Import from: https://github.com/apache/mesos/pull/457)
 
 
 Release Notes - Clusterd - Version 1.11.0-0.4.0
