@@ -1518,6 +1518,10 @@ add_library(libgrpc ${LIBRARY_LINKAGE} IMPORTED)
 add_dependencies(libgrpc ${GRPC_TARGET})
 add_library(libgrpc++ ${LIBRARY_LINKAGE} IMPORTED)
 add_dependencies(libgrpc++ ${GRPC_TARGET})
+add_library(libaddress_sorting ${LIBRARY_LINKAGE} IMPORTED)
+add_dependencies(libaddress_sorting ${GRPC_TARGET})
+add_library(libgrpc_plugin_support ${LIBRARY_LINKAGE} IMPORTED)
+add_dependencies(libgrpc_plugin_support ${GRPC_TARGET})
 
 add_library(grpc INTERFACE)
 target_link_libraries(grpc INTERFACE libgrpc++ libgrpc libgpr)
@@ -1619,6 +1623,15 @@ else ()
   set_target_properties(
     grpc_cpp_plugin PROPERTIES
     IMPORTED_LOCATION ${GRPC_ROOT}-build/grpc_cpp_plugin)
+
+  set_target_properties(
+    libgrpc_plugin_support PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libgrpc_plugin_support${LIBRARY_SUFFIX})
+
+  set_target_properties(
+    libaddress_sorting PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libaddress_sorting${LIBRARY_SUFFIX})
+
 endif ()
 
 MAKE_INCLUDE_DIR(grpc)
@@ -1640,9 +1653,8 @@ ExternalProject_Add(
   URL_HASH         ${GRPC_HASH})
 
 install(
-  FILES $<TARGET_FILE:libgpr> $<TARGET_FILE:libgrpc> $<TARGET_FILE:libgrpc++>
+  FILES $<TARGET_FILE:libgpr> $<TARGET_FILE:libgrpc> $<TARGET_FILE:libgrpc++> $<TARGET_FILE:libaddress_sorting> $<TARGET_FILE:libgrpc_plugin_support>
   DESTINATION ${3RDPARTY_LIBS_INSTALL_DIR})
-
 
 
 # Jemalloc: General-purpose malloc implementation.
