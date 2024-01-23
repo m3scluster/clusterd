@@ -173,11 +173,11 @@ public:
   Option<process::Statistics<uint64_t>> txDropRate() const;
   Option<process::Statistics<uint64_t>> txErrorRate() const;
 
-  // Sample statistics from the interface.
-  void sample();
-
-  // Register the statistics sample. Exposed for testing.
+  // Register the statistics sample.
   void sample(const process::Time& ts, hashmap<std::string, uint64_t>&& stats);
+
+  // Name of the link to sample metrics from.
+  const std::string link;
 
 private:
   void sampleRate(
@@ -186,9 +186,6 @@ private:
       const process::Time& timestamp,
       double timeDelta,
       process::TimeSeries<uint64_t>& rates);
-
-  // Name of the link to sample metrics from.
-  const std::string link;
 
   process::TimeSeries<uint64_t> rxRates;
   process::TimeSeries<uint64_t> rxPackets;
@@ -345,7 +342,8 @@ private:
       const IntervalSet<uint16_t>& _managedNonEphemeralPorts,
       const process::Owned<EphemeralPortsAllocator>& _ephemeralPortsAllocator,
       const std::set<uint16_t>& _flowIDs,
-      const process::Owned<RatesCollector>& _ratesCollector);
+      const process::Owned<RatesCollector>& _ratesCollector,
+      const Option<Bytes>& _ingressRatePerCpu);
 
   // Continuations.
   Try<Nothing> _cleanup(Info* info, const Option<ContainerID>& containerId);
@@ -425,6 +423,8 @@ private:
   hashset<ContainerID> unmanaged;
 
   process::Owned<RatesCollector> ratesCollector;
+
+  const Option<Bytes> ingressRatePerCpu;
 };
 
 

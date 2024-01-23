@@ -62,6 +62,7 @@
 #include "linux/fs.hpp"
 #include "linux/ns.hpp"
 
+#include "linux/routing/internal.hpp"
 #include "linux/routing/route.hpp"
 #include "linux/routing/utils.hpp"
 
@@ -73,6 +74,7 @@
 
 #include "linux/routing/handle.hpp"
 
+#include "linux/routing/link/internal.hpp"
 #include "linux/routing/link/link.hpp"
 #include "linux/routing/link/veth.hpp"
 
@@ -737,6 +739,7 @@ static Try<Nothing> updateIngressHTB(
 }
 
 
+// Computes the speed of a link in bytes per second. 
 static Result<Bytes> getLinkSpeed(const string& link)
 {
   const string linkSpeedPath = path::join("/sys/class/net", link, "speed");
@@ -1588,20 +1591,13 @@ Option<Statistics<uint64_t>> PercentileRatesCollector::txErrorRate() const
 }
 
 
-void PercentileRatesCollector::sample()
-{
-  const Time ts = Clock::now();
-
-  Result<hashmap<string, uint64_t>> stats = link::statistics(link);
-  if (stats.isSome()) {
-    sample(ts, std::move(stats.get()));
-  }
-}
-
-
 void PercentileRatesCollector::sample(
     const Time& ts, hashmap<string, uint64_t>&& statistics)
 {
+  if (statistics.empty()) {
+    return;
+  }
+
   if (previous.isSome() && previous.get() < ts) {
     // We sample statistics on the host end of the veth pair, so we
     // need to reverse RX and TX to get statistics inside the
@@ -1652,7 +1648,7 @@ public:
 
   void initialize() override
   {
-    schedule();
+    sample();
   }
 
   Future<ResourceStatistics> usage(const ContainerID& containerId)
@@ -1724,13 +1720,54 @@ public:
   }
 
 private:
-  void schedule()
+  // This method is mostly a copy of routing::link::statistics(), but
+  // with the ability to use the existing links cache. It was copied
+  // here to preserve libnl-agnostic interface of routing package and
+  // ease the cleanup when this collector will be replaced with eBPF.
+  static hashmap<string, uint64_t> statistics(
+      const Netlink<struct nl_cache>& cache,
+      const string& link)
   {
-    foreachvalue (PercentileRatesCollector& collector, collectors) {
-      collector.sample();
+    hashmap<string, uint64_t> results;
+
+    struct rtnl_link* l = rtnl_link_get_by_name(cache.get(), link.c_str());
+    if (l) {
+      Netlink<struct rtnl_link> _link(l);
+
+      rtnl_link_stat_id_t stats[] = {
+        RTNL_LINK_RX_PACKETS,
+        RTNL_LINK_RX_BYTES,
+        RTNL_LINK_RX_ERRORS,
+        RTNL_LINK_RX_DROPPED,
+        RTNL_LINK_TX_PACKETS,
+        RTNL_LINK_TX_BYTES,
+        RTNL_LINK_TX_ERRORS,
+        RTNL_LINK_TX_DROPPED,
+      };
+
+      char buf[32];
+      size_t size = sizeof(stats) / sizeof(stats[0]);
+      for (size_t i = 0; i < size; i++) {
+        rtnl_link_stat2str(stats[i], buf, 32);
+        results[buf] = rtnl_link_get_stat(_link.get(), stats[i]);
+      }
     }
 
-    delay(interval, self(), &Self::schedule);
+    return results;
+  }
+
+  void sample()
+  {
+    const Time timestamp = Clock::now();
+
+    Try<Netlink<struct nl_cache>> cache = link::internal::get();
+    if (cache.isSome()) {
+      foreachvalue (PercentileRatesCollector& collector, collectors) {
+        collector.sample(timestamp, statistics(cache.get(), collector.link));
+      }
+    }
+
+    delay(interval, self(), &Self::sample);
   }
 
   void copyRate(
@@ -2207,6 +2244,50 @@ Try<Isolator*> PortMappingIsolatorProcess::create(const Flags& flags)
     return Error(
         "Minimum ingress rate limit cannot be greater than"
         " maximum ingress rate.");
+  }
+
+  Option<Bytes> ingressRatePerCpu;
+  if (flags.ingress_rate_per_cpu.isSome()) {
+    if (flags.ingress_rate_per_cpu.get() == "auto") {
+      // Extract the number of CPUs from resources flag.
+      const uint64_t cpus = resources->cpus().getOrElse(0);
+      if (cpus == 0) {
+        return Error(
+            "CPUs resource has to be specified to determine per CPU ingress "
+            "rate limit");
+      }
+
+      // Link speed may be provided by the operator. If not, we can try to read
+      // the self-reported speed.
+      Result<Bytes> speed = flags.network_link_speed;
+      if (speed.isNone()) {
+        speed = getLinkSpeed(eth0.get());
+        if (!speed.isSome()) {
+          return Error(
+              "Failed to determine per CPU ingress rate limit: "
+              "Failed to determine link speed of " + eth0.get() + ": " +
+              (speed.isError() ? speed.error() : "Not supported"));
+        }
+      }
+
+      ingressRatePerCpu = speed.get() / cpus;
+
+      LOG(INFO) << "Using " << ingressRatePerCpu.get()
+                << " per CPU ingress rate limit"
+                << " (" << speed.get() << "/" << cpus << ")";
+    } else {
+      Try<Bytes> limit = Bytes::parse(flags.ingress_rate_per_cpu.get());
+      if (limit.isError()) {
+        return Error(
+            "Bad option for 'ingress_rate_per_cpu' flag: " + limit.error());
+      }
+
+      ingressRatePerCpu = limit.get();
+
+      LOG(INFO) << "Using " << ingressRatePerCpu.get()
+                << " per CPU ingress rate limit";
+    }
+    CHECK_SOME(ingressRatePerCpu);
   }
 
   // If an egress or ingress rate limit is provided, do a sanity check
@@ -2687,7 +2768,8 @@ Try<Isolator*> PortMappingIsolatorProcess::create(const Flags& flags)
           nonEphemeralPorts,
           ephemeralPortsAllocator,
           freeFlowIds,
-          ratesCollector)));
+          ratesCollector,
+          ingressRatePerCpu)));
 }
 
 
@@ -2705,7 +2787,8 @@ PortMappingIsolatorProcess::PortMappingIsolatorProcess(
     const IntervalSet<uint16_t>& _managedNonEphemeralPorts,
     const process::Owned<EphemeralPortsAllocator>& _ephemeralPortsAllocator,
     const std::set<uint16_t>& _flowIDs,
-    const Owned<RatesCollector>& _ratesCollector)
+    const Owned<RatesCollector>& _ratesCollector,
+    const Option<Bytes>& _ingressRatePerCpu)
   : ProcessBase(process::ID::generate("mesos-port-mapping-isolator")),
     flags(_flags),
     bindMountRoot(_bindMountRoot),
@@ -2720,7 +2803,8 @@ PortMappingIsolatorProcess::PortMappingIsolatorProcess(
     managedNonEphemeralPorts(_managedNonEphemeralPorts),
     ephemeralPortsAllocator(_ephemeralPortsAllocator),
     freeFlowIds(_flowIDs),
-    ratesCollector(_ratesCollector)
+    ratesCollector(_ratesCollector),
+    ingressRatePerCpu(_ingressRatePerCpu)
 {}
 
 
@@ -4943,9 +5027,8 @@ Option<htb::cls::Config> PortMappingIsolatorProcess::ingressHTBConfig(
   Bytes rate(0);
   if (flags.ingress_rate_limit_per_container.isSome()) {
     rate = flags.ingress_rate_limit_per_container.get();
-  } else if (flags.ingress_rate_per_cpu.isSome()) {
-    rate = flags.ingress_rate_per_cpu.get() *
-           floor(resources.cpus().getOrElse(0));
+  } else if (ingressRatePerCpu.isSome()) {
+    rate = ingressRatePerCpu.get() * floor(resources.cpus().getOrElse(0));
   } else {
     return None();
   }
