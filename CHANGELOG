@@ -21,6 +21,14 @@ This master branch contains the following changes:
     (Import from: https://github.com/apache/mesos/pull/468)
   * ADD: LevelDB compaction after replicated log truncation
     (Import from: https://github.com/apache/mesos/pull/469)
+  * CHANGE: Improved performance of RatesCollector in network/port_mapping isolator. 
+  * FIX: Missing libs in cmake package creation.
+  * ADD: Auto calculation of ingress_rate_per_cpu.
+    (Import from: https://github.com/apache/mesos/pull/483)
+  * ADD: Exported container ephemeral ports range in ResourceStatistics.  
+    (Import from: https://github.com/apache/mesos/pull/481)
+  * ADD: Auto-enable limit enforcement feature on the XFS file system, to enforce set quotas.
+    (Import from: https://github.com/apache/mesos/pull/475)
     
 
 
