@@ -1241,7 +1241,7 @@ mesos::internal::slave::Flags::Flags()
       "If set to 'auto' the rate limit is automatically calculated\n"
       "by determining the link speed and dividing by the number of available\n"
       "CPU resources.\n" 
-      "This flag is used by the `network/port_mapping` isolator,");
+      "This flag is used by the `network/port_mapping` isolator.");
 
   add(&Flags::minimum_egress_rate_limit,
       "minimum_egress_rate_limit",
@@ -1293,6 +1293,9 @@ mesos::internal::slave::Flags::Flags()
       "ingress_rate_per_cpu Bytes/s for each whole unit of CPU resource,\n"
       "i.e., floor(CPU), subject to the values of the\n"
       "minimum_ingress_rate_limit and maximum_ingress_rate_limit flags."
+      "If set to 'auto' the rate limit is automatically calculated\n"
+      "by determining the link speed and dividing by the number of available\n"
+      "CPU resources.\n" 
       "This flag is used by the `network/port_mapping` isolator.");
 
   add(&Flags::minimum_ingress_rate_limit,
