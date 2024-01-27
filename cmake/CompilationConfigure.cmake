@@ -438,6 +438,10 @@ if (LINUX)
       "The port mapping isolator is not yet supported, see MESOS-8993.")
   endif ()
 
+  if (ENABLE_JEMALLOC_ALLOCATOR)
+    add_definitions(-DENABLE_JEMALLOC_ALLOCATOR)
+  endif ()  
+
   option(ENABLE_NETWORK_PORTS_ISOLATOR
     "Whether to enable the network ports isolator."
     FALSE)
