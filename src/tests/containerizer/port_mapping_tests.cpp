@@ -1850,43 +1850,47 @@ TEST_F(PortMappingIsolatorTest, ROOT_ScaleEgressWithCPU)
 }
 
 
-TEST_F(PortMappingIsolatorTest, ROOT_ScaleEgressWithCPUAutoConfig)
+// Test that egress rate limit scaling works correctly with high real-world
+// speeds.
+TEST_F(PortMappingIsolatorTest, ROOT_ScaleEgressWithCPULarge)
 {
   flags.egress_rate_limit_per_container = None();
-  flags.network_link_speed = Bytes(10000);
+  flags.egress_rate_per_cpu = "auto";
 
-  // Change available CPUs to be 10.
+  // Change available CPUs to be 64.
   vector<string> resources = strings::split(flags.resources.get(), ";");
   std::replace_if(
       resources.begin(),
       resources.end(),
       [](const string& s) {return strings::startsWith(s, "cpus:");},
-      "cpus:10");
+      "cpus:64");
   flags.resources = strings::join(";", resources);
 
-  // Egress rate limit per CPU should be 10000 / 10 = 1000.
-  const Bytes egressRatePerCpu = Bytes(1000);
-  flags.egress_rate_per_cpu = "auto";
+  const Bytes linkSpeed = 12500000000; // 100 Gbit/s
+  flags.network_link_speed = linkSpeed;
 
-  const Bytes minRate = 2000;
+  const Bytes minRate = 625000000; // 5 Gbit/s
   flags.minimum_egress_rate_limit = minRate;
 
-  const Bytes maxRate = 4000;
+  const Bytes maxRate = 11250000000; // 90 Gbit/s
   flags.maximum_egress_rate_limit = maxRate;
 
-  // CPU low enough for scaled network ingress to be increased to min limit:
-  // 1 * 1000 < 2000 ==> ingress is 2000.
+  const Bytes ratePerCpu = linkSpeed / 64;
+
+  // CPU high enough to be in linear scaling region and to trigger uint32_t
+  // overflow of scaled rate represented as bit/s: 30 * 12500000000 / 64 =
+  // 5859375000 or 46875000000 bits/s.
+  Try<Resources> linearCpu = Resources::parse("cpus:30;mem:1024;disk:1024");
+  ASSERT_SOME(linearCpu);
+
+  // CPU low enough for scaled network egress to be increased to the min limit:
+  // 1 * 12500000000 / 64 = 195312500 B/s.
   Try<Resources> lowCpu = Resources::parse("cpus:1;mem:1024;disk:1024");
   ASSERT_SOME(lowCpu);
 
-  // CPU sufficient to be in linear scaling region, greater than min and less
-  // than max: 2000 < 3.1 * 1000 < 4000.
-  Try<Resources> linearCpu = Resources::parse("cpus:3.1;mem:1024;disk:1024");
-  ASSERT_SOME(linearCpu);
-
-  // CPU high enough for scaled network ingress to be reduced to the max limit:
-  // 5 * 1000 > 4000.
-  Try<Resources> highCpu = Resources::parse("cpus:5;mem:1024;disk:1024");
+  // CPU high enough for scaled network egress to be reduced to the max limit:
+  // 60 * 12500000000 / 64 = 11718750000 B/s.
+  Try<Resources> highCpu = Resources::parse("cpus:60;mem:1024;disk:1024");
   ASSERT_SOME(highCpu);
 
   Try<Isolator*> isolator = PortMappingIsolatorProcess::create(flags);
@@ -1896,13 +1900,14 @@ TEST_F(PortMappingIsolatorTest, ROOT_ScaleEgressWithCPUAutoConfig)
   ASSERT_SOME(launcher);
 
   ExecutorInfo executorInfo;
-  executorInfo.mutable_resources()->CopyFrom(lowCpu.get());
+  executorInfo.mutable_resources()->CopyFrom(linearCpu.get());
 
   ContainerID containerId1;
   containerId1.set_value(id::UUID::random().toString());
 
   ContainerConfig containerConfig1;
   containerConfig1.mutable_executor_info()->CopyFrom(executorInfo);
+  containerConfig1.mutable_resources()->CopyFrom(executorInfo.resources());
 
   Future<Option<ContainerLaunchInfo>> launchInfo1 =
     isolator.get()->prepare(containerId1, containerConfig1);
@@ -1939,22 +1944,27 @@ TEST_F(PortMappingIsolatorTest, ROOT_ScaleEgressWithCPUAutoConfig)
   // executed.
   ASSERT_TRUE(waitForFileCreation(container1Ready));
 
-  // The container should start with minimum limit.
   Result<htb::cls::Config> config = recoverHTBConfig(pid.get(), eth0, flags);
   ASSERT_SOME(config);
-  ASSERT_EQ(minRate, config->rate);
+  ASSERT_EQ(ratePerCpu * floor(linearCpu->cpus().get()), config->rate);
 
-  // Increase CPU to get to linear scaling.
-  Future<Nothing> update = isolator.get()->update(
-      containerId1, linearCpu.get());
+  // Reduce CPU to get to hit the min limit.
+  Future<Nothing> update = isolator.get()->update(containerId1, lowCpu.get());
   AWAIT_READY(update);
 
   config = recoverHTBConfig(pid.get(), eth0, flags);
   ASSERT_SOME(config);
-  ASSERT_EQ(egressRatePerCpu.bytes() * floor(linearCpu->cpus().get()),
-            config->rate);
+  ASSERT_EQ(minRate, config->rate);
 
-  // Increase CPU further to hit maximum limit.
+  // Increase CPU back to the linear limit.
+  update = isolator.get()->update(containerId1, linearCpu.get());
+  AWAIT_READY(update);
+
+  config = recoverHTBConfig(pid.get(), eth0, flags);
+  ASSERT_SOME(config);
+  ASSERT_EQ(ratePerCpu * floor(linearCpu->cpus().get()), config->rate);
+
+  // Increase CPU to hit the max limit.
   update = isolator.get()->update(containerId1, highCpu.get());
   AWAIT_READY(update);
 
@@ -2016,126 +2026,10 @@ TEST_F(PortMappingIsolatorTest, ROOT_ScaleEgressWithCPUAutoConfig)
   Try<Launcher*> launcher = LinuxLauncher::create(flags);
   ASSERT_SOME(launcher);
 
-  ExecutorInfo executorInfo;
-  executorInfo.mutable_resources()->CopyFrom(lowCpu.get());
-
-  ContainerID containerId1;
-  containerId1.set_value(id::UUID::random().toString());
-
-  ContainerConfig containerConfig1;
-  containerConfig1.mutable_executor_info()->CopyFrom(executorInfo);
-
-  Future<Option<ContainerLaunchInfo>> launchInfo1 =
-    isolator.get()->prepare(containerId1, containerConfig1);
-  AWAIT_READY(launchInfo1);
-  ASSERT_SOME(launchInfo1.get());
-  ASSERT_EQ(1, launchInfo1.get()->pre_exec_commands().size());
-
-  int pipes[2];
-  ASSERT_NE(-1, ::pipe(pipes));
-
-  Try<pid_t> pid = launchHelper(
-      launcher.get(),
-      pipes,
-      containerId1,
-      "touch " + container1Ready + " && sleep 1000",
-      launchInfo1.get());
-  ASSERT_SOME(pid);
-
-  // Reap the forked child.
-  Future<Option<int>> status = process::reap(pid.get());
-
-  // Continue in the parent.
-  ::close(pipes[0]);
-
-  // Isolate the forked child.
-  AWAIT_READY(isolator.get()->isolate(containerId1, pid.get()));
-
-  // Signal forked child to continue.
-  char dummy;
-  ASSERT_LT(0, ::write(pipes[1], &dummy, sizeof(dummy)));
-  ::close(pipes[1]);
-
-  // Wait for command to start to ensure all pre-exec scripts have
-  // executed.
-  ASSERT_TRUE(waitForFileCreation(container1Ready));
-
-  // The container should start with minimum limit.
-  Result<htb::cls::Config> config = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_SOME(config);
-  ASSERT_EQ(minRate, config->rate);
-
-  // Increase CPU to get to linear scaling.
-  Future<Nothing> update = isolator.get()->update(
-      containerId1, linearCpu.get());
-  AWAIT_READY(update);
-
-  config = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_SOME(config);
-  ASSERT_EQ(egressRatePerCpu.bytes() * floor(linearCpu->cpus().get()),
-            config->rate);
-
-  // Increase CPU further to hit maximum limit.
-  update = isolator.get()->update(containerId1, highCpu.get());
-  AWAIT_READY(update);
-
-  config = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_SOME(config);
-  ASSERT_EQ(maxRate, config->rate);
-
-  // Kill the container
-  AWAIT_READY(launcher.get()->destroy(containerId1));
-  AWAIT_READY(isolator.get()->cleanup(containerId1));
-
-  delete launcher.get();
-  delete isolator.get();
-}
-
-
-TEST_F(PortMappingIsolatorTest, ROOT_ScaleEgressWithCPUAutoConfig)
-{
-  flags.egress_rate_limit_per_container = None();
-  flags.network_link_speed = Bytes(10000);
-
-  // Change available CPUs to be 10.
-  vector<string> resources = strings::split(flags.resources.get(), ";");
-  std::replace_if(
-      resources.begin(),
-      resources.end(),
-      [](const string& s) {return strings::startsWith(s, "cpus:");},
-      "cpus:10");
-  flags.resources = strings::join(";", resources);
-
-  // Egress rate limit per CPU should be 10000 / 10 = 1000.
-  const Bytes egressRatePerCpu = Bytes(1000);
-  flags.egress_rate_per_cpu = "auto";
-
-  const Bytes minRate = 2000;
-  flags.minimum_egress_rate_limit = minRate;
-
-  const Bytes maxRate = 4000;
-  flags.maximum_egress_rate_limit = maxRate;
-
-  // CPU low enough for scaled network ingress to be increased to min limit:
-  // 1 * 1000 < 2000 ==> ingress is 2000.
-  Try<Resources> lowCpu = Resources::parse("cpus:1;mem:1024;disk:1024");
-  ASSERT_SOME(lowCpu);
-
-  // CPU sufficient to be in linear scaling region, greater than min and less
-  // than max: 2000 < 3.1 * 1000 < 4000.
-  Try<Resources> linearCpu = Resources::parse("cpus:3.1;mem:1024;disk:1024");
-  ASSERT_SOME(linearCpu);
-
-  // CPU high enough for scaled network ingress to be reduced to the max limit:
-  // 5 * 1000 > 4000.
-  Try<Resources> highCpu = Resources::parse("cpus:5;mem:1024;disk:1024");
-  ASSERT_SOME(highCpu);
-
-  Try<Isolator*> isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-
-  Try<Launcher*> launcher = LinuxLauncher::create(flags);
-  ASSERT_SOME(launcher);
+  // The isolator should report the calculated per-CPU limit as a metric.
+  JSON::Object metrics = Metrics();
+  EXPECT_EQ(egressRatePerCpu.bytes(),
+            metrics.values["port_mapping/per_cpu_egress_rate_limit"]);
 
   ExecutorInfo executorInfo;
   executorInfo.mutable_resources()->CopyFrom(lowCpu.get());
@@ -2375,6 +2269,11 @@ TEST_F(PortMappingIsolatorTest, ROOT_ScaleIngressWithCPUAutoConfig)
   Try<Launcher*> launcher = LinuxLauncher::create(flags);
   ASSERT_SOME(launcher);
 
+  // The isolator should report the calculated per-CPU limit as a metric.
+  JSON::Object metrics = Metrics();
+  EXPECT_EQ(ingressRatePerCpu.bytes(),
+            metrics.values["port_mapping/per_cpu_ingress_rate_limit"]);
+
   ExecutorInfo executorInfo;
   executorInfo.mutable_resources()->CopyFrom(lowCpu.get());
 
@@ -2451,294 +2350,6 @@ TEST_F(PortMappingIsolatorTest, ROOT_ScaleIngressWithCPUAutoConfig)
   // Kill the container
   AWAIT_READY(launcher.get()->destroy(containerId1));
   AWAIT_READY(isolator.get()->cleanup(containerId1));
-
-  delete launcher.get();
-  delete isolator.get();
-}
-
-
-TEST_F(PortMappingIsolatorTest, ROOT_Upgrade)
-{
-  const Bytes rate = Bytes(1000);
-
-  flags.minimum_egress_rate_limit = 0;
-  flags.egress_rate_limit_per_container = None();
-  flags.minimum_ingress_rate_limit = 0;
-  flags.ingress_rate_limit_per_container = None();
-  flags.ingress_isolate_existing_containers = false;
-
-  Try<Resources> resources = Resources::parse("cpus:1;mem:128;disk:1024");
-  ASSERT_SOME(resources);
-
-  Try<Isolator*> isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-
-  Try<Launcher*> launcher = LinuxLauncher::create(flags);
-  ASSERT_SOME(launcher);
-
-  ExecutorInfo executorInfo;
-  executorInfo.mutable_resources()->CopyFrom(resources.get());
-
-  ContainerID containerId;
-  containerId.set_value(id::UUID::random().toString());
-
-  ContainerConfig containerConfig;
-  containerConfig.mutable_executor_info()->CopyFrom(executorInfo);
-
-  Future<Option<ContainerLaunchInfo>> launchInfo =
-    isolator.get()->prepare(containerId, containerConfig);
-  AWAIT_READY(launchInfo);
-  ASSERT_SOME(launchInfo.get());
-  ASSERT_EQ(1, launchInfo.get()->pre_exec_commands().size());
-
-  int pipes[2];
-  ASSERT_NE(-1, ::pipe(pipes));
-
-  Try<pid_t> pid = launchHelper(
-      launcher.get(),
-      pipes,
-      containerId,
-      "touch " + container1Ready + " && sleep 1000",
-      launchInfo.get());
-  ASSERT_SOME(pid);
-
-  // Reap the forked child.
-  Future<Option<int>> status = process::reap(pid.get());
-
-  // Continue in the parent.
-  ::close(pipes[0]);
-
-  // Isolate the forked child.
-  AWAIT_READY(isolator.get()->isolate(containerId, pid.get()));
-
-  // Signal forked child to continue.
-  char dummy;
-  ASSERT_LT(0, ::write(pipes[1], &dummy, sizeof(dummy)));
-  ::close(pipes[1]);
-
-  // Wait for command to start to ensure all pre-exec scripts have
-  // executed.
-  ASSERT_TRUE(waitForFileCreation(container1Ready));
-
-  const string veth = slave::PORT_MAPPING_VETH_PREFIX() + stringify(pid.get());
-  const routing::Handle cls(routing::Handle(1, 0), 1);
-
-  Result<htb::cls::Config> egressConfig =
-    recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_NONE(egressConfig);
-
-  Result<htb::cls::Config> ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_NONE(ingressConfig);
-
-  // Turn rate limiting on.
-  flags.egress_rate_limit_per_container = rate;
-  flags.ingress_rate_limit_per_container = rate;
-
-  // Recreate the isolator with the new flags.
-  delete isolator.get();
-  isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-
-  ContainerState containerState;
-  containerState.mutable_container_id()->CopyFrom(containerId);
-  containerState.set_pid(pid.get());
-
-  // Recover and rightsize the container as the agent does upon
-  // executor re-registration.
-  AWAIT_READY(isolator.get()->recover({containerState}, {}));
-  AWAIT_READY(isolator.get()->update(containerId, resources.get()));
-
-  egressConfig = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_SOME(egressConfig);
-  ASSERT_EQ(rate, egressConfig->rate);
-
-  // Ingress isolation should not be turned on because we didn't allow
-  // upgrading existing containers.
-  ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_NONE(ingressConfig);
-
-  // Enable turning on ingress isolation for existing containers.
-  flags.ingress_isolate_existing_containers = true;
-
-  // Recreate the isolator with the new flags.
-  delete isolator.get();
-  isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-  AWAIT_READY(isolator.get()->recover({containerState}, {}));
-  AWAIT_READY(isolator.get()->update(containerId, resources.get()));
-
-  egressConfig = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_SOME(egressConfig);
-  ASSERT_EQ(rate, egressConfig->rate);
-
-  ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_SOME(ingressConfig);
-  ASSERT_EQ(rate, ingressConfig->rate);
-
-  // Turn rate limiting off.
-  flags.egress_rate_limit_per_container = None();
-  flags.ingress_rate_limit_per_container = None();
-
-  // Recreate the isolator with the new flags.
-  delete isolator.get();
-  isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-  AWAIT_READY(isolator.get()->recover({containerState}, {}));
-  AWAIT_READY(isolator.get()->update(containerId, resources.get()));
-
-  egressConfig = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_NONE(egressConfig);
-
-  ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_NONE(ingressConfig);
-
-  // Kill the container.
-  AWAIT_READY(launcher.get()->destroy(containerId));
-  AWAIT_READY(isolator.get()->cleanup(containerId));
-
-  delete launcher.get();
-  delete isolator.get();
-}
-
-
-TEST_F(PortMappingIsolatorTest, ROOT_Upgrade)
-{
-  const Bytes rate = Bytes(1000);
-
-  flags.minimum_egress_rate_limit = 0;
-  flags.egress_rate_limit_per_container = None();
-  flags.minimum_ingress_rate_limit = 0;
-  flags.ingress_rate_limit_per_container = None();
-  flags.ingress_isolate_existing_containers = false;
-
-  Try<Resources> resources = Resources::parse("cpus:1;mem:128;disk:1024");
-  ASSERT_SOME(resources);
-
-  Try<Isolator*> isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-
-  Try<Launcher*> launcher = LinuxLauncher::create(flags);
-  ASSERT_SOME(launcher);
-
-  ExecutorInfo executorInfo;
-  executorInfo.mutable_resources()->CopyFrom(resources.get());
-
-  ContainerID containerId;
-  containerId.set_value(id::UUID::random().toString());
-
-  ContainerConfig containerConfig;
-  containerConfig.mutable_executor_info()->CopyFrom(executorInfo);
-
-  Future<Option<ContainerLaunchInfo>> launchInfo =
-    isolator.get()->prepare(containerId, containerConfig);
-  AWAIT_READY(launchInfo);
-  ASSERT_SOME(launchInfo.get());
-  ASSERT_EQ(1, launchInfo.get()->pre_exec_commands().size());
-
-  int pipes[2];
-  ASSERT_NE(-1, ::pipe(pipes));
-
-  Try<pid_t> pid = launchHelper(
-      launcher.get(),
-      pipes,
-      containerId,
-      "touch " + container1Ready + " && sleep 1000",
-      launchInfo.get());
-  ASSERT_SOME(pid);
-
-  // Reap the forked child.
-  Future<Option<int>> status = process::reap(pid.get());
-
-  // Continue in the parent.
-  ::close(pipes[0]);
-
-  // Isolate the forked child.
-  AWAIT_READY(isolator.get()->isolate(containerId, pid.get()));
-
-  // Signal forked child to continue.
-  char dummy;
-  ASSERT_LT(0, ::write(pipes[1], &dummy, sizeof(dummy)));
-  ::close(pipes[1]);
-
-  // Wait for command to start to ensure all pre-exec scripts have
-  // executed.
-  ASSERT_TRUE(waitForFileCreation(container1Ready));
-
-  const string veth = slave::PORT_MAPPING_VETH_PREFIX() + stringify(pid.get());
-  const routing::Handle cls(routing::Handle(1, 0), 1);
-
-  Result<htb::cls::Config> egressConfig =
-    recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_NONE(egressConfig);
-
-  Result<htb::cls::Config> ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_NONE(ingressConfig);
-
-  // Turn rate limiting on.
-  flags.egress_rate_limit_per_container = rate;
-  flags.ingress_rate_limit_per_container = rate;
-
-  // Recreate the isolator with the new flags.
-  delete isolator.get();
-  isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-
-  ContainerState containerState;
-  containerState.mutable_container_id()->CopyFrom(containerId);
-  containerState.set_pid(pid.get());
-
-  // Recover and rightsize the container as the agent does upon
-  // executor re-registration.
-  AWAIT_READY(isolator.get()->recover({containerState}, {}));
-  AWAIT_READY(isolator.get()->update(containerId, resources.get()));
-
-  egressConfig = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_SOME(egressConfig);
-  ASSERT_EQ(rate, egressConfig->rate);
-
-  // Ingress isolation should not be turned on because we didn't allow
-  // upgrading existing containers.
-  ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_NONE(ingressConfig);
-
-  // Enable turning on ingress isolation for existing containers.
-  flags.ingress_isolate_existing_containers = true;
-
-  // Recreate the isolator with the new flags.
-  delete isolator.get();
-  isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-  AWAIT_READY(isolator.get()->recover({containerState}, {}));
-  AWAIT_READY(isolator.get()->update(containerId, resources.get()));
-
-  egressConfig = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_SOME(egressConfig);
-  ASSERT_EQ(rate, egressConfig->rate);
-
-  ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_SOME(ingressConfig);
-  ASSERT_EQ(rate, ingressConfig->rate);
-
-  // Turn rate limiting off.
-  flags.egress_rate_limit_per_container = None();
-  flags.ingress_rate_limit_per_container = None();
-
-  // Recreate the isolator with the new flags.
-  delete isolator.get();
-  isolator = PortMappingIsolatorProcess::create(flags);
-  ASSERT_SOME(isolator);
-  AWAIT_READY(isolator.get()->recover({containerState}, {}));
-  AWAIT_READY(isolator.get()->update(containerId, resources.get()));
-
-  egressConfig = recoverHTBConfig(pid.get(), eth0, flags);
-  ASSERT_NONE(egressConfig);
-
-  ingressConfig = htb::cls::getConfig(veth, cls);
-  ASSERT_NONE(ingressConfig);
-
-  // Kill the container.
-  AWAIT_READY(launcher.get()->destroy(containerId));
-  AWAIT_READY(isolator.get()->cleanup(containerId));
 
   delete launcher.get();
   delete isolator.get();

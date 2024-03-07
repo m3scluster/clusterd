@@ -28,6 +28,12 @@
 
 #include "linux/routing/handle.hpp"
 
+#include <netlink/version.h>
+
+#if LIBNL_VER_MAJ < 3 || (LIBNL_VER_MAJ == 3 && LIBNL_VER_MIN < 5)
+#error libnl3 >= 3.5 required. Please update your installed libnl3 version.
+#endif
+
 namespace routing {
 namespace queueing {
 namespace htb {
@@ -81,8 +87,8 @@ namespace cls {
 struct Config
 {
   Config(
-      uint32_t _rate,
-      Option<uint32_t> _ceil = None(),
+      uint64_t _rate,
+      Option<uint64_t> _ceil = None(),
       Option<uint32_t> _burst = None())
     : rate(_rate),
       ceil(_ceil),
@@ -99,9 +105,9 @@ struct Config
 
   // Normal rate limit. The size of the normal rate bucket is not
   // exposed and will be computed by the kernel.
-  uint32_t rate;
+  uint64_t rate;
   // Burst limit.
-  Option<uint32_t> ceil;
+  Option<uint64_t> ceil;
   // Size of the burst bucket.
   Option<uint32_t> burst;
 };

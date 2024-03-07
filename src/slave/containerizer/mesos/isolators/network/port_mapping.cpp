@@ -617,8 +617,8 @@ static Result<htb::cls::Config> parseHTBConfig(const JSON::Object& object)
   }
 
   return htb::cls::Config(
-      rate->as<uint32_t>(),
-      ceil.isSome() ? Option<uint32_t>(ceil->as<uint32_t>())
+      rate->as<uint64_t>(),
+      ceil.isSome() ? Option<uint64_t>(ceil->as<uint64_t>())
                     : None(),
       burst.isSome() ? Option<uint32_t>(burst->as<uint32_t>())
                      : None());
@@ -1940,7 +1940,11 @@ PortMappingIsolatorProcess::Metrics::Metrics()
     updating_eth0_arp_filters_do_not_exist(
         "port_mapping/updating_eth0_arp_filters_do_not_exist"),
     updating_container_ip_filters_errors(
-        "port_mapping/updating_container_ip_filters_errors")
+        "port_mapping/updating_container_ip_filters_errors"),
+    per_cpu_egress_rate_limit(
+        "port_mapping/per_cpu_egress_rate_limit"),
+    per_cpu_ingress_rate_limit(
+        "port_mapping/per_cpu_ingress_rate_limit")
 {
   process::metrics::add(adding_eth0_ip_filters_errors);
   process::metrics::add(adding_eth0_ip_filters_already_exist);
@@ -1973,6 +1977,8 @@ PortMappingIsolatorProcess::Metrics::Metrics()
   process::metrics::add(updating_eth0_arp_filters_already_exist);
   process::metrics::add(updating_eth0_arp_filters_do_not_exist);
   process::metrics::add(updating_container_ip_filters_errors);
+  process::metrics::add(per_cpu_egress_rate_limit);
+  process::metrics::add(per_cpu_ingress_rate_limit);
 }
 
 
@@ -2009,6 +2015,8 @@ PortMappingIsolatorProcess::Metrics::~Metrics()
   process::metrics::remove(updating_eth0_arp_filters_already_exist);
   process::metrics::remove(updating_eth0_arp_filters_do_not_exist);
   process::metrics::remove(updating_container_ip_filters_errors);
+  process::metrics::remove(per_cpu_egress_rate_limit);
+  process::metrics::remove(per_cpu_ingress_rate_limit);
 }
 
 
@@ -2890,7 +2898,10 @@ PortMappingIsolatorProcess::PortMappingIsolatorProcess(
     ratesCollector(_ratesCollector),
     egressRatePerCpu(_egressRatePerCpu),
     ingressRatePerCpu(_ingressRatePerCpu)
-{}
+{
+  metrics.per_cpu_egress_rate_limit = egressRatePerCpu.getOrElse(0).bytes();
+  metrics.per_cpu_ingress_rate_limit = ingressRatePerCpu.getOrElse(0).bytes();
+}
 
 
 Result<htb::cls::Config> recoverHTBConfig(
@@ -5066,7 +5077,8 @@ Option<htb::cls::Config> PortMappingIsolatorProcess::egressHTBConfig(
   if (flags.egress_rate_limit_per_container.isSome()) {
     rate = flags.egress_rate_limit_per_container.get();
   } else if (egressRatePerCpu.isSome()) {
-    rate = egressRatePerCpu.get() * floor(resources.cpus().getOrElse(0));
+    rate = egressRatePerCpu.get() *
+      static_cast<uint64_t>(resources.cpus().getOrElse(0));
   } else {
     return None();
   }
@@ -5081,7 +5093,7 @@ Option<htb::cls::Config> PortMappingIsolatorProcess::egressHTBConfig(
     rate = std::min(flags.maximum_egress_rate_limit.get(), rate);
   }
 
-  Option<uint32_t> ceil;
+  Option<uint64_t> ceil;
   Option<uint32_t> burst;
 
   if (flags.egress_ceil_limit.isSome() &&
@@ -5104,7 +5116,8 @@ Option<htb::cls::Config> PortMappingIsolatorProcess::ingressHTBConfig(
   if (flags.ingress_rate_limit_per_container.isSome()) {
     rate = flags.ingress_rate_limit_per_container.get();
   } else if (ingressRatePerCpu.isSome()) {
-    rate = ingressRatePerCpu.get() * floor(resources.cpus().getOrElse(0));
+    rate = ingressRatePerCpu.get() *
+      static_cast<uint64_t>(resources.cpus().getOrElse(0));
   } else {
     return None();
   }
@@ -5119,7 +5132,7 @@ Option<htb::cls::Config> PortMappingIsolatorProcess::ingressHTBConfig(
     rate = std::min(flags.maximum_ingress_rate_limit.get(), rate);
   }
 
-  Option<uint32_t> ceil;
+  Option<uint64_t> ceil;
   Option<uint32_t> burst;
 
   if (flags.ingress_ceil_limit.isSome() &&
@@ -5284,7 +5297,8 @@ string PortMappingIsolatorProcess::scripts(Info* info)
            << info->egressConfig->rate * 8 << "bit";
     if (info->egressConfig->ceil.isSome()) {
       script << " ceil "
-             << info->egressConfig->ceil.get() * 8 << "bit";
+             << info->egressConfig->ceil.get() * 8
+             << "bit";
       if (info->egressConfig->burst.isSome()) {
         // Use bytes here because tc command borks at bits.
         script << " burst " << info->egressConfig->burst.get() << "b";
