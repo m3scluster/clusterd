@@ -14,11 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-<<<<<<< HEAD
-#ifndef __EBPF_HPP__
-#define __EBPF_HPP__
-
-=======
 // TODO(dleamy): Look into using libbpf: https://github.com/libbpf/libbpf
 //               to simplify and or replace the low-level BPF operations.
 
@@ -138,5 +133,4 @@ Try<int> load(const Program& program);
 
 } // namespace ebpf {
 
->>>>>>> 4dd7fe21ab7396c02d0a152772141aa5fd6a68bd
 #endif // __EBPF_HPP__
