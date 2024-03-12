@@ -65,6 +65,8 @@ void Program::append(vector<bpf_insn>&& instructions)
 }
 
 
+// Load an eBPF program into the kernel and return the file
+// descriptor of the loaded program.
 Try<int> load(const Program& program)
 {
   bpf_attr attribute;
@@ -101,7 +103,12 @@ Try<int> load(const Program& program)
 
 namespace cgroups2 {
 
-Try<Nothing> attach(int fd, const string& cgroup)
+// Attaches the eBPF program identified by the provided fd to a cgroup.
+//
+// TODO(dleamy): This currently does not replace existing programs attached
+// to the cgroup, we will need to add replacement to support adding / removing
+// device access dynamically.
+Try<Nothing> attach(const string& cgroup, int fd)
 {
   Try<int> cgroup_fd = os::open(cgroup, O_DIRECTORY | O_RDONLY | O_CLOEXEC);
   if (cgroup_fd.isError()) {
@@ -145,6 +152,100 @@ Try<Nothing> attach(int fd, const string& cgroup)
 
   if (result.isError()) {
     return Error("BPF program attach syscall failed: "
+                 + result.error().message);
+  }
+
+  return Nothing();
+}
+
+
+Try<Nothing> attach(const string& cgroup, const Program& program)
+{
+  Try<int> program_fd = ebpf::load(program);
+  if (program_fd.isError()) {
+    return Error("Failed to load eBPF program: " + program_fd.error());
+  }
+
+  Try<Nothing> _attach = attach(cgroup, *program_fd);
+  os::close(*program_fd);
+  if (_attach.isError()) {
+    return Error("Failed to attach eBPF program: " + _attach.error());
+  }
+
+  return Nothing();
+}
+
+
+Try<vector<uint32_t>> attached(const string& cgroup)
+{
+  Try<int> cgroup_fd = os::open(cgroup, O_DIRECTORY | O_RDONLY | O_CLOEXEC);
+  if (cgroup_fd.isError()) {
+    return Error("Failed to open '" + cgroup + "': " + cgroup_fd.error());
+  }
+
+  // Program ids are unsigned 32-bit integers. We assume that a maximum
+  // of 64 programs are attached to a cgroup; there should only be 0 or 1
+  // but we allow for more to be safe.
+  const int MAX_IDS = 64;
+  vector<uint32_t> ids(MAX_IDS);
+
+  bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
+  attr.query.target_fd = *cgroup_fd;
+  attr.query.attach_type = BPF_CGROUP_DEVICE;
+  attr.query.prog_cnt = MAX_IDS;
+  attr.query.prog_ids = reinterpret_cast<uint64_t>(ids.data());
+
+  Try<int, ErrnoError> result = bpf(BPF_PROG_QUERY, &attr, sizeof(attr));
+  os::close(*cgroup_fd);
+
+  if (result.isError()) {
+    return Error(
+        "bpf syscall to BPF_PROG_QUERY for BPF_CGROUP_DEVICE programs failed: "
+        + result.error().message);
+  }
+
+  // Although `attr.query.prog_cnt` is not a pointer, the bpf() system call
+  // sets it to the number of program ids that were stored in the `ids` buffer.
+  ids.resize(attr.query.prog_cnt);
+
+  return ids;
+}
+
+
+// Detach an eBPF program from a target (AKA path) by its attachment type
+// and program id. Returns Nothing() on success or if no program is found.
+Try<Nothing> detach(const string& cgroup, uint32_t program_id)
+{
+  Try<int> cgroup_fd = os::open(cgroup, O_DIRECTORY | O_RDONLY | O_CLOEXEC);
+  if (cgroup_fd.isError()) {
+    return Error("Failed to open '" + cgroup + "': " + cgroup_fd.error());
+  }
+
+  bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
+  attr.prog_id = program_id;
+
+  Try<int, ErrnoError> program_fd =
+    bpf(BPF_PROG_GET_FD_BY_ID, &attr, sizeof(attr));
+
+  if (program_fd.isError()) {
+    return Error("bpf syscall to BPF_PROG_GET_FD_BY_ID failed: " +
+                 program_fd.error().message);
+  }
+
+  memset(&attr, 0, sizeof(attr));
+  attr.attach_type = BPF_CGROUP_DEVICE;
+  attr.target_fd = *cgroup_fd;
+  attr.attach_bpf_fd = *program_fd;
+
+  Try<int, ErrnoError> result = bpf(BPF_PROG_DETACH, &attr, sizeof(attr));
+
+  os::close(*cgroup_fd);
+  os::close(*program_fd);
+
+  if (result.isError()) {
+    return Error("bpf syscall to BPF_PROG_DETACH failed: "
                  + result.error().message);
   }
 
