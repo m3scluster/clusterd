@@ -201,7 +201,7 @@ Try<bool> mounted()
     return Error("Failed to read /proc/mounts: " + mountTable.error());
   }
 
-  foreach (MountTable::Entry entry, mountTable.get().entries) {
+  foreach (MountTable::Entry entry, mountTable->entries) {
     if (entry.type == cgroups2::FILE_SYSTEM) {
       if (entry.dir == MOUNT_POINT) {
         return true;
@@ -236,6 +236,43 @@ Try<Nothing> unmount()
   Try<Nothing> rmdir = os::rmdir(cgroups2::MOUNT_POINT);
   if (rmdir.isError()) {
     return Error("Failed to remove directory '" + cgroups2::MOUNT_POINT + "': "
+                 + rmdir.error());
+  }
+
+  return Nothing();
+}
+
+
+bool exists(const string& cgroup)
+{
+  return os::exists(path::join(MOUNT_POINT, cgroup));
+}
+
+
+Try<Nothing> create(const string& cgroup, bool recursive)
+{
+  const string absolutePath = path::join(MOUNT_POINT, cgroup);
+
+  Try<Nothing> mkdir = os::mkdir(absolutePath, recursive);
+  if (mkdir.isError()) {
+    return Error("Failed to create directory '" + absolutePath + "': "
+                 + mkdir.error());
+  }
+
+  return Nothing();
+}
+
+
+Try<Nothing> destroy(const string& cgroup)
+{
+  if (!cgroups2::exists(cgroup)) {
+    return Error("Cgroup '" + cgroup + "' does not exist");
+  }
+
+  const string absolutePath = path::join(MOUNT_POINT, cgroup);
+  Try<Nothing> rmdir = os::rmdir(absolutePath, false);
+  if (rmdir.isError()) {
+    return Error("Failed to remove directory '" + absolutePath + "': "
                  + rmdir.error());
   }
 
@@ -278,5 +315,21 @@ Try<Nothing> enable(const string& cgroup, const vector<string>& controllers)
       stringify(control));
 }
 
+
+Try<set<string>> enabled(const string& cgroup)
+{
+  Try<string> contents =
+    cgroups2::read(cgroup, cgroups2::control::SUBTREE_CONTROLLERS);
+  if (contents.isError()) {
+    return Error("Failed to read 'cgroup.subtree_control' in '" + cgroup + "'"
+                 ": " + contents.error());
+  }
+
+  using State = control::subtree_control::State;
+  State control = State::parse(*contents);
+  return control.enabled();
+}
+
 } // namespace controllers {
+
 } // namespace cgroups2 {

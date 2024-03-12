@@ -33,18 +33,37 @@ const std::string ROOT_CGROUP = "";
 // Checks if cgroups2 is available on the system.
 bool enabled();
 
+
 // Mounts the cgroups2 file system at /sys/fs/cgroup. Errors if
 // the cgroups v2 file system is already mounted.
 Try<Nothing> mount();
+
 
 // Checks if the cgroup2 file systems is mounted at /sys/fs/cgroup,
 // returns an error if the mount is found at an unexpected location.
 Try<bool> mounted();
 
+
 // Unmounts the cgroups2 file system from /sys/fs/cgroup. Errors if
 // the cgroup2 file system is not mounted at /sys/fs/cgroup. It's the
 // responsibility of the caller to ensure all child cgroups have been destroyed.
 Try<Nothing> unmount();
+
+
+// Check if a cgroup exists.
+bool exists(const std::string& cgroup);
+
+
+// Creates a cgroup off of the base hierarchy, i.e. /sys/fs/cgroup/<cgroup>.
+// cgroup can be a nested cgroup (e.g. foo/bar/baz). If cgroup is a nested
+// cgroup and the parent cgroups do not exist, an error will be returned unless
+// recursive=true.
+Try<Nothing> create(const std::string& cgroup, bool recursive = false);
+
+
+// Destroy a cgroup. If the cgroup does not exist or cannot be destroyed,
+// e.g. because it contains processes, an error is returned.
+Try<Nothing> destroy(const std::string& cgroup);
 
 namespace controllers {
 
@@ -53,13 +72,19 @@ namespace controllers {
 // on the host.
 Try<std::set<std::string>> available(const std::string& cgroup);
 
+
 // Enables the given controllers in the cgroup and disables all other
 // controllers. Errors if a requested controller is not available.
 Try<Nothing> enable(
     const std::string& cgroup,
     const std::vector<std::string>& controllers);
 
+
+// Get all the controllers that are enabled for a cgroup.
+Try<std::set<std::string>> enabled(const std::string& cgroup);
+
 } // namespace controllers {
-} // namespace cgroups2
+
+} // namespace cgroups2 {
 
 #endif // __CGROUPS_V2_HPP__
