@@ -242,6 +242,38 @@ Try<Nothing> unmount()
   return Nothing();
 }
 
+
+Try<Nothing> create(const string& cgroup, bool recursive)
+{
+  const string absolutePath = path::join(MOUNT_POINT, cgroup);
+
+  Try<Nothing> mkdir = os::mkdir(absolutePath, recursive);
+  if (mkdir.isError()) {
+    return Error("Failed to create directory '" + absolutePath + "': "
+                 + mkdir.error());
+  }
+
+  return Nothing();
+}
+
+
+Try<Nothing> destroy(const string& cgroup)
+{
+  const string absolutePath = path::join(MOUNT_POINT, cgroup);
+
+  if (!os::exists(absolutePath)) {
+    return Error("There does not exist a cgroup at '" + absolutePath + "'");
+  }
+
+  Try<Nothing> rmdir = os::rmdir(absolutePath, false);
+  if (rmdir.isError()) {
+    return Error("Failed to remove directory '" + absolutePath + "': "
+                 + rmdir.error());
+  }
+
+  return Nothing();
+}
+
 namespace controllers {
 
 Try<set<string>> available(const string& cgroup)

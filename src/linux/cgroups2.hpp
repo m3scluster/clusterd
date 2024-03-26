@@ -49,6 +49,18 @@ Try<bool> mounted();
 // responsibility of the caller to ensure all child cgroups have been destroyed.
 Try<Nothing> unmount();
 
+
+// Creates a cgroup off of the base hierarchy, i.e. /sys/fs/cgroup/<cgroup>.
+// cgroup can be a nested cgroup (e.g. foo/bar/baz). If cgroup is a nested
+// cgroup and the parent cgroups do not exist, an error will be returned unless
+// recursive=true.
+Try<Nothing> create(const std::string& cgroup, bool recursive = false);
+
+
+// Destroy a cgroup. If the cgroup does not exist or cannot be destroyed,
+// e.g. because it contains processes, an error is returned.
+Try<Nothing> destroy(const std::string& cgroup);
+
 namespace controllers {
 
 // Gets the controllers that can be controlled by the provided cgroup.
