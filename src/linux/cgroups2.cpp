@@ -201,7 +201,7 @@ Try<bool> mounted()
     return Error("Failed to read /proc/mounts: " + mountTable.error());
   }
 
-  foreach (MountTable::Entry entry, mountTable.get().entries) {
+  foreach (MountTable::Entry entry, mountTable->entries) {
     if (entry.type == cgroups2::FILE_SYSTEM) {
       if (entry.dir == MOUNT_POINT) {
         return true;
@@ -278,5 +278,21 @@ Try<Nothing> enable(const string& cgroup, const vector<string>& controllers)
       stringify(control));
 }
 
+
+Try<set<string>> enabled(const string& cgroup)
+{
+  Try<string> contents =
+    cgroups2::read(cgroup, cgroups2::control::SUBTREE_CONTROLLERS);
+  if (contents.isError()) {
+    return Error("Failed to read 'cgroup.subtree_control' in '" + cgroup + "'"
+                 ": " + contents.error());
+  }
+
+  using State = control::subtree_control::State;
+  State control = State::parse(*contents);
+  return control.enabled();
+}
+
 } // namespace controllers {
+
 } // namespace cgroups2 {
