@@ -91,8 +91,8 @@ struct Flags : public virtual mesos::internal::logging::Flags
         "via the CFS bandwidth limiting subfeature.\n",
         false);
 
-    add(&Flags::enable_cgroupsv2,
-        "enable_cgroupsv2",
+    add(&Flags::enable_cgroups_v2,
+        "enable_cgroups_v2",
         "Enable CGroupsV2 Support (ALPHA).",
         false);        
 
@@ -123,7 +123,7 @@ struct Flags : public virtual mesos::internal::logging::Flags
   Option<std::string> network_cni_config_dir;
 
   bool cgroups_enable_cfs;
-  bool enable_cgroupsv2;
+  bool enable_cgroups_v2;
 
   // TODO(alexr): Remove this after the deprecation cycle (started in 1.0).
   Option<Duration> stop_timeout;

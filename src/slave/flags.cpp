@@ -376,8 +376,8 @@ mesos::internal::slave::Flags::Flags()
 
 #ifndef __WINDOWS__
 
-  add(&Flags::enable_cgroupsv2,
-      "enable_cgroupsv2",
+  add(&Flags::enable_cgroups_v2,
+      "enable_cgroups_v2",
       "Enable CGroupsV2 Support (ALPHA).",
       false);
 
