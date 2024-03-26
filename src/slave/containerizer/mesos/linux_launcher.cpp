@@ -125,7 +125,7 @@ Try<Launcher*> LinuxLauncher::create(const Flags& flags)
   }
 
   // Ensure that no other subsystem is attached to the freezer hierarchy.
-  if (!flags.enable_cgroupsv2) {
+  if (!flags.enable_cgroups_v2) {
     Try<set<string>> subsystems = cgroups::subsystems(freezerHierarchy.get());
     if (subsystems.isError()) {
       return Error(

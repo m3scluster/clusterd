@@ -76,7 +76,7 @@ public:
   size_t max_completed_executors_per_framework;
 
 #ifndef __WINDOWS__
-  bool enable_cgroupsv2;
+  bool enable_cgroups_v2;
   bool switch_user;
   Option<std::string> volume_gid_range;
 #endif // __WINDOWS__

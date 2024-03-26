@@ -60,8 +60,8 @@ Flags::Flags()
       "The path to the cgroups hierarchy root\n",
       "/sys/fs/cgroup");
 
-  add(&Flags::enable_cgroupsv2,
-      "enable_cgroupsv2",
+  add(&Flags::enable_cgroups_v2,
+      "enable_cgroups_v2",
       "Enable CGroupsV2 Support (ALPHA).",
       false);      
 }
@@ -184,7 +184,7 @@ Try<Nothing> initialize(const Flags& flags)
   }
 
   // cgroupsv2 does not have a systemd cgroups hierarchy
-  if (!systemd_flags->enable_cgroupsv2) {
+  if (!systemd_flags->enable_cgroups_v2) {
     // Now the `MESOS_EXECUTORS_SLICE` is ready for us to assign any pids. We can
     // verify that our cgroups assignments will work by testing the hierarchy.
     Try<Nothing> cgroupsVerify = cgroups::verify(
@@ -283,7 +283,7 @@ Path runtimeDirectory()
 
 Path hierarchy()
 {
-  if (flags().enable_cgroupsv2) {
+  if (flags().enable_cgroups_v2) {
     return Path(flags().cgroups_hierarchy);
   }
   return Path(path::join(flags().cgroups_hierarchy, "systemd"));
