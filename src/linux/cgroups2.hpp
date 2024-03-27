@@ -24,6 +24,8 @@
 #include <stout/nothing.hpp>
 #include <stout/try.hpp>
 
+#include "linux/cgroups.hpp"
+
 namespace cgroups2 {
 
 // Root cgroup in the cgroup v2 hierarchy. Since the root cgroup has the same
@@ -53,6 +55,7 @@ Try<Nothing> unmount();
 // Check if a cgroup exists.
 bool exists(const std::string& cgroup);
 
+
 // Creates a cgroup off of the base hierarchy, i.e. /sys/fs/cgroup/<cgroup>.
 // cgroup can be a nested cgroup (e.g. foo/bar/baz). If cgroup is a nested
 // cgroup and the parent cgroups do not exist, an error will be returned unless
@@ -63,6 +66,24 @@ Try<Nothing> create(const std::string& cgroup, bool recursive = false);
 // Destroy a cgroup. If the cgroup does not exist or cannot be destroyed,
 // e.g. because it contains processes, an error is returned.
 Try<Nothing> destroy(const std::string& cgroup);
+
+
+// Assign a process to a cgroup, by PID, removing the process from its
+// current cgroup. Returns an error if the cgroup does not exist.
+Try<Nothing> assign(const std::string& cgroup, pid_t pid);
+
+
+// Get the cgroup that a process is part of, returns a relative path off of
+// /sys/fs/cgroup. E.g. For /sys/fs/cgroup/test, this will return "test".
+Try<std::string> cgroup(pid_t pid);
+
+
+// Get the processes inside of a cgroup.
+Try<std::set<pid_t>> processes(const std::string& cgroup);
+
+
+// Get the absolute of a cgroup. The cgroup provided should not start with '/'.
+std::string path(const std::string& cgroup);
 
 namespace controllers {
 
@@ -83,6 +104,33 @@ Try<Nothing> enable(
 Try<std::set<std::string>> enabled(const std::string& cgroup);
 
 } // namespace controllers {
+
+namespace cpu {
+
+// Set the cpu weight for a cgroup, weight must be in the [1, 10000] range.
+// Cannot be used for the root cgroup.
+Try<Nothing> weight(const std::string& cgroup, uint64_t weight);
+
+
+// Retrieve the cpu weight for a cgroup, weight will be in the [1, 10000] range.
+// Cannot be used for the root cgroup.
+Try<uint64_t> weight(const std::string& cgroup);
+
+} // namespace cpu {
+
+namespace devices {
+
+using cgroups::devices::Entry;
+
+// Configure the device access permissions for the cgroup. These permissions
+// are hierarchical. I.e. if a parent cgroup does not allow an access then
+// 'this' cgroup will be denied access.
+Try<Nothing> configure(
+    const std::string& cgroup,
+    const std::vector<Entry>& allow,
+    const std::vector<Entry>& deny);
+
+} // namespace devices {
 
 } // namespace cgroups2 {
 

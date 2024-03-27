@@ -17,6 +17,10 @@
 #include <set>
 #include <string>
 
+#include <process/reap.hpp>
+#include <process/gtest.hpp>
+
+#include <stout/exit.hpp>
 #include <stout/tests/utils.hpp>
 #include <stout/try.hpp>
 
@@ -29,12 +33,46 @@ namespace mesos {
 namespace internal {
 namespace tests {
 
-class Cgroups2Test : public TemporaryDirectoryTest {};
+const string TEST_CGROUP = "test";
+
+// Cgroups2 test fixture that ensures `TEST_CGROUP` does not
+// exist before and after the test is run.
+class Cgroups2Test : public TemporaryDirectoryTest
+{
+protected:
+  void SetUp() override
+  {
+    TemporaryDirectoryTest::SetUp();
+
+    // Cleanup the test cgroup, in case a previous test run didn't clean it
+    // up properly.
+    if (cgroups2::exists(TEST_CGROUP)) {
+      ASSERT_SOME(cgroups2::destroy(TEST_CGROUP));
+    }
+  }
+
+  void TearDown() override
+  {
+    if (cgroups2::exists(TEST_CGROUP)) {
+      ASSERT_SOME(cgroups2::destroy(TEST_CGROUP));
+    }
+
+    TemporaryDirectoryTest::TearDown();
+  }
+};
 
 
 TEST_F(Cgroups2Test, ROOT_CGROUPS2_Enabled)
 {
   EXPECT_TRUE(cgroups2::enabled());
+}
+
+
+TEST_F(Cgroups2Test, CGROUPS2_Path)
+{
+  EXPECT_EQ("/sys/fs/cgroup/", cgroups2::path(cgroups2::ROOT_CGROUP));
+  EXPECT_EQ("/sys/fs/cgroup/foo", cgroups2::path("foo"));
+  EXPECT_EQ("/sys/fs/cgroup/foo/bar", cgroups2::path("foo/bar"));
 }
 
 
@@ -57,6 +95,43 @@ TEST_F(Cgroups2Test, ROOT_CGROUPS2_AvailableSubsystems)
   if (!*mounted) {
     EXPECT_SOME(cgroups2::unmount());
   }
+}
+
+
+TEST_F(Cgroups2Test, ROOT_CGROUPS2_AssignProcesses)
+{
+  Try<set<pid_t>> pids = cgroups2::processes(cgroups2::ROOT_CGROUP);
+
+  EXPECT_SOME(pids);
+  EXPECT_TRUE(pids->size() > 0);
+
+  ASSERT_SOME(cgroups2::create(TEST_CGROUP));
+
+  pid_t pid = ::fork();
+  ASSERT_NE(-1, pid);
+
+  if (pid == 0) {
+    // In child process, wait for kill signal.
+    while (true) { sleep(1); }
+
+    SAFE_EXIT(
+        EXIT_FAILURE, "Error, child should be killed before reaching here");
+  }
+
+  pids = cgroups2::processes(TEST_CGROUP);
+  EXPECT_SOME(pids);
+  EXPECT_EQ(0u, pids->size());
+
+  EXPECT_SOME(cgroups2::assign(TEST_CGROUP, pid));
+  pids = cgroups2::processes(TEST_CGROUP);
+
+  EXPECT_SOME(pids);
+  EXPECT_EQ(1u, pids->size());
+  EXPECT_EQ(pid, *pids->begin());
+
+  // Kill the child process.
+  ASSERT_NE(-1, ::kill(pid, SIGKILL));
+  AWAIT_EXPECT_WTERMSIG_EQ(SIGKILL, process::reap(pid));
 }
 
 } // namespace tests {
