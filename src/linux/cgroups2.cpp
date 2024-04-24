@@ -391,7 +391,6 @@ string path(const string& cgroup)
   return path::join(cgroups2::MOUNT_POINT, cgroup);
 }
 
->>>>>>> f33c514423fdbbbbf8a4bc468186f4fe83737f15
 namespace controllers {
 
 Try<set<string>> available(const string& cgroup)
@@ -677,5 +676,4 @@ Try<Nothing> configure(
 
 } // namespace devices {
 
->>>>>>> f33c514423fdbbbbf8a4bc468186f4fe83737f15
 } // namespace cgroups2 {
