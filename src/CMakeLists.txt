@@ -355,7 +355,9 @@ endif ()
 if (ENABLE_CGROUPS_v2)
   list(APPEND LINUX_SRC
     linux/cgroups2.cpp
-    linux/ebpf.cpp)
+    linux/ebpf.cpp
+    slave/containerizer/mesos/isolators/cgroups2/controller.cpp)
+
 endif ()
 
 if (ENABLE_LAUNCHER_SEALING)
