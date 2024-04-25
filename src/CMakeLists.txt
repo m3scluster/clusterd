@@ -349,7 +349,7 @@ if (ENABLE_XFS_DISK_ISOLATOR)
     slave/containerizer/mesos/isolators/xfs/utils.cpp)
 endif ()
 
-if (ENABLE_CGROUPS_v2)
+if (ENABLE_CGROUPS_V2)
   list(APPEND LINUX_SRC
     linux/cgroups2.cpp
     linux/ebpf.cpp)
