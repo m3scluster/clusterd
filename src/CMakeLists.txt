@@ -356,6 +356,7 @@ if (ENABLE_CGROUPS_V2)
   list(APPEND LINUX_SRC
     linux/cgroups2.cpp
     linux/ebpf.cpp
+    slave/containerizer/mesos/isolators/cgroups2/cgroups2.cpp
     slave/containerizer/mesos/isolators/cgroups2/controller.cpp)
 
 endif ()
