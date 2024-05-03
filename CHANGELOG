@@ -30,6 +30,7 @@ This master branch contains the following changes:
   * ADD: Auto-enable limit enforcement feature on the XFS file system, to enforce set quotas.
     (Import from: https://github.com/apache/mesos/pull/475)
   * CHANGE: enable cgroups flag to "enable_cgroups_v2" to match the Apache Mesos upstream changes.
+  * ADD: Support for Docker Engine >= v26
     
 
 
