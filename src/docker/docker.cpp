@@ -852,14 +852,12 @@ Try<Docker::RunOptions> Docker::RunOptions::create(
   if (dockerInfo.has_network()) {
     network = dockerInfo.network();
   } else {
-    // If no network and no docker network options was given, then use the OS specific default.
-    if (!options.network.isSome()) {
+    // If no network options was given, then use the OS specific default.
 #ifdef __WINDOWS__
-      network = ContainerInfo::DockerInfo::BRIDGE;
+    network = ContainerInfo::DockerInfo::BRIDGE;
 #else
-      network = ContainerInfo::DockerInfo::HOST;
+    network = ContainerInfo::DockerInfo::HOST;
 #endif // __WINDOWS__
-    }
   }
 
   // See https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/container-networking // NOLINT(whitespace/line_length)
@@ -967,20 +965,28 @@ Try<Docker::RunOptions> Docker::RunOptions::create(
   options.name = name;
 
   bool dnsSpecified = false;
+  bool networkSpecified = false;
   foreach (const Parameter& parameter, dockerInfo.parameters()) {
-    options.additionalOptions.push_back(
-        "--" + parameter.key() + "=" + parameter.value());
-
-    // In Docker 1.13.0, `--dns-option` was added and `--dns-opt` was hidden
-    // (but it can still be used), so here we need to check both of them.
-    if (!dnsSpecified &&
-        (parameter.key() == "dns" ||
-         parameter.key() == "dns-search" ||
-         parameter.key() == "dns-opt" ||
-         parameter.key() == "dns-option")) {
-      dnsSpecified = true;
+    if (!networkSpecified && 
+        (parameter.key() == "net" || 
+         parameter.key() == "network")) {
+      options.network = parameter.value();
+      networkSpecified = true;
+    } else {
+      options.additionalOptions.push_back(
+          "--" + parameter.key() + "=" + parameter.value());
+  
+      // In Docker 1.13.0, `--dns-option` was added and `--dns-opt` was hidden
+      // (but it can still be used), so here we need to check both of them.
+      if (!dnsSpecified &&
+          (parameter.key() == "dns" ||
+           parameter.key() == "dns-search" ||
+           parameter.key() == "dns-opt" ||
+           parameter.key() == "dns-option")) {
+        dnsSpecified = true;
+      }
     }
-  }
+  }  
 
   if (!dnsSpecified && defaultContainerDNS.isSome()) {
     Option<ContainerDNSInfo::DockerInfo> bridgeDNS;
