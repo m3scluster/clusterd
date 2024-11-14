@@ -546,19 +546,29 @@ Try<Docker::Image> Docker::Image::create(const JSON::Object& json)
   Result<JSON::Value> entrypoint =
     json.find<JSON::Value>("ContainerConfig.Entrypoint");
 
-  if (entrypoint.isError()) {
-    return Error("Failed to find 'ContainerConfig.Entrypoint': " +
+  // Container and ContainerConfig was removed in Docker version >= 26.
+  // https://docs.docker.com/engine/deprecated/#container-and-containerconfig-fields-in-image-inspect
+  Result<JSON::Value> entrypointConfig =
+    json.find<JSON::Value>("Config.Entrypoint");
+
+  if (entrypoint.isError() && entrypointConfig.isError()) {
+    return Error("Failed to find 'ContainerConfig- and Config.Entrypoint': " +
                  entrypoint.error());
 
-  } else if (entrypoint.isNone()) {
-    return Error("Unable to find 'ContainerConfig.Entrypoint'");
+  } 
+  
+  if (entrypoint.isNone()) {
+    if (entrypointConfig.isNone()) {
+      return Error("Unable to find 'ContainerConfig- and Config.Entrypoint'");
+    }
+    entrypoint = entrypointConfig;
   }
 
   Option<vector<string>> entrypointOption = None();
 
   if (!entrypoint->is<JSON::Null>()) {
     if (!entrypoint->is<JSON::Array>()) {
-      return Error("Unexpected type found for 'ContainerConfig.Entrypoint'");
+      return Error("Unexpected type found for 'ContainerConfig/Config.Entrypoint'");
     }
 
     const vector<JSON::Value>& values = entrypoint->as<JSON::Array>().values;
@@ -576,21 +586,26 @@ Try<Docker::Image> Docker::Image::create(const JSON::Object& json)
     }
   }
 
-  Result<JSON::Value> env =
-    json.find<JSON::Value>("ContainerConfig.Env");
+  Result<JSON::Value> env = None();
+
+  if (entrypointConfig.isSome()) {
+    env = json.find<JSON::Value>("Config.Env");
+  } else {
+    env = json.find<JSON::Value>("ContainerConfig.Env");    
+  }
 
   if (env.isError()) {
-    return Error("Failed to find 'ContainerConfig.Env': " +
+    return Error("Failed to find 'ContainerConfig/Config.Env': " +
                  env.error());
   } else if (env.isNone()) {
-    return Error("Unable to find 'ContainerConfig.Env'");
+    return Error("Unable to find 'ContainerConfig/Config.Env'");
   }
 
   Option<map<string, string>> envOption = None();
 
   if (!env->is<JSON::Null>()) {
     if (!env->is<JSON::Array>()) {
-      return Error("Unexpected type found for 'ContainerConfig.Env'");
+      return Error("Unexpected type found for 'ContainerConfig/Config.Env'");
     }
 
     const vector<JSON::Value>& values = env->as<JSON::Array>().values;
@@ -606,7 +621,7 @@ Try<Docker::Image> Docker::Image::create(const JSON::Object& json)
           strings::split(value.as<JSON::String>().value, "=", 2);
 
         if (tokens.size() != 2) {
-          return Error("Unexpected Env format for 'ContainerConfig.Env'");
+          return Error("Unexpected Env format for 'ContainerConfig/Config.Env'");
         }
 
         if (result.count(tokens[0]) > 0) {
@@ -837,14 +852,12 @@ Try<Docker::RunOptions> Docker::RunOptions::create(
   if (dockerInfo.has_network()) {
     network = dockerInfo.network();
   } else {
-    // If no network and no docker network options was given, then use the OS specific default.
-    if (!options.network.isSome()) {
+    // If no network options was given, then use the OS specific default.
 #ifdef __WINDOWS__
-      network = ContainerInfo::DockerInfo::BRIDGE;
+    network = ContainerInfo::DockerInfo::BRIDGE;
 #else
-      network = ContainerInfo::DockerInfo::HOST;
+    network = ContainerInfo::DockerInfo::HOST;
 #endif // __WINDOWS__
-    }
   }
 
   // See https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/container-networking // NOLINT(whitespace/line_length)
@@ -952,20 +965,28 @@ Try<Docker::RunOptions> Docker::RunOptions::create(
   options.name = name;
 
   bool dnsSpecified = false;
+  bool networkSpecified = false;
   foreach (const Parameter& parameter, dockerInfo.parameters()) {
-    options.additionalOptions.push_back(
-        "--" + parameter.key() + "=" + parameter.value());
-
-    // In Docker 1.13.0, `--dns-option` was added and `--dns-opt` was hidden
-    // (but it can still be used), so here we need to check both of them.
-    if (!dnsSpecified &&
-        (parameter.key() == "dns" ||
-         parameter.key() == "dns-search" ||
-         parameter.key() == "dns-opt" ||
-         parameter.key() == "dns-option")) {
-      dnsSpecified = true;
+    if (!networkSpecified && 
+        (parameter.key() == "net" || 
+         parameter.key() == "network")) {
+      options.network = parameter.value();
+      networkSpecified = true;
+    } else {
+      options.additionalOptions.push_back(
+          "--" + parameter.key() + "=" + parameter.value());
+  
+      // In Docker 1.13.0, `--dns-option` was added and `--dns-opt` was hidden
+      // (but it can still be used), so here we need to check both of them.
+      if (!dnsSpecified &&
+          (parameter.key() == "dns" ||
+           parameter.key() == "dns-search" ||
+           parameter.key() == "dns-opt" ||
+           parameter.key() == "dns-option")) {
+        dnsSpecified = true;
+      }
     }
-  }
+  }  
 
   if (!dnsSpecified && defaultContainerDNS.isSome()) {
     Option<ContainerDNSInfo::DockerInfo> bridgeDNS;

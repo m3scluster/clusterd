@@ -1,8 +1,7 @@
-Release Notes - Clusterd
+Release Notes - Clusterd - Version 1.11.0-0.5.0
 -----------------------------------------------
-This master branch contains the following changes:
 
-  * Currently none
+ * ADD: Support for Docker Engine >= v26
 
 
 Release Notes - Clusterd - Version 1.11.0-0.4.0
