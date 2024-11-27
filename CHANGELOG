@@ -2,35 +2,9 @@ Release Notes - Clusterd
 -----------------------------------------------
 This master branch contains the following changes:
 
-  * ADD: support to isolators/port_mapping for optionally scaling egress 
-    bandwidth with CPU and with minimum and maximum limits 
-    (Import from: https://github.com/apache/mesos/pull/461)
-  * FIX: inf scalar value parsing 
-    (Import from: https://github.com/apache/mesos/pull/466)
-  * FIX: tests in PortMappingMesosTest suite 
-    (Import from: https://github.com/apache/mesos/pull/470)
-  * CHANGE: Reduced the number of jemalloc arenas 
-    (Import from: https://github.com/apache/mesos/pull/465)
-  * ADD: Expose new metrics for memory usage in the cgroup 
-    (Import from: https://github.com/apache/mesos/pull/462)
-  * ADD: ECN configuration copying from the host to the container
-    (Import from: https://github.com/apache/mesos/pull/457)
-  * CHANGE: Stopped checking if destroyed cgroup is empty
-    (Import from: https://github.com/apache/mesos/pull/467)
-  * FIX: Fixed sorting in MountInfoTable::read
-    (Import from: https://github.com/apache/mesos/pull/468)
-  * ADD: LevelDB compaction after replicated log truncation
-    (Import from: https://github.com/apache/mesos/pull/469)
-  * CHANGE: Improved performance of RatesCollector in network/port_mapping isolator. 
-  * FIX: Missing libs in cmake package creation.
-  * ADD: Auto calculation of ingress_rate_per_cpu.
-    (Import from: https://github.com/apache/mesos/pull/483)
-  * ADD: Exported container ephemeral ports range in ResourceStatistics.  
-    (Import from: https://github.com/apache/mesos/pull/481)
-  * ADD: Auto-enable limit enforcement feature on the XFS file system, to enforce set quotas.
-    (Import from: https://github.com/apache/mesos/pull/475)
-  * CHANGE: enable cgroups flag to "enable_cgroups_v2" to match the Apache Mesos upstream changes.
   * ADD: Support for Docker Engine >= v26
+  * ADD: CGroupsV2 support to the mesos containerizer.
+  * MERGE: Merge with Apache Mesos Upstream.
     
 
 
