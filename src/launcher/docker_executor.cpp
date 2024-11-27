@@ -246,7 +246,6 @@ int main(int argc, char** argv)
           taskEnvironment,
           defaultContainerDNS,
           flags.cgroups_enable_cfs,
-          flags.enable_cgroups_v2,
           flags.network_cni_plugins_dir.get(),
           flags.network_cni_config_dir.get()));
 

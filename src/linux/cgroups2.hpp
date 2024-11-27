@@ -17,10 +17,15 @@
 #ifndef __CGROUPS_V2_HPP__
 #define __CGROUPS_V2_HPP__
 
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
+#include <process/future.hpp>
+#include <process/owned.hpp>
+
+#include <stout/bytes.hpp>
 #include <stout/duration.hpp>
 #include <stout/nothing.hpp>
 #include <stout/option.hpp>
@@ -58,6 +63,10 @@ Try<Nothing> unmount();
 bool exists(const std::string& cgroup);
 
 
+// Get all of the cgroups under a given cgroup.
+Try<std::set<std::string>> get(const std::string& cgroup = ROOT_CGROUP);
+
+
 // Creates a cgroup off of the base hierarchy, i.e. /sys/fs/cgroup/<cgroup>.
 // cgroup can be a nested cgroup (e.g. foo/bar/baz). If cgroup is a nested
 // cgroup and the parent cgroups do not exist, an error will be returned unless
@@ -65,9 +74,14 @@ bool exists(const std::string& cgroup);
 Try<Nothing> create(const std::string& cgroup, bool recursive = false);
 
 
-// Destroy a cgroup. If the cgroup does not exist or cannot be destroyed,
-// e.g. because it contains processes, an error is returned.
-Try<Nothing> destroy(const std::string& cgroup);
+// Recursively kill all of the processes inside of a cgroup and all child
+// cgroups with SIGKILL.
+Try<Nothing> kill(const std::string& cgroup);
+
+
+// Recursively destroy a cgroup and all nested cgroups. Processes inside of
+// destroyed cgroups are killed with SIGKILL.
+process::Future<Nothing> destroy(const std::string& cgroup);
 
 
 // Assign a process to a cgroup, by PID, removing the process from its
@@ -81,7 +95,15 @@ Try<std::string> cgroup(pid_t pid);
 
 
 // Get the processes inside of a cgroup.
-Try<std::set<pid_t>> processes(const std::string& cgroup);
+//
+// Optionally fetch all of the processes in the cgroup subtree by setting
+// recursive=true. This will include all processes in nested cgroups.
+Try<std::set<pid_t>> processes(
+    const std::string& cgroup, bool recursive = false);
+
+
+// Get the threads inside of a cgroup.
+Try<std::set<pid_t>> threads(const std::string& cgroup);
 
 
 // Get the absolute of a cgroup. The cgroup provided should not start with '/'.
@@ -99,7 +121,7 @@ Try<std::set<std::string>> available(const std::string& cgroup);
 // controllers. Errors if a requested controller is not available.
 Try<Nothing> enable(
     const std::string& cgroup,
-    const std::vector<std::string>& controllers);
+    const std::set<std::string>& controllers);
 
 
 // Disables controllers in the cgroup. No-op if the controller is not enabled.
@@ -168,10 +190,275 @@ struct Stats
 };
 
 
+// Specifies the maximum CPU bandwidth available over a given period.
+// Represents a snapshot of the 'cpu.max' control file.
+struct BandwidthLimit
+{
+  // Constructs a limitless bandwidth limit.
+  BandwidthLimit() = default;
+
+  // Create a bandwidth limit of `limit` every time `period`.
+  BandwidthLimit(Duration limit, Duration period);
+
+  // Maximum CPU time quota (AKA bandwidth) per period.
+  Option<Duration> limit;
+
+  // Period where the limit can be used. Can only be None if `limit`
+  // is also None, implying that there is no bandwidth limit.
+  Option<Duration> period;
+};
+
 // Get the CPU usage statistics for a cgroup.
 Try<Stats> stats(const std::string& cgroup);
 
+
+// Set the bandwidth limit for a cgroup.
+// Cannot be used for the root cgroup.
+Try<Nothing> set_max(const std::string& cgroup, const BandwidthLimit& limit);
+
+
+// Determine the bandwidth limit for a cgroup.
+// Cannot be used for the root cgroup.
+Try<BandwidthLimit> max(const std::string& cgroup);
+
 } // namespace cpu {
+
+
+// [HIERARCHICAL RESTRICTIONS]
+//
+// If the cgroup2 filesystem is mounted with the 'memory_recursiveprot' option,
+// then the memory protections 'memory.min' and 'memory.low' are recursively
+// applied to children. For example, if a parent has a 'memory.min' of 1GB then
+// the child cgroup cannot reserve more than 1GB of memory. If a child cgroup
+// requests more resources than are available to its parent than the child's
+// request is capped by their parent's constraints. This aligns with the
+// top-down constraint whereby children cannot request more resources than
+// their parents. This mount option is enabled by default on most systems,
+// including those using systemd.
+//
+//
+// [BYTE ALIGNMENT]
+//
+// Byte amounts written to the memory controller that are not aligned with the
+// system page size, `os::page_size()`, will be rounded down to the nearest
+// page size.
+//
+// Note: This contradicts the official documentation which says that the byte
+//       amounts will be rounded up.
+//
+// See: https://docs.kernel.org/admin-guide/cgroup-v2.html
+namespace memory {
+
+// Memory usage statistics.
+//
+// Snapshot of the 'memory.stat' control file.
+//
+// Note:
+// We only record a subset of the memory statistics; a complete list can be
+// found in the kernel documentation.
+// https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
+struct Stats
+{
+  // Amount of memory used in anonymous mappings such as brk(), sbrk(),
+  // and mmap(MAP_ANONYMOUS)
+  Bytes anon;
+
+  // Amount of memory used to cache filesystem data, including tmpfs and
+  // shared memory.
+  Bytes file;
+
+  // Amount of total kernel memory, including (kernel_stack, pagetables,
+  // percpu, vmalloc, slab) in addition to other kernel memory use cases.
+  //
+  // If this field is missing (linux < 5.18), it's calculated as
+  // the sum of: kernel_stack, pagetables, sock, vmalloc, and slab. This
+  // is an under-accounting since it doesn't include:
+  //   - various kvm allocations (e.g. allocated pages to create vcpus)
+  //   - io_uring
+  //   - tmp_page in pipes during pipe_write()
+  //   - bpf ringbuffers
+  //   - unix sockets
+  // But it's the best measurement we can provide on linux < 5.18.
+  // See: https://github.com/torvalds/linux/commit/a8c49af3be5f0b4e105ef6
+  Bytes kernel;
+
+  // Amount of memory allocated to kernel stacks.
+  Bytes kernel_stack;
+
+  // Amount of memory allocated for page tables.
+  Bytes pagetables;
+
+  // Amount of memory used in network transmission buffers.
+  Bytes sock;
+
+  // Amount of memory used for vmap backed memory.
+  Bytes vmalloc;
+
+  // Amount of cached filesystem data mapped with mmap().
+  Bytes file_mapped;
+
+  // Amount of memory used for storing in-kernel data structures.
+  Bytes slab;
+
+  // Amount of memory that cannot be reclaimed.
+  Bytes unevictable;
+};
+
+
+// Cgroup memory controller events.
+//
+// Snapshot of the 'memory.events' or 'memory.local.events' control files.
+struct Events
+{
+  // The number of times the cgroup is reclaimed due to high memory pressure
+  // even though its usage is under the low boundary. This usually indicates
+  // that the low boundary is over-committed.
+  uint64_t low;
+
+  // The number of times processes of the cgroup are throttled and routed to
+  // perform direct memory reclaim because the high memory boundary was
+  // exceeded. For a cgroup whose memory usage is capped by the high limit
+  // rather than global memory pressure, this event’s occurrences are expected.
+  uint64_t high;
+
+  // The number of times the cgroup’s memory usage was about to go over the
+  // max boundary. If direct reclaim fails to bring it down, the cgroup goes
+  // to OOM state.
+  uint64_t max;
+
+  // The number of times the cgroup’s memory usage was reached the limit and
+  // allocation was about to fail. This event is not raised if the OOM killer
+  // is not considered as an option, e.g. for failed high-order allocations
+  // or if caller asked to not retry attempts.
+  uint64_t oom;
+
+  // The number of processes belonging to this cgroup killed by any kind of
+  // OOM killer.
+  uint64_t oom_kill;
+
+  // The number of times a group OOM has occurred.
+  uint64_t oom_group_kill;
+};
+
+
+// Forward declaration.
+class OomListenerProcess;
+
+
+// The OomListener provides an interface for the caller to listen for the first
+// oom event in any cgroup by monitoring the future returned by listen().
+//
+// TODO(jasonzhou): provide functionality to minitor other memory events such
+// as low, high, max, and oom_kill.
+class OomListener
+{
+public:
+  OomListener(OomListener&&);
+  OomListener& operator=(OomListener&&);
+
+  static Try<OomListener> create();
+
+  virtual ~OomListener();
+
+  // Listen for an OOM event for the cgroup or any descendants.
+  //
+  // The returned future will become ready if an oom occurs at the
+  // target cgroup or its descendants.
+  //
+  // The future can be discarded if no longer needed, and the cgroup
+  // will no longer be monitored for oom.
+  process::Future<Nothing> listen(const std::string& cgroup);
+
+private:
+  OomListener(std::unique_ptr<OomListenerProcess>&& process);
+
+  OomListener(const OomListener&) = delete; // Not copyable.
+  OomListener& operator=(const OomListener&) = delete; // Not assignable.
+
+  std::unique_ptr<OomListenerProcess> process;
+};
+
+
+// Current memory usage of a cgroup and its descendants in bytes.
+Try<Bytes> usage(const std::string& cgroup);
+
+
+// Set the best-effort memory protection for a cgroup and its descendants. If
+// there is memory contention and this cgroup is within the 'low' threshold,
+// then memory will be reclaimed from other cgroups (without memory protection)
+// before reclaiming from this cgroup.
+//
+// Note: See the top-level `cgroups2::memory` comment about byte alignment and
+//       hierarchical restrictions.
+//
+// Cannot be used for the root cgroup.
+Try<Nothing> set_low(const std::string& cgroup, const Bytes& bytes);
+
+
+// Get the best-effort memory protection for a cgroup and its descendants. If
+// there is memory contention and this cgroup is within the 'low' threshold,
+// then memory will be reclaimed from other cgroups (without memory protection)
+// before reclaiming from this cgroup.
+//
+// Cannot be used for the root cgroup.
+Try<Bytes> low(const std::string& cgroup);
+
+
+// Set the minimum memory that is guaranteed to not be reclaimed under any
+// conditions.
+//
+// Note: See the top-level `cgroups2::memory` comment about byte alignment and
+//       hierarchical restrictions.
+//
+// Cannot be used for the root cgroup.
+Try<Nothing> set_min(const std::string& cgroup, const Bytes& bytes);
+
+
+// Get the minimum memory that is guaranteed to not be reclaimed under any
+// conditions.
+//
+// Cannot be used for the root cgroup.
+Try<Bytes> min(const std::string& cgroup);
+
+
+// Set the maximum memory that can be used by a cgroup and its descendants.
+// If the limit is reached and memory cannot be reclaimed, then the OOM
+// killer will be invoked on the container.
+// If limit is None, then there is no maximum memory limit.
+// Cannot be used for the root cgroup.
+Try<Nothing> set_max(const std::string& cgroup, const Option<Bytes>& limit);
+
+
+// Get the maximum memory that can be used by a cgroup and its descendants.
+// If the returned limit is None, then there is no maximum memory limit.
+// Cannot be used for the root cgroup.
+Result<Bytes> max(const std::string& cgroup);
+
+
+// Set the soft memory limit for a cgroup and its descendants. Exceeding the
+// soft limit will cause processes in the cgroup to be throttled and put under
+// heavy reclaim pressure.
+// If limit is None, then there is no soft memory limit.
+// Note: See the top-level `cgroups2::memory` comment about byte alignment.
+//
+// Cannot be used for the root cgroup.
+Try<Nothing> set_high(
+    const std::string& cgroup, const Option<Bytes>& limit);
+
+
+// Get the soft memory limit for a cgroup and its descendants.
+// If the returned limit is None, then there is no soft memory limit.
+//
+// Cannot be used for the root cgroup.
+Result<Bytes> high(const std::string& cgroup);
+
+
+// Get the total memory usage statistics for a cgroup and its descendents.
+//
+// Cannot be used for the root cgroup.
+Try<Stats> stats(const std::string& cgroup);
+
+} // namespace memory {
 
 namespace devices {
 
@@ -180,10 +467,28 @@ using cgroups::devices::Entry;
 // Configure the device access permissions for the cgroup. These permissions
 // are hierarchical. I.e. if a parent cgroup does not allow an access then
 // 'this' cgroup will be denied access.
+// For access to be granted, the requested access must match an entry in the
+// allow list, and not match with any entry on the deny list.
 Try<Nothing> configure(
     const std::string& cgroup,
     const std::vector<Entry>& allow,
     const std::vector<Entry>& deny);
+
+
+// Checks if the list of entries passed in is normalized.
+// A list of entries is normalized if:
+//
+// 1. No Entry has empty accesses specified.
+// 2. No two entries on the same list can have the same selector (type,
+//    major & minor numbers).
+// 3. No two entries on the same list can be encompassed by the other
+//   entry (see Entry::encompasses).
+bool normalized(const std::vector<Entry>& entries);
+
+
+// Modifies the given entries such that the three normalization requirements
+// are fulfilled.
+std::vector<Entry> normalize(const std::vector<Entry>& entries);
 
 } // namespace devices {
 

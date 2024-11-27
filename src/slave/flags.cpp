@@ -37,6 +37,9 @@
 
 #ifdef __linux__
 #include "slave/containerizer/mesos/linux_launcher.hpp"
+
+#include "linux/cgroups2.hpp"
+
 #endif // __linux__
 
 #include "slave/containerizer/mesos/provisioner/constants.hpp"
@@ -376,11 +379,6 @@ mesos::internal::slave::Flags::Flags()
 
 #ifndef __WINDOWS__
 
-  add(&Flags::enable_cgroups_v2,
-      "enable_cgroups_v2",
-      "Enable CGroupsV2 Support (ALPHA).",
-      false);
-
   add(&Flags::switch_user,
       "switch_user",
       "If set to `true`, the agent will attempt to run tasks as\n"
@@ -658,8 +656,23 @@ mesos::internal::slave::Flags::Flags()
   add(&Flags::cgroups_limit_swap,
       "cgroups_limit_swap",
       "Cgroups feature flag to enable memory limits on both memory and\n"
-      "swap instead of just memory.\n",
-      false);
+      "swap instead of just memory. Not supported if cgroups v2 is used.\n",
+      false,
+      [](const bool& limit_swap) -> Option<Error> {
+        Try<bool> mounted = cgroups2::mounted();
+        if (mounted.isError()) {
+          return Error("Failed to check if cgroup2 filesystem is mounted: "
+                       + mounted.error());
+        }
+
+        // Error if cgroups v2 is being used and a swap limit is requested
+        // as the cgroup v2 isolator does not support limiting swap memory.
+        if (*mounted && limit_swap) {
+          return Error("The cgroups v2 isolator does not support limiting "
+                       "swap memory but `--cgroups_limit_swap` was provided");
+        }
+        return None();
+      });
 
   add(&Flags::cgroups_cpu_enable_pids_and_tids_count,
       "cgroups_cpu_enable_pids_and_tids_count",
@@ -1240,7 +1253,7 @@ mesos::internal::slave::Flags::Flags()
       "minimum_egress_rate_limit and maximum_egress_rate_limit flags."
       "If set to 'auto' the rate limit is automatically calculated\n"
       "by determining the link speed and dividing by the number of available\n"
-      "CPU resources.\n" 
+      "CPU resources.\n"
       "This flag is used by the `network/port_mapping` isolator.");
 
   add(&Flags::minimum_egress_rate_limit,
@@ -1295,7 +1308,7 @@ mesos::internal::slave::Flags::Flags()
       "minimum_ingress_rate_limit and maximum_ingress_rate_limit flags."
       "If set to 'auto' the rate limit is automatically calculated\n"
       "by determining the link speed and dividing by the number of available\n"
-      "CPU resources.\n" 
+      "CPU resources.\n"
       "This flag is used by the `network/port_mapping` isolator.");
 
   add(&Flags::minimum_ingress_rate_limit,

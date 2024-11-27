@@ -50,6 +50,9 @@ set(LIBEVENT_URL        ${FETCH_URL}/downloads/libevent-${LIBEVENT_VERSION}-stab
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# NOTE: libevent doesn't come rebundled, so this URL is always the same. But,
+# it's only downloaded if `ENABLE_LIBEVENT` is set.
+set(LIBEVENT_URL ${LIBEVENT_RELEASES}/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz)
 
 if (WIN32)
   # NOTE: These dependencies are only rebundled on Windows because they
@@ -269,7 +272,7 @@ if (WIN32)
     INTERFACE_COMPILE_DEFINITIONS LIBSASL_EXPORTS=1)
 
   if (CMAKE_GENERATOR MATCHES "Visual Studio")
-    set_target_properties(
+set_target_properties(
       sasl2 PROPERTIES
       IMPORTED_LOCATION_DEBUG ${SASL2_ROOT}-build/Debug/libsasl2${LIBRARY_SUFFIX}
       IMPORTED_LOCATION_RELEASE ${SASL2_ROOT}-build/Release/libsasl2${LIBRARY_SUFFIX})
@@ -702,6 +705,22 @@ if (ENABLE_LIBEVENT)
     add_library(libevent ${LIBRARY_LINKAGE} IMPORTED)
     add_dependencies(libevent ${LIBEVENT_TARGET})
 
+    if (ENABLE_SSL)
+      add_library(libevent_openssl ${LIBRARY_LINKAGE} IMPORTED)
+      set_target_properties(
+        libevent_openssl PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${LIBEVENT_ROOT}/include;${LIBEVENT_ROOT}-build/include"
+      )
+    endif ()
+
+    if (BUILD_SHARED_LIBS)
+      add_library(libevent_pthreads ${LIBRARY_LINKAGE} IMPORTED)
+      set_target_properties(
+        libevent_pthreads PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${LIBEVENT_ROOT}/include;${LIBEVENT_ROOT}-build/include"
+      )
+    endif ()
+
     set_target_properties(
       libevent PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${LIBEVENT_ROOT}/include;${LIBEVENT_ROOT}-build/include")
@@ -723,16 +742,32 @@ if (ENABLE_LIBEVENT)
         IMPORTED_LOCATION ${LIBEVENT_ROOT}-build/lib/libevent${LIBRARY_SUFFIX})
     endif ()
 
+    if (ENABLE_SSL)
+      set_target_properties(
+        libevent_openssl PROPERTIES
+        IMPORTED_LOCATION ${LIBEVENT_ROOT}-build/lib/libevent_openssl${LIBRARY_SUFFIX})
+    endif ()
+
+    if (BUILD_SHARED_LIBS)
+      set_target_properties(
+        libevent_pthreads PROPERTIES
+        IMPORTED_LOCATION ${LIBEVENT_ROOT}-build/lib/libevent_pthreads${LIBRARY_SUFFIX})
+      set(EVENT__LIBRARY_TYPE SHARED)
+    else ()
+      set(EVENT__LIBRARY_TYPE STATIC)
+    endif ()
+
     set(LIBEVENT_CMAKE_FORWARD_ARGS
       ${CMAKE_C_FORWARD_ARGS}
       ${CMAKE_SSL_FORWARD_ARGS}
       # NOTE: Libevent does not respect the BUILD_SHARED_LIBS global flag.
-      -DEVENT__BUILD_SHARED_LIBRARIES=${BUILD_SHARED_LIBS}
+      -DEVENT__LIBRARY_TYPE=${EVENT__LIBRARY_TYPE}
       -DEVENT__DISABLE_OPENSSL=$<NOT:$<BOOL:${ENABLE_SSL}>>
       -DEVENT__DISABLE_BENCHMARK=ON
       -DEVENT__DISABLE_REGRESS=ON
       -DEVENT__DISABLE_SAMPLES=ON
-      -DEVENT__DISABLE_TESTS=ON)
+      -DEVENT__DISABLE_TESTS=ON
+      -DEVENT__DISABLE_THREAD_SUPPORT=OFF)
 
     if (CMAKE_C_COMPILER_ID MATCHES GNU OR CMAKE_C_COMPILER_ID MATCHES Clang)
       list(APPEND LIBEVENT_CMAKE_FORWARD_ARGS -DCMAKE_C_FLAGS=-fPIC)
@@ -753,6 +788,20 @@ if (ENABLE_LIBEVENT)
     install(
       FILES $<TARGET_FILE:libevent>
       DESTINATION ${3RDPARTY_LIBS_INSTALL_DIR})
+
+    if (ENABLE_SSL)
+      install(
+        FILES $<TARGET_FILE:libevent_openssl>
+        DESTINATION ${3RDPARTY_LIBS_INSTALL_DIR}
+      )
+    endif ()
+
+    if (BUILD_SHARED_LIBS)
+      install(
+        FILES $<TARGET_FILE:libevent_pthreads>
+        DESTINATION ${3RDPARTY_LIBS_INSTALL_DIR}
+      )
+    endif ()
 
   else ()
     find_package(LIBEVENT REQUIRED)

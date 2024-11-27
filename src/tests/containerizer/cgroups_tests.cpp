@@ -1407,6 +1407,205 @@ TEST_F(CgroupsAnyHierarchyDevicesTest, ROOT_CGROUPS_Devices)
   ASSERT_SOME(cgroups::assign(hierarchy, "", ::getpid()));
 }
 
+
+TEST(DevicesTest, SubsetHelperTest)
+{
+  cgroups::devices::Entry subset =
+    CHECK_NOTERROR(cgroups::devices::Entry::parse("c 3:1 rwm"));
+  cgroups::devices::Entry superset =
+    CHECK_NOTERROR(cgroups::devices::Entry::parse("c *:1 rwm"));
+
+  EXPECT_TRUE(subset.encompasses(subset));
+  EXPECT_TRUE(superset.encompasses(superset));
+  EXPECT_FALSE(subset.encompasses(superset));
+  EXPECT_TRUE(superset.encompasses(subset));
+
+  superset = CHECK_NOTERROR(cgroups::devices::Entry::parse("c 3:* rwm"));
+  EXPECT_TRUE(subset.encompasses(subset));
+  EXPECT_TRUE(superset.encompasses(superset));
+  EXPECT_FALSE(subset.encompasses(superset));
+  EXPECT_TRUE(superset.encompasses(subset));
+
+  superset = CHECK_NOTERROR(cgroups::devices::Entry::parse("a"));
+  EXPECT_TRUE(subset.encompasses(subset));
+  EXPECT_TRUE(superset.encompasses(superset));
+  EXPECT_FALSE(subset.encompasses(superset));
+  EXPECT_TRUE(superset.encompasses(subset));
+
+  subset = CHECK_NOTERROR(cgroups::devices::Entry::parse("c 3:1 rm"));
+  superset = CHECK_NOTERROR(cgroups::devices::Entry::parse("c 3:1 rwm"));
+  EXPECT_TRUE(subset.encompasses(subset));
+  EXPECT_TRUE(superset.encompasses(superset));
+  EXPECT_FALSE(subset.encompasses(superset));
+  EXPECT_TRUE(superset.encompasses(subset));
+
+  subset = CHECK_NOTERROR(cgroups::devices::Entry::parse("b 3:1 rm"));
+  EXPECT_TRUE(subset.encompasses(subset));
+  EXPECT_TRUE(superset.encompasses(superset));
+  EXPECT_FALSE(subset.encompasses(superset));
+  EXPECT_FALSE(superset.encompasses(subset));
+}
+
+
+TEST(DevicesTest, AccessNoneTest)
+{
+  cgroups::devices::Entry::Access access;
+
+  access.read = false;
+  access.write = false;
+  access.mknod = false;
+  EXPECT_TRUE(access.none());
+
+  access.read = true;
+  access.write = false;
+  access.mknod = false;
+  EXPECT_FALSE(access.none());
+
+  access.read = false;
+  access.write = true;
+  access.mknod = false;
+  EXPECT_FALSE(access.none());
+
+  access.read = false;
+  access.write = false;
+  access.mknod = true;
+  EXPECT_FALSE(access.none());
+
+  access.read = true;
+  access.write = true;
+  access.mknod = false;
+  EXPECT_FALSE(access.none());
+
+  access.read = true;
+  access.write = false;
+  access.mknod = true;
+  EXPECT_FALSE(access.none());
+
+  access.read = false;
+  access.write = true;
+  access.mknod = true;
+  EXPECT_FALSE(access.none());
+
+  access.read = true;
+  access.write = true;
+  access.mknod = true;
+  EXPECT_FALSE(access.none());
+}
+
+
+TEST(DeviceTest, AccessOverlapsTest)
+{
+  cgroups::devices::Entry::Access access;
+  cgroups::devices::Entry::Access other;
+  access.read = true;
+  access.write = true;
+  access.mknod = true;
+
+  other.read = false;
+  other.write = false;
+  other.mknod = false;
+  EXPECT_FALSE(access.overlaps(other));
+
+  other.read = true;
+  other.write = false;
+  other.mknod = false;
+  EXPECT_TRUE(access.overlaps(other));
+
+  other.read = false;
+  other.write = true;
+  other.mknod = false;
+  EXPECT_TRUE(access.overlaps(other));
+
+  other.read = false;
+  other.write = false;
+  other.mknod = true;
+  EXPECT_TRUE(access.overlaps(other));
+}
+
+
+TEST(DeviceTest, SelectorWildcardTest)
+{
+  cgroups::devices::Entry::Selector selector;
+  selector.type = cgroups::devices::Entry::Selector::Type::ALL;
+  selector.major = 1;
+  selector.minor = 1;
+  EXPECT_TRUE(selector.has_wildcard());
+
+  selector.type = cgroups::devices::Entry::Selector::Type::BLOCK;
+  selector.major = Option<unsigned int>::none();
+  selector.minor = 1;
+  EXPECT_TRUE(selector.has_wildcard());
+
+  selector.type = cgroups::devices::Entry::Selector::Type::BLOCK;
+  selector.major = 1;
+  selector.minor = Option<unsigned int>::none();
+  EXPECT_TRUE(selector.has_wildcard());
+
+  selector.type = cgroups::devices::Entry::Selector::Type::BLOCK;
+  selector.major = 1;
+  selector.minor = 1;
+  EXPECT_FALSE(selector.has_wildcard());
+}
+
+
+TEST(DeviceTest, SelectorEncompassTest)
+{
+  cgroups::devices::Entry::Selector other;
+  other.type = cgroups::devices::Entry::Selector::Type::CHARACTER;
+  other.major = 1;
+  other.minor = 1;
+
+  // Same selector should be encompass each other.
+  cgroups::devices::Entry::Selector selector;
+  selector.type = cgroups::devices::Entry::Selector::Type::CHARACTER;
+  selector.major = 1;
+  selector.minor = 1;
+  EXPECT_TRUE(selector.encompasses(other));
+  EXPECT_TRUE(other.encompasses(selector));
+
+  // Wildcard in type
+  selector.type = cgroups::devices::Entry::Selector::Type::ALL;
+  selector.major = 1;
+  selector.minor = 1;
+  EXPECT_TRUE(selector.encompasses(other));
+  EXPECT_FALSE(other.encompasses(selector));
+
+  // Wildcard in major
+  selector.type = cgroups::devices::Entry::Selector::Type::CHARACTER;
+  selector.major = Option<unsigned int>::none();
+  selector.minor = 1;
+  EXPECT_TRUE(selector.encompasses(other));
+  EXPECT_FALSE(other.encompasses(selector));
+
+  // Wildcard in minor
+  selector.type = cgroups::devices::Entry::Selector::Type::CHARACTER;
+  selector.major = 1;
+  selector.minor = Option<unsigned int>::none();
+  EXPECT_TRUE(selector.encompasses(other));
+  EXPECT_FALSE(other.encompasses(selector));
+
+  // Mismatch in type
+  selector.type = cgroups::devices::Entry::Selector::Type::BLOCK;
+  selector.major = Option<unsigned int>::none();
+  selector.minor = Option<unsigned int>::none();
+  EXPECT_FALSE(selector.encompasses(other));
+  EXPECT_FALSE(other.encompasses(selector));
+
+  // Mismatch in major
+  selector.type = cgroups::devices::Entry::Selector::Type::ALL;
+  selector.major = 2;
+  selector.minor = Option<unsigned int>::none();
+  EXPECT_FALSE(selector.encompasses(other));
+  EXPECT_FALSE(other.encompasses(selector));
+
+  // Mismatch in minor
+  selector.type = cgroups::devices::Entry::Selector::Type::ALL;
+  selector.major = Option<unsigned int>::none();
+  selector.minor = 2;
+  EXPECT_FALSE(selector.encompasses(other));
+  EXPECT_FALSE(other.encompasses(selector));
+}
+
 } // namespace tests {
 } // namespace internal {
 } // namespace mesos {

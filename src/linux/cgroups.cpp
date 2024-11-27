@@ -2919,9 +2919,70 @@ Try<Entry> Entry::parse(const string& s)
 }
 
 
-Try<vector<Entry>> list(
-    const string& hierarchy,
-    const string& cgroup)
+bool Entry::is_catch_all() const
+{
+  return !selector.major.isSome() && !selector.minor.isSome()
+          && selector.type == Entry::Selector::Type::ALL
+          && access.mknod && access.read && access.write;
+}
+
+
+bool Entry::encompasses(const Entry& other) const
+{
+  if (*this == other) {
+    return true;
+  }
+
+  if (!selector.encompasses(other.selector)) {
+    return false;
+  }
+
+  if ((!access.mknod && other.access.mknod)
+      || (!access.read && other.access.read)
+      || (!access.write && other.access.write)) {
+    return false;
+  }
+
+  return true;
+}
+
+
+bool Entry::Access::none() const { return !mknod && !read && !write; }
+
+
+bool Entry::Access::overlaps(const Entry::Access& other) const
+{
+  return (read && other.read)
+      || (write && other.write)
+      || (mknod && other.mknod);
+}
+
+
+bool Entry::Selector::has_wildcard() const
+{
+  return major.isNone() || minor.isNone() || type == Entry::Selector::Type::ALL;
+}
+
+
+bool Entry::Selector::encompasses(const Entry::Selector& other) const
+{
+  if (type != Entry::Selector::Type::ALL && type != other.type) {
+    return false;
+  }
+
+  if (major.isSome() && major != other.major) {
+    return false;
+  }
+
+  if (minor.isSome() && minor != other.minor) {
+    return false;
+  }
+
+  return true;
+}
+
+
+Try<vector<Entry>> list(const string& hierarchy, const string& cgroup)
 {
   Try<string> read = cgroups::read(hierarchy, cgroup, "devices.list");
 

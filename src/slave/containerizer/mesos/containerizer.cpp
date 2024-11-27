@@ -117,11 +117,9 @@
 #include "slave/containerizer/mesos/isolators/volume/secret.hpp"
 #include "slave/containerizer/mesos/isolators/volume/csi/isolator.hpp"
 
-#ifdef ENABLE_CGROUPS_V2
 #include "linux/cgroups2.hpp"
 
 #include "slave/containerizer/mesos/isolators/cgroups2/cgroups2.hpp"
-#endif // ENABLE_CGROUPS_V2
 
 #endif // __linux__
 
@@ -371,19 +369,22 @@ Try<MesosContainerizer*> MesosContainerizer::create(
   Shared<Provisioner> provisioner = _provisioner->share();
 
 #ifdef __linux__
+  Owned<DeviceManager> device_manager =
+    Owned<DeviceManager>(CHECK_NOTERROR(DeviceManager::create(flags)));
+
   // Initialize either the cgroups v2 or cgroups v1 isolator, based on what
   // is available on the host machine.
-  auto cgroupsIsolatorSelector = [] (const Flags& flags) -> Try<Isolator*> {
-#ifdef ENABLE_CGROUPS_V2
+  auto cgroupsIsolatorSelector = [device_manager] (const Flags& flags)
+      -> Try<Isolator*>
+  {
     Try<bool> mounted = cgroups2::mounted();
     if (mounted.isError()) {
       return Error("Failed to determine if the cgroup2 filesystem is mounted: "
                    + mounted.error());
     }
     if (*mounted) {
-      return Cgroups2IsolatorProcess::create(flags);
+      return Cgroups2IsolatorProcess::create(flags, device_manager);
     }
-#endif // ENABLE_CGROUPS_V2
     return CgroupsIsolatorProcess::create(flags);
   };
 #endif // __linux__
@@ -522,7 +523,7 @@ Try<MesosContainerizer*> MesosContainerizer::create(
     // isolators, so that the nvidia gpu libraries '/usr/local/nvidia'
     // will not be overwritten.
     {"gpu/nvidia",
-      [&nvidia] (const Flags& flags) -> Try<Isolator*> {
+      [&nvidia, device_manager] (const Flags& flags) -> Try<Isolator*> {
         if (!nvml::isAvailable()) {
           return Error("Cannot create the Nvidia GPU isolator:"
                        " NVML is not available");
@@ -531,7 +532,8 @@ Try<MesosContainerizer*> MesosContainerizer::create(
         CHECK_SOME(nvidia)
           << "Nvidia components should be set when NVML is available";
 
-        return NvidiaGpuIsolatorProcess::create(flags, nvidia.get());
+        return NvidiaGpuIsolatorProcess::create(
+            flags, nvidia.get(), device_manager);
       }},
 #endif // __linux__
 
@@ -565,12 +567,19 @@ Try<MesosContainerizer*> MesosContainerizer::create(
   bool cgroupsIsolatorCreated = false;
 
   // First, apply the built-in isolators, in dependency order.
-  foreach (const auto& creator, creators) {
-    if (!isolations->contains(creator.first)) {
+  foreach (const auto& creator, creators)  {
+    // When the linux launcher is used, we *must* create the cgroups isolator,
+    // even if no specific cgroups/... isolations are requested.
+    bool forceCreation = !cgroupsIsolatorCreated
+        && strings::startsWith(creator.first, "cgroups/")
+        && flags.launcher == "linux";
+
+    if (!forceCreation && !isolations->contains(creator.first)) {
       continue;
     }
 
     if (strings::startsWith(creator.first, "cgroups/")) {
+      CHECK(flags.launcher == "linux");
       if (cgroupsIsolatorCreated) {
         // Skip when `Cgroups(2)IsolatorProcess` have already been created.
         continue;

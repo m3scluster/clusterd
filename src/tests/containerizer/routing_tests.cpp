@@ -260,7 +260,7 @@ protected:
 
 TEST_F(RoutingVethTest, ROOT_LinkCreate)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -269,13 +269,43 @@ TEST_F(RoutingVethTest, ROOT_LinkCreate)
   EXPECT_SOME_NE(0, link::index(TEST_PEER_LINK));
 
   // Test the case where the veth (with the same name) already exists.
-  EXPECT_SOME_FALSE(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  EXPECT_SOME_FALSE(
+      link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
+}
+
+
+TEST_F(RoutingVethTest, ROOT_LinkCreateWithTargetMAC)
+{
+  net::MAC target_veth_mac = net::MAC({0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc});
+  net::MAC target_peer_mac = net::MAC({0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12});
+
+  ASSERT_SOME(link::veth::create(
+    TEST_VETH_LINK, TEST_PEER_LINK, None(), target_veth_mac, target_peer_mac));
+
+  EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
+  EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
+
+  EXPECT_SOME_NE(0, link::index(TEST_VETH_LINK));
+  EXPECT_SOME_NE(0, link::index(TEST_PEER_LINK));
+
+  Result<net::MAC> mac = net::mac(TEST_VETH_LINK);
+
+  ASSERT_SOME(mac);
+  EXPECT_EQ(*mac, target_veth_mac);
+
+  mac = net::mac(TEST_PEER_LINK);
+
+  ASSERT_SOME(mac);
+  EXPECT_EQ(*mac, target_peer_mac);
+
+  // Test the case where the veth (with the same name) already exists.
+  EXPECT_SOME_FALSE(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 }
 
 
 TEST_F(RoutingVethTest, ROOT_LinkRemove)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::remove(TEST_VETH_LINK));
   EXPECT_SOME_FALSE(link::remove(TEST_VETH_LINK));
@@ -334,7 +364,7 @@ TEST_F(RoutingVethTest, ROOT_LinkWait)
 {
   AWAIT_READY(link::removed(TEST_VETH_LINK));
 
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -349,7 +379,7 @@ TEST_F(RoutingVethTest, ROOT_LinkWait)
 
 TEST_F(RoutingVethTest, ROOT_LinkSetUp)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -369,15 +399,15 @@ TEST_F(RoutingVethTest, ROOT_LinkSetUp)
 
 TEST_F(RoutingVethTest, ROOT_LinkSetMAC)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
 
   uint8_t bytes[6] = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc};
 
-  EXPECT_SOME_TRUE(link::setMAC(TEST_VETH_LINK, net::MAC(bytes)));
-  EXPECT_SOME_TRUE(link::setMAC(TEST_PEER_LINK, net::MAC(bytes)));
+  EXPECT_SOME(link::setMAC(TEST_VETH_LINK, net::MAC(bytes)));
+  EXPECT_SOME(link::setMAC(TEST_PEER_LINK, net::MAC(bytes)));
 
   Result<net::MAC> mac = net::mac(TEST_VETH_LINK);
 
@@ -389,7 +419,7 @@ TEST_F(RoutingVethTest, ROOT_LinkSetMAC)
   ASSERT_SOME(mac);
   EXPECT_EQ(mac.get(), net::MAC(bytes));
 
-  EXPECT_SOME_FALSE(link::setMAC("non-exist", net::MAC(bytes)));
+  EXPECT_ERROR(link::setMAC("non-exist", net::MAC(bytes)));
 
   // Kernel will reject a multicast MAC address.
   uint8_t multicast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -400,7 +430,7 @@ TEST_F(RoutingVethTest, ROOT_LinkSetMAC)
 
 TEST_F(RoutingVethTest, ROOT_LinkMTU)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -421,7 +451,7 @@ TEST_F(RoutingVethTest, ROOT_IngressQdisc)
   // Test for a qdisc on a nonexistent interface should fail.
   EXPECT_SOME_FALSE(ingress::exists("noSuchInterface"));
 
-  EXPECT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  EXPECT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -485,7 +515,7 @@ TEST_F(RoutingVethTest, ROOT_HTBQdisc)
   // Test for a qdisc on a nonexistent interface should fail.
   EXPECT_SOME_FALSE(htb::exists("noSuchInterface", EGRESS_ROOT));
 
-  EXPECT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  EXPECT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -569,7 +599,7 @@ TEST_F(RoutingVethTest, ROOT_FqCodeQdisc)
   // Test for a qdisc on a nonexistent interface should fail.
   EXPECT_SOME_FALSE(fq_codel::exists("noSuchInterface", EGRESS_ROOT));
 
-  EXPECT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  EXPECT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -650,7 +680,7 @@ TEST_F(RoutingVethTest, ROOT_FqCodeQdisc)
 
 TEST_F(RoutingVethTest, ROOT_FqCodelClassifier)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -726,7 +756,7 @@ TEST_F(RoutingVethTest, ROOT_FqCodelClassifier)
 
 TEST_F(RoutingVethTest, ROOT_ARPFilterCreate)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -746,7 +776,7 @@ TEST_F(RoutingVethTest, ROOT_ARPFilterCreate)
 
 TEST_F(RoutingVethTest, ROOT_ARPFilterCreateDuplicated)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -776,7 +806,7 @@ TEST_F(RoutingVethTest, ROOT_ARPFilterCreateDuplicated)
 
 TEST_F(RoutingVethTest, ROOT_ARPFilterRemove)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -801,7 +831,7 @@ TEST_F(RoutingVethTest, ROOT_ARPFilterRemove)
 
 TEST_F(RoutingVethTest, ROOT_ARPFilterUpdate)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -838,7 +868,7 @@ TEST_F(RoutingVethTest, ROOT_ARPFilterUpdate)
 
 TEST_F(RoutingVethTest, ROOT_ICMPFilterCreate)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -870,7 +900,7 @@ TEST_F(RoutingVethTest, ROOT_ICMPFilterCreate)
 
 TEST_F(RoutingVethTest, ROOT_ICMPFilterCreateDuplicated)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -903,7 +933,7 @@ TEST_F(RoutingVethTest, ROOT_ICMPFilterCreateDuplicated)
 
 TEST_F(RoutingVethTest, ROOT_ICMPFilterCreateMultiple)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -939,8 +969,7 @@ TEST_F(RoutingVethTest, ROOT_ICMPFilterCreateMultiple)
 
 TEST_F(RoutingVethTest, ROOT_ICMPFilterRemove)
 {
-  ASSERT_SOME(link::veth::create(
-      TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -973,7 +1002,7 @@ TEST_F(RoutingVethTest, ROOT_ICMPFilterRemove)
 
 TEST_F(RoutingVethTest, ROOT_ICMPFilterUpdate)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -1029,7 +1058,7 @@ TEST_F(RoutingVethTest, ROOT_ICMPFilterUpdate)
 
 TEST_F(RoutingVethTest, ROOT_IPFilterCreate)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -1087,7 +1116,7 @@ TEST_F(RoutingVethTest, ROOT_IPFilterCreate)
 
 TEST_F(RoutingVethTest, ROOT_IPFilterCreate2)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -1122,7 +1151,7 @@ TEST_F(RoutingVethTest, ROOT_IPFilterCreate2)
 
 TEST_F(RoutingVethTest, ROOT_IPFilterCreateDuplicated)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -1171,7 +1200,7 @@ TEST_F(RoutingVethTest, ROOT_IPFilterCreateDuplicated)
 
 TEST_F(RoutingVethTest, ROOT_IPFilterCreateMultiple)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -1263,7 +1292,7 @@ TEST_F(RoutingVethTest, ROOT_IPFilterCreateMultiple)
 
 TEST_F(RoutingVethTest, ROOT_IPFilterRemove)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));
@@ -1340,7 +1369,7 @@ TEST_F(RoutingVethTest, ROOT_IPFilterRemove)
 // Test the workaround introduced for MESOS-1617.
 TEST_F(RoutingVethTest, ROOT_HandleGeneration)
 {
-  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK, None()));
+  ASSERT_SOME(link::veth::create(TEST_VETH_LINK, TEST_PEER_LINK));
 
   EXPECT_SOME_TRUE(link::exists(TEST_VETH_LINK));
   EXPECT_SOME_TRUE(link::exists(TEST_PEER_LINK));

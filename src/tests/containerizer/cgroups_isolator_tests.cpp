@@ -32,6 +32,9 @@
 #include "slave/containerizer/mesos/containerizer.hpp"
 #include "slave/containerizer/mesos/paths.hpp"
 
+#include "linux/cgroups2.hpp"
+
+#include "slave/containerizer/mesos/isolators/cgroups2/constants.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/subsystems/net_cls.hpp"
 
@@ -60,6 +63,13 @@ using mesos::internal::slave::CPU_SHARES_PER_CPU_REVOCABLE;
 using mesos::internal::slave::CPU_CFS_PERIOD;
 using mesos::internal::slave::DEFAULT_EXECUTOR_CPUS;
 using mesos::internal::slave::DEFAULT_EXECUTOR_MEM;
+using mesos::internal::slave::CGROUPS2_CPU_WEIGHT_PER_CPU_REVOCABLE;
+using mesos::internal::slave::CGROUPS2_CONTROLLER_CPU_NAME;
+using mesos::internal::slave::CGROUPS2_CONTROLLER_MEMORY_NAME;
+using mesos::internal::slave::CGROUPS2_CONTROLLER_IO_NAME;
+using mesos::internal::slave::CGROUPS2_CONTROLLER_HUGETLB_NAME;
+using mesos::internal::slave::CGROUPS2_CONTROLLER_CPUSET_NAME;
+using mesos::internal::slave::CGROUPS2_CONTROLLER_PIDS_NAME;
 
 using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Fetcher;
@@ -371,15 +381,22 @@ TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_RevocableCpu)
 
   ContainerID containerId = *(containers->begin());
 
-  Result<string> cpuHierarchy = cgroups::hierarchy("cpu");
-  ASSERT_SOME(cpuHierarchy);
-
   string cpuCgroup = path::join(flags.cgroups_root, containerId.value());
 
   double totalCpus = cpus.cpus().get() + DEFAULT_EXECUTOR_CPUS;
-  EXPECT_SOME_EQ(
-      CPU_SHARES_PER_CPU_REVOCABLE * totalCpus,
-      cgroups::cpu::shares(cpuHierarchy.get(), cpuCgroup));
+  if (cgroupsV2()) {
+    EXPECT_SOME_EQ(
+        static_cast<uint64_t>(
+            CGROUPS2_CPU_WEIGHT_PER_CPU_REVOCABLE * totalCpus),
+        cgroups2::cpu::weight(cpuCgroup));
+  } else {
+    Result<string> cpuHierarchy = cgroups::hierarchy("cpu");
+    ASSERT_SOME(cpuHierarchy);
+
+    EXPECT_SOME_EQ(
+        CPU_SHARES_PER_CPU_REVOCABLE * totalCpus,
+        cgroups::cpu::shares(cpuHierarchy.get(), cpuCgroup));
+  }
 
   driver.stop();
   driver.join();
@@ -2355,15 +2372,19 @@ TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_MemoryForward)
 
   EXPECT_TRUE(usage->has_mem_total_bytes());
 
-  Result<string> hierarchy = cgroups::hierarchy("memory");
-  ASSERT_SOME(hierarchy);
-
-  Try<bool> exists = cgroups::exists(
-      hierarchy.get(), "memory.kmem.usage_in_bytes");
-  ASSERT_SOME(exists);
-
-  if (exists.get()) {
+  if (cgroupsV2()) {
     EXPECT_TRUE(usage->has_mem_kmem_usage_bytes());
+  } else {
+    Result<string> hierarchy = cgroups::hierarchy("memory");
+    ASSERT_SOME(hierarchy);
+
+    Try<bool> exists = cgroups::exists(
+        hierarchy.get(), "memory.kmem.usage_in_bytes");
+    ASSERT_SOME(exists);
+
+    if (exists.get()) {
+      EXPECT_TRUE(usage->has_mem_kmem_usage_bytes());
+    }
   }
 
   driver.stop();
@@ -2772,37 +2793,53 @@ TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_AutoLoadSubsystems)
   ASSERT_EQ(1u, containers->size());
 
   const ContainerID& containerId = *(containers->begin());
+  string cgroup = path::join(flags.cgroups_root, containerId.value());
 
-  Try<set<string>> enabledSubsystems = cgroups::subsystems();
-  ASSERT_SOME(enabledSubsystems);
+  if (cgroupsV2()) {
+    // We skip core, perf_event, and hugetlb as their values cannot be written
+    // into the cgroups.subtree_control files.
+    set<string> expectedControllers = {
+      CGROUPS2_CONTROLLER_CPU_NAME,
+      CGROUPS2_CONTROLLER_MEMORY_NAME,
+      CGROUPS2_CONTROLLER_IO_NAME,
+      CGROUPS2_CONTROLLER_HUGETLB_NAME,
+      CGROUPS2_CONTROLLER_CPUSET_NAME,
+      CGROUPS2_CONTROLLER_PIDS_NAME
+    };
 
-  set<string> supportedSubsystems = {
-    CGROUP_SUBSYSTEM_BLKIO_NAME,
-    CGROUP_SUBSYSTEM_CPU_NAME,
-    CGROUP_SUBSYSTEM_CPUACCT_NAME,
-    CGROUP_SUBSYSTEM_CPUSET_NAME,
-    CGROUP_SUBSYSTEM_DEVICES_NAME,
-    CGROUP_SUBSYSTEM_HUGETLB_NAME,
-    CGROUP_SUBSYSTEM_MEMORY_NAME,
-    CGROUP_SUBSYSTEM_NET_CLS_NAME,
-    CGROUP_SUBSYSTEM_NET_PRIO_NAME,
-    CGROUP_SUBSYSTEM_PERF_EVENT_NAME,
-    CGROUP_SUBSYSTEM_PIDS_NAME,
-  };
+    Try<set<string>> enabledControllers = cgroups2::controllers::enabled(cgroup);
+    ASSERT_SOME(enabledControllers);
+    ASSERT_EQ(expectedControllers, *enabledControllers);
+  } else {
+    Try<set<string>> enabledSubsystems = cgroups::subsystems();
+    ASSERT_SOME(enabledSubsystems);
 
-  // Check cgroups for all the local enabled subsystems
-  // have been created for the container.
-  foreach (const string& subsystem, enabledSubsystems.get()) {
-    if (supportedSubsystems.count(subsystem) == 0) {
-      continue;
+    set<string> supportedSubsystems = {
+      CGROUP_SUBSYSTEM_BLKIO_NAME,
+      CGROUP_SUBSYSTEM_CPU_NAME,
+      CGROUP_SUBSYSTEM_CPUACCT_NAME,
+      CGROUP_SUBSYSTEM_CPUSET_NAME,
+      CGROUP_SUBSYSTEM_DEVICES_NAME,
+      CGROUP_SUBSYSTEM_HUGETLB_NAME,
+      CGROUP_SUBSYSTEM_MEMORY_NAME,
+      CGROUP_SUBSYSTEM_NET_CLS_NAME,
+      CGROUP_SUBSYSTEM_NET_PRIO_NAME,
+      CGROUP_SUBSYSTEM_PERF_EVENT_NAME,
+      CGROUP_SUBSYSTEM_PIDS_NAME,
+    };
+
+    // Check cgroups for all the local enabled subsystems
+    // have been created for the container.
+    foreach (const string& subsystem, enabledSubsystems.get()) {
+      if (supportedSubsystems.count(subsystem) == 0) {
+        continue;
+      }
+
+      Result<string> hierarchy = cgroups::hierarchy(subsystem);
+      ASSERT_SOME(hierarchy);
+
+      ASSERT_TRUE(os::exists(path::join(hierarchy.get(), cgroup)));
     }
-
-    Result<string> hierarchy = cgroups::hierarchy(subsystem);
-    ASSERT_SOME(hierarchy);
-
-    string cgroup = path::join(flags.cgroups_root, containerId.value());
-
-    ASSERT_TRUE(os::exists(path::join(hierarchy.get(), cgroup)));
   }
 
   driver.stop();

@@ -102,6 +102,7 @@ if (NOT WIN32)
   PROTOC_GENERATE(INTERNAL TARGET slave/containerizer/mesos/isolators/volume/csi/state)
   PROTOC_GENERATE(INTERNAL TARGET slave/containerizer/mesos/provisioner/docker/message)
   PROTOC_GENERATE(INTERNAL TARGET slave/volume_gid_manager/state)
+  PROTOC_GENERATE(INTERNAL TARGET slave/containerizer/device_manager/state)
 endif ()
 
 
@@ -344,21 +345,26 @@ set(LINUX_SRC
   slave/containerizer/mesos/isolators/volume/csi/isolator.cpp
   slave/containerizer/mesos/provisioner/backends/aufs.cpp
   slave/containerizer/mesos/provisioner/backends/bind.cpp
-  slave/containerizer/mesos/provisioner/backends/overlay.cpp)
+  slave/containerizer/mesos/provisioner/backends/overlay.cpp
+  linux/cgroups2.cpp
+  linux/ebpf.cpp
+  slave/containerizer/mesos/isolators/cgroups2/cgroups2.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controller.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/core.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/cpu.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/memory.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/devices.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/perf_event.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/io.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/hugetlb.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/cpuset.cpp
+  slave/containerizer/mesos/isolators/cgroups2/controllers/pids.cpp
+  slave/containerizer/device_manager/device_manager.cpp)
 
 if (ENABLE_XFS_DISK_ISOLATOR)
   list(APPEND LINUX_SRC
     slave/containerizer/mesos/isolators/xfs/disk.cpp
     slave/containerizer/mesos/isolators/xfs/utils.cpp)
-endif ()
-
-if (ENABLE_CGROUPS_V2)
-  list(APPEND LINUX_SRC
-    linux/cgroups2.cpp
-    linux/ebpf.cpp
-    slave/containerizer/mesos/isolators/cgroups2/cgroups2.cpp
-    slave/containerizer/mesos/isolators/cgroups2/controller.cpp)
-
 endif ()
 
 if (ENABLE_LAUNCHER_SEALING)
@@ -623,7 +629,6 @@ target_compile_definitions(
   mesos PUBLIC
   USE_CMAKE_BUILD_CONFIG
   $<$<BOOL:${ENABLE_XFS_DISK_ISOLATOR}>:ENABLE_XFS_DISK_ISOLATOR>
-  $<$<BOOL:${ENABLE_CGROUPS_V2}>:ENABLE_CGROUPS_V2>
   $<$<BOOL:${ENABLE_LAUNCHER_SEALING}>:ENABLE_LAUNCHER_SEALING>
   $<$<BOOL:${ENABLE_NVML}>:ENABLE_NVML>
   $<$<BOOL:${ENABLE_PORT_MAPPING_ISOLATOR}>:ENABLE_PORT_MAPPING_ISOLATOR>

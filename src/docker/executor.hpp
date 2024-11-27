@@ -91,11 +91,6 @@ struct Flags : public virtual mesos::internal::logging::Flags
         "via the CFS bandwidth limiting subfeature.\n",
         false);
 
-    add(&Flags::enable_cgroups_v2,
-        "enable_cgroups_v2",
-        "Enable CGroupsV2 Support (ALPHA).",
-        false);        
-
     add(&Flags::network_cni_plugins_dir,
         "network_cni_plugins_dir",
         "A search path for CNI plugin binaries. The docker executer\n"
@@ -146,7 +141,6 @@ public:
       const std::map<std::string, std::string>& taskEnvironment,
       const Option<ContainerDNSInfo>& defaultContainerDNS,
       bool cgroupsEnableCfs,
-      bool enableCgroupsV2,
       const std::string& network_cni_plugins_dir,
       const std::string& network_cni_config_dir);
 

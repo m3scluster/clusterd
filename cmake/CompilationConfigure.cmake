@@ -199,6 +199,11 @@ set(
   CACHE STRING
     "URL or filesystem path with a fork of the canonical 3rdparty repository")
 
+set(
+  LIBEVENT_RELEASES "https://github.com/libevent/libevent/releases/download"
+  CACHE STRING
+    "URL to download the desired version of libevent release tarball")
+
 if (WIN32 AND REBUNDLED)
   message(
     WARNING
@@ -428,9 +433,6 @@ if (LINUX)
       "The XFS disk isolator is not yet supported, see MESOS-9117.")
   endif ()
 
-  option(ENABLE_CGROUPS_V2
-    "Whether to enable cgroups v2."
-    FALSE)
 
   option(ENABLE_LAUNCHER_SEALING
     "Whether to enable containerizer launcher sealing via memfd."

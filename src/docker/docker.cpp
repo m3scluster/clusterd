@@ -120,7 +120,6 @@ Try<Owned<Docker>> Docker::create(
     const string& path,
     const string& socket,
     bool validate,
-    bool enableCgroupsV2,
     const Option<JSON::Object>& config)
 {
 #ifndef __WINDOWS__
@@ -144,7 +143,7 @@ Try<Owned<Docker>> Docker::create(
 #ifdef __linux__
   // Make sure that cgroups are mounted, and at least the 'cpu'
   // subsystem is attached.
-  if (!enableCgroupsV2) {
+  if (!cgroups::cgroupsv2()) {
     Result<string> hierarchy = cgroups::hierarchy("cpu");
 
     if (hierarchy.isNone()) {

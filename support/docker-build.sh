@@ -43,6 +43,8 @@ case $OS in
     append_dockerfile "RUN yum install -y which"
     append_dockerfile "RUN yum groupinstall -y 'Development Tools'"
     append_dockerfile "RUN yum install -y epel-release" # Needed for clang.
+    append_dockerfile "RUN yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm"
+    append_dockerfile "RUN yum install -y --enablerepo=elrepo-kernel kernel-ml-headers"
     append_dockerfile "RUN yum install -y clang git maven"
     append_dockerfile "RUN yum install -y java-1.8.0-openjdk-devel python-devel python-six zlib-devel libcurl-devel openssl-devel cyrus-sasl-devel cyrus-sasl-md5 apr-devel subversion-devel apr-utils-devel libevent-devel libev-devel"
 
@@ -64,32 +66,73 @@ case $OS in
 
     append_dockerfile "FROM $OS"
 
+    case $OS in
+    *22.04*)
+    append_dockerfile "ARG DEBIAN_FRONTEND=noninteractive"
+    ;;
+    esac
+
     # NOTE: We need to do this to fix some flakiness while fetching packages.
     # See https://bugs.launchpad.net/ubuntu/+source/apt/+bug/972077
     append_dockerfile "RUN rm -rf /var/lib/apt/lists/*"
 
     # Install dependencies.
     # IBM Power only supports Ubuntu 14.04 and gcc compiler.
-    [ "$(uname -m)" = "x86_64" ] && CLANG_PKG=clang-3.5 || CLANG_PKG=
+    if [ "$(uname -m)" = "x86_64" ]; then
+      # We install clang-10 on non-ubuntu-16.04 systems because newer OS
+      # no longer support clang 3.5
+      if [[ "$OS" = "ubuntu:16.04" ]]; then
+        CLANG_PKG=clang-3.5
+      else
+        CLANG_PKG=clang-14
+      fi
+    else
+      CLANG_PKG=
+    fi
     append_dockerfile "RUN apt-get update"
     append_dockerfile "RUN apt-get install -y build-essential $CLANG_PKG git maven autoconf libtool software-properties-common"
-    append_dockerfile "RUN apt-get install -y python-dev python-six libcurl4-nss-dev libsasl2-dev libapr1-dev libsvn-dev libevent-dev libev-dev libssl-dev"
+    append_dockerfile "RUN apt-get install -y python-six libcurl4-nss-dev libsasl2-dev libapr1-dev libsvn-dev libevent-dev libev-dev libssl-dev"
     append_dockerfile "RUN apt-get install -y wget curl sed"
 
     case $OS in
       *16.04*)
         echo "Install Ubuntu 16.04 LTS (Xenial Xerus) specific packages"
-        append_dockerfile "RUN apt-get install -y openjdk-8-jdk zlib1g-dev"
+        append_dockerfile "RUN apt-get install -y openjdk-8-jdk zlib1g-dev python-dev"
         # Install ping required by OsTest.Which
         append_dockerfile "RUN apt-get install -y iputils-ping"
 
         # Install Python 3.6.
-        append_dockerfile "RUN add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && apt-get install -qy python3.6 python3.6-dev python3.6-venv"
+        append_dockerfile "RUN curl https://www.python.org/ftp/python/3.6.15/Python-3.6.15.tgz -o /tmp/Python-3.6.15.tgz && \
+            cd /tmp && \
+            tar xzf Python-3.6.15.tgz && \
+            cd Python-3.6.15 && \
+            ./configure --enable-optimizations && \
+            make altinstall && \
+            rm -rf /tmp/Python-3.6.15.tgz /tmp/Python-3.6.15"
         # Use update-alternatives to set python3.6 as python3.
-        append_dockerfile "RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1"
+        append_dockerfile "RUN update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.6 1"
         # Install pip for Python 3.6.
-        append_dockerfile "RUN curl https://bootstrap.pypa.io/get-pip.py | python3"
+        append_dockerfile "RUN curl https://bootstrap.pypa.io/pip/3.6/get-pip.py | python3"
        ;;
+      *22.04*)
+        echo "Install Ubuntu 22.04 LTS (Focal Fossa) specific packages"
+        append_dockerfile "RUN apt-get install -y openjdk-11-jdk zlib1g-dev python2-dev"
+        # Install ping required by OsTest.Which
+        append_dockerfile "RUN apt-get install -y iputils-ping"
+
+        # Install Python 3.6.
+        append_dockerfile "RUN curl https://www.python.org/ftp/python/3.6.15/Python-3.6.15.tgz -o /tmp/Python-3.6.15.tgz && \
+            cd /tmp && \
+            tar xzf Python-3.6.15.tgz && \
+            cd Python-3.6.15 && \
+            ./configure --enable-optimizations && \
+            make altinstall && \
+            rm -rf /tmp/Python-3.6.15.tgz /tmp/Python-3.6.15"
+        # Use update-alternatives to set python3.6 as python3.
+        append_dockerfile "RUN update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.6 1"
+        # Install pip for Python 3.6.
+        append_dockerfile "RUN curl https://bootstrap.pypa.io/pip/3.6/get-pip.py | python3"
+      ;;
       *)
         append_dockerfile "RUN apt-get install -y openjdk-7-jdk"
        ;;

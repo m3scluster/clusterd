@@ -2504,7 +2504,7 @@ Try<Isolator*> PortMappingIsolatorProcess::create(const Flags& flags)
   // recent kernel patch is needed for this operation to succeed:
   // https://git.kernel.org/cgit/linux/kernel/git/davem/net.git/:
   // 25f929fbff0d1bcebf2e92656d33025cd330cbf8
-  Try<bool> setHostLoMAC = link::setMAC(lo.get(), hostMAC.get());
+  Try<Nothing> setHostLoMAC = link::setMAC(lo.get(), hostMAC.get());
   if (setHostLoMAC.isError()) {
     return Error(
         "Failed to set the MAC address of " + lo.get() +
@@ -3595,8 +3595,11 @@ Future<Nothing> PortMappingIsolatorProcess::isolate(
   LOG(INFO) << "Created network namespace handle symlink '"
             << linker << "' -> '" << target << "'";
 
-  // Create a virtual ethernet pair for this container.
-  Try<bool> createVethPair = link::veth::create(veth(pid), eth0, pid);
+  // Create a virtual ethernet pair for this container, also set the MAC
+  // address of the host network namespace veth<pid> interface to match
+  // that of the host network namespace eth0.
+  Try<bool> createVethPair =
+    link::veth::create(veth(pid), eth0, pid, hostMAC, hostMAC);
   if (createVethPair.isError()) {
     return Failure(
         "Failed to create virtual ethernet pair: " +
@@ -3621,15 +3624,6 @@ Future<Nothing> PortMappingIsolatorProcess::isolate(
           "Failed to disable IPv6 for " + veth(pid) +
           ": " + write.error());
     }
-  }
-
-  // Sets the MAC address of veth to match the MAC address of the host
-  // public interface (eth0).
-  Try<bool> setVethMAC = link::setMAC(veth(pid), hostMAC);
-  if (setVethMAC.isError()) {
-    return Failure(
-        "Failed to set the MAC address of " + veth(pid) +
-        ": " + setVethMAC.error());
   }
 
   // Prepare the ingress queueing disciplines on veth.
@@ -5181,8 +5175,9 @@ string PortMappingIsolatorProcess::scripts(Info* info)
   // checksum offloading ensures the TCP layer will checksum and drop
   // it.
   script << "ethtool -K " << eth0 << " rx off\n";
-  script << "ip link set " << eth0 << " address " << hostMAC
-         << " mtu " << hostEth0MTU << " up\n";
+
+  // Only set the MTU and bring the interface up, MAC address was set on create.
+  script << "ip link set " << eth0 << " mtu " << hostEth0MTU << " up\n";
   script << "ip addr add " << hostIPNetwork << " dev " << eth0 << "\n";
 
   // Set up the default gateway to match that of eth0.
@@ -5192,6 +5187,9 @@ string PortMappingIsolatorProcess::scripts(Info* info)
   script << "echo " << info->ephemeralPorts.lower() << " "
          << (info->ephemeralPorts.upper() - 1)
          << " > /proc/sys/net/ipv4/ip_local_port_range\n";
+
+  // Verify that the port range has been updated correctly
+  script << "cat /proc/sys/net/ipv4/ip_local_port_range\n";
 
   // Allow eth0 and lo in the container to accept local packets. We
   // need this because we will set up filters to redirect packets from

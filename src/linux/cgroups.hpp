@@ -939,6 +939,12 @@ struct Entry
 {
   static Try<Entry> parse(const std::string& s);
 
+  // Returns true iff entry matches all devices accesses.
+  bool is_catch_all() const;
+
+  // Returns true iff this entry fully contains the other's device accesses.
+  bool encompasses(const Entry& other) const;
+
   struct Selector
   {
     enum class Type
@@ -951,6 +957,12 @@ struct Entry
     Type type;
     Option<unsigned int> major; // Matches all `major` numbers if None.
     Option<unsigned int> minor; // Matches all `minor` numbers if None.
+
+    // Returns true iff major or minor are wildcards or if type == ALL.
+    bool has_wildcard() const;
+
+    // Returns true iff selector encompasses the other selector.
+    bool encompasses(const Selector& other) const;
   };
 
   struct Access
@@ -958,6 +970,8 @@ struct Entry
     bool read;
     bool write;
     bool mknod;
+    bool none() const;
+    bool overlaps(const Access& other) const;
   };
 
   Selector selector;
