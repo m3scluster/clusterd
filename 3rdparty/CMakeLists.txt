@@ -43,7 +43,7 @@ set(RAPIDJSON_URL       ${FETCH_URL}/rapidjson-${RAPIDJSON_VERSION}.tar.gz)
 set(RE2_URL             ${FETCH_URL}/re2-${RE2_VERSION}.tar.gz)
 set(XZ_URL              ${FETCH_URL}/xz-${XZ_VERSION}-modified.tar.gz)
 set(BOOST_URL           https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_${BOOST_VERSION}.tar.gz)
-set(ZOOKEEPER_URL       ${FETCH_URL}/downloads/apache-zookeeper-${ZOOKEEPER_VERSION}.tar.gz)
+set(ZOOKEEPER_URL       ${FETCH_URL}/downloads/zookeeper-${ZOOKEEPER_VERSION}.tar.gz)
 set(GRPC_URL            ${FETCH_URL}/downloads/grpc-${GRPC_VERSION}.tar.gz)
 set(GLOG_URL            ${FETCH_URL}/downloads/glog-${GLOG_VERSION}.tar.gz)
 set(LIBEVENT_URL        ${FETCH_URL}/downloads/libevent-${LIBEVENT_VERSION}-stable.tar.gz)
@@ -1746,13 +1746,13 @@ add_dependencies(zookeeper ${ZOOKEEPER_TARGET})
 set(ZOOKEEPER_COMPILE_DEFINITIONS ZOOKEEPER_VERSION="${ZOOKEEPER_VERSION}" USE_STATIC_LIB)
 set_target_properties(
   zookeeper PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "${ZOOKEEPER_ROOT}/zookeeper-client/zookeeper-client-c/include;${ZOOKEEPER_ROOT}/zookeeper-client/zookeeper-client-c/generated"
+  INTERFACE_INCLUDE_DIRECTORIES "${ZOOKEEPER_ROOT}/zookeeper-client/zookeeper-client-c/include;${ZOOKEEPER_ROOT}/zookeeper-client/zookeeper-client-c/generated"  
   INTERFACE_LINK_LIBRARIES zk-hashtable
   INTERFACE_COMPILE_DEFINITIONS "${ZOOKEEPER_COMPILE_DEFINITIONS}")
 
 set(ZOOKEEPER_CMAKE_FORWARD_ARGS ${CMAKE_CXX_FORWARD_ARGS} -DWANT_CPPUNIT=OFF)
 
-PATCH_CMD(ZOOKEEPER_PATCH_CMD downloads/apache-zookeeper.patch)
+#PATCH_CMD(ZOOKEEPER_PATCH_CMD downloads/apache-zookeeper.patch)
 
 if (WIN32)
   if (CMAKE_GENERATOR MATCHES "Visual Studio")
@@ -1802,14 +1802,14 @@ ExternalProject_Add(
 if (ENABLE_INSTALL_MODULE_DEPENDENCIES)
   install(
     FILES
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/generated/zookeeper.jute.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/include/config.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/include/proto.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/include/recordio.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/include/winconfig.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/include/zookeeper_log.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/include/zookeeper_version.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/src/zookeeper-client/zookeeper-client-c/include/zookeeper.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/generated/zookeeper.jute.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/config.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/proto.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/recordio.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/winconfig.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/zookeeper_log.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/zookeeper_version.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/zookeeper.h
     DESTINATION ${MESOS_INSTALL_HEADERS}/zookeeper)
 
   # NOTE: `zookeeper` is always built statically, hence it is always installed
