@@ -1,10 +1,16 @@
 Release Notes - Clusterd
 -----------------------------------------------
 
-Changes in master
+Release Notes - Clusterd - Version 1.11.0-0.6.0
 -----------------------------------------------
 
   * Update zookeeper client to version 3.9.2.
+  
+
+Release Notes - Clusterd - Version 1.11.0-0.5.1
+-----------------------------------------------
+
+  * ADD: missing jquery and bootstrap files for webui (https://github.com/m3scluster/clusterd/issues/5)
 
 
 Release Notes - Clusterd - Version 1.11.0-0.5.0
