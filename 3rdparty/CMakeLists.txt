@@ -1803,7 +1803,7 @@ if (ENABLE_INSTALL_MODULE_DEPENDENCIES)
   install(
     FILES
       ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/generated/zookeeper.jute.h
-      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/config.h
+      ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/win_getopt.h
       ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/proto.h
       ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/recordio.h
       ${ZOOKEEPER_CMAKE_ROOT}/src/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-client/zookeeper-client-c/include/winconfig.h
