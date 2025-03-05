@@ -98,16 +98,33 @@ else()
   set(PROCESSOR_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 endif()
 
-
 set(OS_DISTRIBUTION "${DISTRO}${VERSION}")
+
+# Package dependencies
+######################
+if(OS_DISTRIBUTION STREQUAL "debian11")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
+elseif(OS_DISTRIBUTION STREQUAL "ubuntu2204")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
+endif()
+
+
+set(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION}-${MESOS_SUB_VERSION}.${OS_DISTRIBUTION})
+set(CPACK_PACKAGE_VERSION_MAJOR ${MESOS_MAJOR_VERSION})
+set(CPACK_PACKAGE_VERSION_MINOR ${MESOS_MINOR_VERSION})
+set(CPACK_PACKAGE_VERSION_PATCH ${MESOS_PATCH_VERSION})
+
 message(STATUS "Distribution: ${OS_DISTRIBUTION}")
 message(STATUS "Architecture: ${PROCESSOR_ARCH}")
+message(STATUS "Package Version: ${CPACK_PACKAGE_VERSION}")
+message(STATUS "Dependencies: ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
 
 # Set the basename of any packages to 'aventer-mesos-<version>'.
-set(CPACK_PACKAGE_FILE_NAME "aventer-mesos-${MESOS_PACKAGE_VERSION}-${MESOS_SUB_VERSION}-${OS_DISTRIBUTION}_${PROCESSOR_ARCH}")
+set(CPACK_PACKAGE_FILE_NAME "aventer-mesos_${MESOS_PACKAGE_VERSION}-${MESOS_SUB_VERSION}.${OS_DISTRIBUTION}_${PROCESSOR_ARCH}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
 set(CPACK_PACKAGE_CONTACT "https://github.com/m3scluster/clusterd")
 set(CPACK_PACKAGE_MAINTAINER "AVENTER UG")
+set(CPACK_PACKAGE_VENDOR ${CPACK_PACKAGE_MAINTAINER})
 
 # By default, all forms of binary packages are disabled.
 option(CPACK_BINARY_BUNDLE       "Enable to build OSX bundles"              OFF)
@@ -131,12 +148,6 @@ option(CPACK_SOURCE_TBZ2 "Enable to build TBZ2 source packages" OFF)
 option(CPACK_SOURCE_TXZ  "Enable to build TXZ source packages"  OFF)
 option(CPACK_SOURCE_TZ   "Enable to build TZ source packages"   OFF)
 option(CPACK_SOURCE_ZIP  "Enable to build ZIP source packages"  OFF)
-
-set(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION}-${MESOS_SUB_VERSION})
-set(CPACK_PACKAGE_VERSION_MAJOR ${MESOS_MAJOR_VERSION})
-set(CPACK_PACKAGE_VERSION_MINOR ${MESOS_MINOR_VERSION})
-set(CPACK_PACKAGE_VERSION_PATCH ${MESOS_PATCH_VERSION})
-set(CPACK_PACKAGE_VENDOR ${CPACK_PACKAGE_MAINTAINER})
 
 # configure systemd files
 
