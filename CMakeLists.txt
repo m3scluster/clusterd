@@ -69,8 +69,42 @@ endif ()
 # PACKAGING.
 ############
 
+file(STRINGS "/etc/os-release" OS_RELEASE)
+foreach(line ${OS_RELEASE})
+  if(line MATCHES "^ID=")
+    string(REPLACE "ID=" "" DISTRO ${line})
+    string(STRIP ${DISTRO} DISTRO)
+  elseif(line MATCHES "^VERSION_ID=")
+    string(REPLACE "VERSION_ID=" "" VERSION ${line})
+    string(STRIP ${VERSION} VERSION)
+    string(REGEX REPLACE "[^a-zA-Z0-9]" "" VERSION ${VERSION})
+  endif()
+endforeach()
+
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "unknown")
+  execute_process(
+    COMMAND uname -m
+    OUTPUT_VARIABLE ARCH_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  set(CMAKE_SYSTEM_PROCESSOR ${ARCH_OUTPUT})
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  set(PROCESSOR_ARCH "amd64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  set(PROCESSOR_ARCH "arm64")
+else()
+  set(PROCESSOR_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+
+
+set(OS_DISTRIBUTION "${DISTRO}${VERSION}")
+message(STATUS "Distribution: ${OS_DISTRIBUTION}")
+message(STATUS "Architecture: ${PROCESSOR_ARCH}")
+
 # Set the basename of any packages to 'aventer-mesos-<version>'.
-set(CPACK_PACKAGE_FILE_NAME "aventer-mesos-${MESOS_PACKAGE_VERSION}-${MESOS_SUB_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME "aventer-mesos-${MESOS_PACKAGE_VERSION}-${MESOS_SUB_VERSION}-${OS_DISTRIBUTION}_${PROCESSOR_ARCH}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
 set(CPACK_PACKAGE_CONTACT "https://github.com/m3scluster/clusterd")
 set(CPACK_PACKAGE_MAINTAINER "AVENTER UG")
