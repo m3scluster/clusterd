@@ -45,16 +45,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/src/cmake)
 include(Versions)
 include(cotire)
 
-# Configuration.
-include(MesosConfigure)
-
-
-# SUBDIRECTORIES.
-#################
-add_subdirectory(3rdparty)
-add_subdirectory(src)
-
-
 # TESTS.
 ########
 add_custom_target(check COMMAND ctest -V -C $<CONFIG> DEPENDS tests)
@@ -104,20 +94,40 @@ set(OS_DISTRIBUTION "${DISTRO}${VERSION}")
 ######################
 if(OS_DISTRIBUTION STREQUAL "debian11")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
-elseif(OS_DISTRIBUTION STREQUAL "ubuntu2204")
+elseif(OS_DISTRIBUTION STREQUAL "debian12")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
+elseif(OS_DISTRIBUTION STREQUAL "ubuntu2204")
+  set(CMAKE_INSTALL_PREFIX "/usr")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
+elseif(OS_DISTRIBUTION STREQUAL "ubuntu2404")
+  set(CMAKE_INSTALL_PREFIX "/usr")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libsvn-dev,libevent-openssl-2.1-7t64,libevent-pthreads-2.1-7t64")
 endif()
-
 
 set(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION}-${MESOS_SUB_VERSION}.${OS_DISTRIBUTION})
 set(CPACK_PACKAGE_VERSION_MAJOR ${MESOS_MAJOR_VERSION})
 set(CPACK_PACKAGE_VERSION_MINOR ${MESOS_MINOR_VERSION})
 set(CPACK_PACKAGE_VERSION_PATCH ${MESOS_PATCH_VERSION})
 
+set(MESOS_FINAL_PREFIX ${CMAKE_INSTALL_PREFIX})
+
+# Configuration.
+include(MesosConfigure)
+
+
+# SUBDIRECTORIES.
+#################
+add_subdirectory(3rdparty)
+add_subdirectory(src)
+
 message(STATUS "Distribution: ${OS_DISTRIBUTION}")
 message(STATUS "Architecture: ${PROCESSOR_ARCH}")
 message(STATUS "Package Version: ${CPACK_PACKAGE_VERSION}")
 message(STATUS "Dependencies: ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
+message(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Data Install Prefix: ${DATA_INSTALL_PREFIX}")
+message(STATUS "Mesos Final Prefix: ${MESOS_FINAL_PREFIX}")
+
 
 # Set the basename of any packages to 'aventer-mesos-<version>'.
 set(CPACK_PACKAGE_FILE_NAME "aventer-mesos_${MESOS_PACKAGE_VERSION}-${MESOS_SUB_VERSION}.${OS_DISTRIBUTION}_${PROCESSOR_ARCH}")
