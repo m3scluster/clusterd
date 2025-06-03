@@ -1,12 +1,14 @@
-Release Notes - Clusterd
+Release Notes - Clusterd - Version 1.11.0-0.6.1
 -----------------------------------------------
+
+  * FIX: Missing mesos-agent metrics when using cgroupsv2.
 
 
 Release Notes - Clusterd - Version 1.11.0-0.6.0
 -----------------------------------------------
 
   * Update zookeeper client to version 3.9.2.
-  
+
 
 Release Notes - Clusterd - Version 1.11.0-0.5.1
 -----------------------------------------------
