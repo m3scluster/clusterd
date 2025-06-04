@@ -2079,12 +2079,19 @@ Future<ResourceStatistics> DockerContainerizerProcess::usage(
     ResourceStatistics result;
 
 #ifdef __linux__
-    const Try<ResourceStatistics> cgroupStats = cgroupsStatistics(pid);
-    if (cgroupStats.isError()) {
-      return Failure("Failed to collect cgroup stats: " + cgroupStats.error());
+    if (!cgroups2::enabled()) {
+      const Try<ResourceStatistics> cgroupStats = cgroupsStatistics(pid);
+      if (cgroupStats.isError()) {
+        return Failure("Failed to collect cgroup stats: " + cgroupStats.error());
+      }
+      result = cgroupStats.get();
+    } else {
+      const Try<ResourceStatistics> cgroupStats = cgroupsv2Statistics(containerId);
+      if (cgroupStats.isError()) {
+        return Failure("Failed to collect cgroupv2 stats: " + cgroupStats.error());
+      }
+			result = cgroupStats.get();
     }
-
-    result = cgroupStats.get();
 #endif // __linux__
 
     Option<double> cpuRequest, cpuLimit, memLimit;
@@ -2221,6 +2228,102 @@ Future<ResourceStatistics> DockerContainerizerProcess::usage(
       }));
 }
 
+Try<std::string> DockerContainerizerProcess::getCgroupV2Path(pid_t pid) const {
+    std::string path = "/proc/" + std::to_string(pid) + "/cgroup";
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return Error("Error open cgroup file: " + path);
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.rfind("0::", 0) == 0) {
+            size_t pos = line.find("::");
+            if (pos != std::string::npos && pos + 2 < line.size()) {
+                return line.substr(pos + 2);
+            }
+        }
+    }
+
+    return Error("Could not find cgroup for PID " + std::to_string(pid));
+}
+
+Try<ResourceStatistics> DockerContainerizerProcess::cgroupsv2Statistics(ContainerID containerId) const
+{
+#ifndef __linux__
+  return Error("Does not support cgroups on non-linux platform");
+#else
+
+  if (!containers_.contains(containerId)) {
+    return Error("Unknown container " + stringify(containerId));
+  }
+
+  Container* container = containers_.at(containerId);
+
+  Try<std::string> cgPath = getCgroupV2Path(container->pid.get());
+  if (cgPath.isError()) {
+      return Error(cgPath.error());
+  }
+
+  std::stringstream sc;
+  sc << flags.cgroups_hierarchy << cgPath.get();
+  const string cgroup = sc.str();
+
+  Try<cgroups2::cpu::Stats> cpuStats = cgroups2::cpu::stats(cgroup);
+  if (cpuStats.isError()) {
+    return Error("Failed to get cgroup CPU stats: " + cpuStats.error());
+  }
+
+  ResourceStatistics usage;
+  usage.set_cpus_user_time_secs(cpuStats->user_time.secs());
+  usage.set_cpus_system_time_secs(cpuStats->system_time.secs());
+
+  if (cpuStats->periods.isSome()) {
+    usage.set_cpus_nr_periods(*cpuStats->periods);
+  }
+  if (cpuStats->throttled.isSome()) {
+    usage.set_cpus_nr_throttled(*cpuStats->throttled);
+  }
+  if (cpuStats->throttle_time.isSome()) {
+    usage.set_cpus_throttled_time_secs(cpuStats->throttle_time->secs());
+  }
+
+  if (cpuStats->periods.isNone()
+      || cpuStats->throttled.isNone()
+      || cpuStats->throttle_time.isNone()) {
+    LOG(ERROR) << "cpu throttling stats missing for cgroup '" << cgroup << "'"
+                  " despite the 'cpu' controller being enabled";
+  }
+
+  Try<cgroups2::memory::Stats> memoryStats = cgroups2::memory::stats(cgroup);
+  if (memoryStats.isError()) {
+    return Error("Failed to get cgroup memory stats: " + memoryStats.error());
+  }
+
+  // Kernel memory usage.
+  usage.set_mem_kmem_usage_bytes(memoryStats->kernel.bytes());
+
+  // Kernel TCP buffers usage.
+  usage.set_mem_kmem_tcp_usage_bytes(memoryStats->sock.bytes());
+
+  // Page cache usage.
+  usage.set_mem_file_bytes(memoryStats->file.bytes());
+  usage.set_mem_cache_bytes(memoryStats->file.bytes());
+
+  // Anonymous memory usage.
+  usage.set_mem_anon_bytes(memoryStats->anon.bytes());
+  usage.set_mem_rss_bytes(memoryStats->anon.bytes());
+
+  // File mapped memory usage.
+  usage.set_mem_mapped_file_bytes(memoryStats->file_mapped.bytes());
+
+  // Total unevictable memory.
+  usage.set_mem_unevictable_bytes(memoryStats->unevictable.bytes());
+
+  return usage;
+#endif // __linux__
+}
+
 
 Try<ResourceStatistics> DockerContainerizerProcess::cgroupsStatistics(
     pid_t pid) const
@@ -2228,127 +2331,126 @@ Try<ResourceStatistics> DockerContainerizerProcess::cgroupsStatistics(
 #ifndef __linux__
   return Error("Does not support cgroups on non-linux platform");
 #else
+
+
+  static const Result<string> cpuacctHierarchy = cgroups::hierarchy("cpuacct");
+  static const Result<string> memHierarchy = cgroups::hierarchy("memory");
+
+  // NOTE: Normally, a Docker container should be in its own cgroup.
+  // However, a zombie process (exited but not reaped) will be
+  // temporarily moved into the system root cgroup. We add some
+  // defensive check here to make sure we are not reporting statistics
+  // for the root cgroup. See MESOS-8480 for details.
+  const string systemRootCgroup = stringify(os::PATH_SEPARATOR);
+
+  if (cpuacctHierarchy.isError()) {
+    return Error(
+        "Failed to determine the cgroup 'cpuacct' subsystem hierarchy: " +
+        cpuacctHierarchy.error());
+  }
+
+  if (memHierarchy.isError()) {
+    return Error(
+        "Failed to determine the cgroup 'memory' subsystem hierarchy: " +
+        memHierarchy.error());
+  }
+
+  const Result<string> cpuacctCgroup = cgroups::cpuacct::cgroup(pid);
+  if (cpuacctCgroup.isError()) {
+    return Error(
+        "Failed to determine cgroup for the 'cpuacct' subsystem: " +
+        cpuacctCgroup.error());
+  } else if (cpuacctCgroup.isNone()) {
+    return Error("Unable to find 'cpuacct' cgroup subsystem");
+  } else if (cpuacctCgroup.get() == systemRootCgroup) {
+    return Error(
+        "Process '" + stringify(pid) +
+        "' should not be in the system root cgroup (being destroyed?)");
+  }
+
+  const Result<string> memCgroup = cgroups::memory::cgroup(pid);
+  if (memCgroup.isError()) {
+    return Error(
+        "Failed to determine cgroup for the 'memory' subsystem: " +
+        memCgroup.error());
+  } else if (memCgroup.isNone()) {
+    return Error("Unable to find 'memory' cgroup subsystem");
+  } else if (memCgroup.get() == systemRootCgroup) {
+    return Error(
+        "Process '" + stringify(pid) +
+        "' should not be in the system root cgroup (being destroyed?)");
+  }
+
+  const Try<cgroups::cpuacct::Stats> cpuAcctStat =
+    cgroups::cpuacct::stat(cpuacctHierarchy.get(), cpuacctCgroup.get());
+
+  if (cpuAcctStat.isError()) {
+    return Error("Failed to get cpu.stat: " + cpuAcctStat.error());
+  }
+
+  const Try<hashmap<string, uint64_t>> memStats =
+    cgroups::stat(memHierarchy.get(), memCgroup.get(), "memory.stat");
+
+  if (memStats.isError()) {
+    return Error(
+        "Error getting memory statistics from cgroups memory subsystem: " +
+        memStats.error());
+  }
+
+  if (!memStats->contains("rss")) {
+    return Error("cgroups memory stats does not contain 'rss' data");
+  }
+
   ResourceStatistics result;
+  result.set_timestamp(Clock::now().secs());
+  result.set_cpus_system_time_secs(cpuAcctStat->system.secs());
+  result.set_cpus_user_time_secs(cpuAcctStat->user.secs());
+  result.set_mem_rss_bytes(memStats->at("rss"));
 
-  if (!cgroups2::enabled()) {
-    static const Result<string> cpuacctHierarchy = cgroups::hierarchy("cpuacct");
-    static const Result<string> memHierarchy = cgroups::hierarchy("memory");
+  // Add the cpu.stat information only if CFS is enabled.
+  if (flags.cgroups_enable_cfs) {
+    static const Result<string> cpuHierarchy = cgroups::hierarchy("cpu");
 
-    // NOTE: Normally, a Docker container should be in its own cgroup.
-    // However, a zombie process (exited but not reaped) will be
-    // temporarily moved into the system root cgroup. We add some
-    // defensive check here to make sure we are not reporting statistics
-    // for the root cgroup. See MESOS-8480 for details.
-    const string systemRootCgroup = stringify(os::PATH_SEPARATOR);
-
-    if (cpuacctHierarchy.isError()) {
+    if (cpuHierarchy.isError()) {
       return Error(
-          "Failed to determine the cgroup 'cpuacct' subsystem hierarchy: " +
-          cpuacctHierarchy.error());
+          "Failed to determine the cgroup 'cpu' subsystem hierarchy: " +
+          cpuHierarchy.error());
     }
 
-    if (memHierarchy.isError()) {
+    const Result<string> cpuCgroup = cgroups::cpu::cgroup(pid);
+    if (cpuCgroup.isError()) {
       return Error(
-          "Failed to determine the cgroup 'memory' subsystem hierarchy: " +
-          memHierarchy.error());
-    }
-
-    const Result<string> cpuacctCgroup = cgroups::cpuacct::cgroup(pid);
-    if (cpuacctCgroup.isError()) {
-      return Error(
-          "Failed to determine cgroup for the 'cpuacct' subsystem: " +
-          cpuacctCgroup.error());
-    } else if (cpuacctCgroup.isNone()) {
-      return Error("Unable to find 'cpuacct' cgroup subsystem");
-    } else if (cpuacctCgroup.get() == systemRootCgroup) {
+          "Failed to determine cgroup for the 'cpu' subsystem: " +
+          cpuCgroup.error());
+    } else if (cpuCgroup.isNone()) {
+      return Error("Unable to find 'cpu' cgroup subsystem");
+    } else if (cpuCgroup.get() == systemRootCgroup) {
       return Error(
           "Process '" + stringify(pid) +
           "' should not be in the system root cgroup (being destroyed?)");
     }
 
-    const Result<string> memCgroup = cgroups::memory::cgroup(pid);
-    if (memCgroup.isError()) {
-      return Error(
-          "Failed to determine cgroup for the 'memory' subsystem: " +
-          memCgroup.error());
-    } else if (memCgroup.isNone()) {
-      return Error("Unable to find 'memory' cgroup subsystem");
-    } else if (memCgroup.get() == systemRootCgroup) {
-      return Error(
-          "Process '" + stringify(pid) +
-          "' should not be in the system root cgroup (being destroyed?)");
+    const Try<hashmap<string, uint64_t>> stat =
+      cgroups::stat(cpuHierarchy.get(), cpuCgroup.get(), "cpu.stat");
+
+    if (stat.isError()) {
+      return Error("Failed to read cpu.stat: " + stat.error());
     }
 
-    const Try<cgroups::cpuacct::Stats> cpuAcctStat =
-      cgroups::cpuacct::stat(cpuacctHierarchy.get(), cpuacctCgroup.get());
-
-    if (cpuAcctStat.isError()) {
-      return Error("Failed to get cpu.stat: " + cpuAcctStat.error());
+    Option<uint64_t> nr_periods = stat->get("nr_periods");
+    if (nr_periods.isSome()) {
+      result.set_cpus_nr_periods(nr_periods.get());
     }
 
-    const Try<hashmap<string, uint64_t>> memStats =
-      cgroups::stat(memHierarchy.get(), memCgroup.get(), "memory.stat");
-
-    if (memStats.isError()) {
-      return Error(
-          "Error getting memory statistics from cgroups memory subsystem: " +
-          memStats.error());
+    Option<uint64_t> nr_throttled = stat->get("nr_throttled");
+    if (nr_throttled.isSome()) {
+      result.set_cpus_nr_throttled(nr_throttled.get());
     }
 
-    if (!memStats->contains("rss")) {
-      return Error("cgroups memory stats does not contain 'rss' data");
-    }
-
-    result.set_timestamp(Clock::now().secs());
-    result.set_cpus_system_time_secs(cpuAcctStat->system.secs());
-    result.set_cpus_user_time_secs(cpuAcctStat->user.secs());
-    result.set_mem_rss_bytes(memStats->at("rss"));
-
-    // Add the cpu.stat information only if CFS is enabled.
-    if (flags.cgroups_enable_cfs) {
-      static const Result<string> cpuHierarchy = cgroups::hierarchy("cpu");
-
-      if (cpuHierarchy.isError()) {
-        return Error(
-            "Failed to determine the cgroup 'cpu' subsystem hierarchy: " +
-            cpuHierarchy.error());
-      }
-
-      const Result<string> cpuCgroup = cgroups::cpu::cgroup(pid);
-      if (cpuCgroup.isError()) {
-        return Error(
-            "Failed to determine cgroup for the 'cpu' subsystem: " +
-            cpuCgroup.error());
-      } else if (cpuCgroup.isNone()) {
-        return Error("Unable to find 'cpu' cgroup subsystem");
-      } else if (cpuCgroup.get() == systemRootCgroup) {
-        return Error(
-            "Process '" + stringify(pid) +
-            "' should not be in the system root cgroup (being destroyed?)");
-      }
-
-      const Try<hashmap<string, uint64_t>> stat =
-        cgroups::stat(cpuHierarchy.get(), cpuCgroup.get(), "cpu.stat");
-
-      if (stat.isError()) {
-        return Error("Failed to read cpu.stat: " + stat.error());
-      }
-
-      Option<uint64_t> nr_periods = stat->get("nr_periods");
-      if (nr_periods.isSome()) {
-        result.set_cpus_nr_periods(nr_periods.get());
-      }
-
-      Option<uint64_t> nr_throttled = stat->get("nr_throttled");
-      if (nr_throttled.isSome()) {
-        result.set_cpus_nr_throttled(nr_throttled.get());
-      }
-
-      Option<uint64_t> throttled_time = stat->get("throttled_time");
-      if (throttled_time.isSome()) {
-        result.set_cpus_throttled_time_secs(
-            Nanoseconds(throttled_time.get()).secs());
-      }
+    Option<uint64_t> throttled_time = stat->get("throttled_time");
+    if (throttled_time.isSome()) {
+      result.set_cpus_throttled_time_secs(
+          Nanoseconds(throttled_time.get()).secs());
     }
   }
 

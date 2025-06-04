@@ -298,6 +298,8 @@ private:
 #endif // __linux__
 
   Try<ResourceStatistics> cgroupsStatistics(pid_t pid) const;
+  Try<ResourceStatistics> cgroupsv2Statistics(ContainerID containerId) const;
+  Try<std::string> getCgroupV2Path(pid_t pid) const;
 
   // Call back for when the executor exits. This will trigger
   // container destroy.
