@@ -53,7 +53,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # NOTE: libevent doesn't come rebundled, so this URL is always the same. But,
 # it's only downloaded if `ENABLE_LIBEVENT` is set.
 set(LIBEVENT_URL ${LIBEVENT_RELEASES}/release-${LIBEVENT_VERSION}/libevent-${LIBEVENT_VERSION}.tar.gz)
-
 if (WIN32)
   # NOTE: These dependencies are only rebundled on Windows because they
   # are available as installable packages on Linux; so they live
