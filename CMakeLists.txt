@@ -26,7 +26,7 @@ project(aventer-mesos)
 set(MESOS_MAJOR_VERSION 1)
 set(MESOS_MINOR_VERSION 11)
 set(MESOS_PATCH_VERSION 0)
-set(MESOS_SUB_VERSION 0.7.0)
+set(MESOS_SUB_VERSION 0.7.1)
 set(PACKAGE_VERSION
   ${MESOS_MAJOR_VERSION}.${MESOS_MINOR_VERSION}.${MESOS_PATCH_VERSION})
 
@@ -93,8 +93,10 @@ set(OS_DISTRIBUTION "${DISTRO}${VERSION}")
 # Package dependencies
 ######################
 if(OS_DISTRIBUTION STREQUAL "debian11")
+  set(CMAKE_INSTALL_PREFIX "/usr")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
 elseif(OS_DISTRIBUTION STREQUAL "debian12")
+  set(CMAKE_INSTALL_PREFIX "/usr")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
 elseif(OS_DISTRIBUTION STREQUAL "ubuntu2204")
   set(CMAKE_INSTALL_PREFIX "/usr")
