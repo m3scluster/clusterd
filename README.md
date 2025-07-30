@@ -1,4 +1,8 @@
-# clusterd 
+# clusterd
+
+<a href="https://matrix.to/#/#mesos:matrix.aventer.biz" target="_new"><img src="https://img.shields.io/static/v1?label=Chat&message=Matrix&color=brightgreen"></a></span></a>
+<a href="https://www.aventer.biz" target="_new"><img src="https://img.shields.io/static/v1?label=Support&message=AVENTER&color=brightgreen"></a></span></a>
+
 ## Continued development of Apache Mesos
 
 Clusterd is a cluster manager that provides efficient resource isolation
@@ -9,7 +13,7 @@ workload on a dynamically shared pool of nodes.
 
 As long as Apache Mesos/clusterd is used, and funding/time permits, I will
 continue to maintain this with security updates and features. Since there is no
-tracking in clusterd or at my rpm.aventer.biz repository, I have no overview
+tracking in clusterd or at my [repository](rpm.aventer.biz), I have no overview
 of who benefits from my work outside of my client base. Therefore, I would
 greatly appreciate any feedback.
 
