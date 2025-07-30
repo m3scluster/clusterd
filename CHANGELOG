@@ -1,3 +1,8 @@
+Master
+-----------------------------------------------
+
+  * ADD: Make it possible to set the nvidia library name via env variable `MESOS_NVIDIA_LIB`
+
 Release Notes - Clusterd - Version 1.11.0-0.7.1
 -----------------------------------------------
 
