@@ -51,9 +51,6 @@ using std::string;
 
 namespace nvml {
 
-static constexpr char LIBRARY_NAME[] = "libnvidia-ml.so.1";
-
-
 struct NvidiaManagementLibrary
 {
   NvidiaManagementLibrary(
@@ -83,6 +80,14 @@ static Once* initialized = new Once();
 static Option<Error>* error = new Option<Error>();
 static DynamicLibrary* library = new DynamicLibrary();
 
+const char* getLibraryName() {
+    const char* env = std::getenv("MESOS_NVIDIA_LIB");
+    if (env && std::strlen(env) > 0) {
+        return env;
+    } else {
+        return "libnvidia-ml.so.1"; // Default
+    }
+}
 
 Try<Nothing> initialize()
 {
@@ -93,9 +98,11 @@ Try<Nothing> initialize()
     return Nothing();
   }
 
-  Try<Nothing> open = library->open(LIBRARY_NAME);
+
+
+  Try<Nothing> open = library->open(getLibraryName());
   if (open.isError()) {
-    *error = Error("Failed to open '" + stringify(LIBRARY_NAME) + "': " +
+    *error = Error("Failed to open '" + stringify(getLibraryName()) + "': " +
                    open.error());
     initialized->done();
     return error->get();
@@ -181,7 +188,7 @@ bool isAvailable()
   // `RTLD_LAZY` is the preferred method here because it is faster in
   // cases where the library is not yet opened, and having previously
   // opened it with `RTLD_NOW` will always take precedence.
-  void* open = ::dlopen(LIBRARY_NAME, RTLD_LAZY);
+  void* open = ::dlopen(getLibraryName(), RTLD_LAZY);
   if (open == nullptr) {
     return false;
   }

@@ -56,6 +56,7 @@ Try<std::string> systemGetDriverVersion();
 Try<unsigned int> deviceGetCount();
 Try<nvmlDevice_t> deviceGetHandleByIndex(unsigned int index);
 Try<unsigned int> deviceGetMinorNumber(nvmlDevice_t handle);
+const char* getLibraryName();
 
 } // namespace nvml {
 
