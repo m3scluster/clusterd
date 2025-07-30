@@ -1,9 +1,17 @@
 # clusterd 
-## based on Apache Mesos
+## Continued development of Apache Mesos
 
 Clusterd is a cluster manager that provides efficient resource isolation
 and sharing across distributed applications, or frameworks. It can run 
 workload on a dynamically shared pool of nodes.
+
+## My promise
+
+As long as Apache Mesos/clusterd is used, and funding/time permits, I will
+continue to maintain this with security updates and features. Since there is no
+tracking in clusterd or at my rpm.aventer.biz repository, I have no overview
+of who benefits from my work outside of my client base. Therefore, I would
+greatly appreciate any feedback.
 
 ## Funding
 
