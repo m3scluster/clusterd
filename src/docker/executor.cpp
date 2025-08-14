@@ -910,13 +910,13 @@ private:
       // Find the right plugin config file of the networkname
       Try<std::string> networkConfigFile = getNetworkConfigFile(networkName, network_cni_config_dir);
       if (networkConfigFile.isError()) {
-        LOG(ERROR) << "Could not find the CNI plugin to use for network " <<  networkName << ". Deactivate CNI.";
+        LOG(INFO) << "Could not find the CNI plugin to use for network " <<  networkName << ". Deactivate CNI.";
         continue;
       }  
 
       Try<JSON::Object> networkConfigJSON = getNetworkConfigJSON(networkConfigFile.get());
       if (networkConfigJSON.isError()) {
-        LOG(ERROR) << "Could not get valid CNI configuration for network '" 
+        LOG(INFO) << "Could not get valid CNI configuration for network '"
                    << networkName  << "': " << networkConfigJSON.error();
         continue;
       }    
@@ -924,12 +924,12 @@ private:
       // Invoke CNI plugin to get the plugin type
       Result<JSON::String> cniPluginType = networkConfigJSON->at<JSON::String>("type");
       if (cniPluginType.isError()) {
-        LOG(ERROR) << cniPluginType.error();
+        LOG(INFO) << cniPluginType.error();
         continue;
       }
 
       if (!cniPluginType.isSome()) {
-        LOG(ERROR) << "Could not find CNI plugin type to use for network '" <<  networkName;
+        LOG(INFO) << "Could not find CNI plugin type to use for network '" <<  networkName;
         continue;
       }
 
@@ -954,7 +954,7 @@ private:
           network_cni_plugins_dir);
 
       if (plugin.isNone()) {
-        LOG(ERROR) << "Cannot load CNI plugin: " << plugin.get();
+        LOG(INFO) << "Cannot load CNI plugin: " << plugin.get();
         continue;
       }
 
