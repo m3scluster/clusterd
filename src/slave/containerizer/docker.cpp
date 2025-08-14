@@ -2320,6 +2320,9 @@ Try<ResourceStatistics> DockerContainerizerProcess::cgroupsv2Statistics(Containe
   // Total unevictable memory.
   usage.set_mem_unevictable_bytes(memoryStats->unevictable.bytes());
 
+	// Set current timestamp.
+  usage.set_timestamp(Clock::now().secs());
+
   return usage;
 #endif // __linux__
 }
