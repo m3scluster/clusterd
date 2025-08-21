@@ -2,10 +2,10 @@ Master
 -----------------------------------------------
 
   * ADD: Make it possible to set the nvidia library name via env variable `MESOS_NVIDIA_LIB`
-	* ADD: Timestamp into CGroupsV2 Metrics of the mesos-agent for docker containers.
-	* CHANGE: The "Could not find the CNI plugin..." message in the docker executor
-						is not an error message. It's just an information. I changed the
-						Log Message to INFO instead of ERROR.
+  * ADD: Timestamp into CGroupsV2 Metrics of the mesos-agent for docker containers.
+  * CHANGE: The "Could not find the CNI plugin..." message in the docker executor
+            is not an error message. It's just an information. I changed the
+            Log Message to INFO instead of ERROR.
 
 Release Notes - Clusterd - Version 1.11.0-0.7.1
 -----------------------------------------------

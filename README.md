@@ -17,6 +17,10 @@ tracking in clusterd or at my [repository](rpm.aventer.biz), I have no overview
 of who benefits from my work outside of my client base. Therefore, I would
 greatly appreciate any feedback.
 
+## Download
+
+[RPM and Deb Repositories](https://rpm.aventer.biz/)
+
 ## Funding
 
 [![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=H553XE4QJ9GJ8)
