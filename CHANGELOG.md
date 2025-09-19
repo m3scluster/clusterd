@@ -6,6 +6,10 @@ Master
   * CHANGE: The "Could not find the CNI plugin..." message in the docker executor
             is not an error message. It's just an information. I changed the
             Log Message to INFO instead of ERROR.
+  * UPDATE: glog is deprecated. Migrate to glog fork https://github.com/AVENTER-UG/glog
+            and bump it to version 0.6.1. That will fix the issue with cleanup old logfiles.
+            Be sure to set `cleanup_log_files` to the amount of days you want to keep and
+            `log_dir`.
 
 Release Notes - Clusterd - Version 1.11.0-0.7.1
 -----------------------------------------------
