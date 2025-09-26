@@ -1,4 +1,4 @@
-Master
+Release Notes - Clusterd - Version 1.11.0-0.8.0
 -----------------------------------------------
 
   * ADD: Make it possible to set the nvidia library name via env variable `MESOS_NVIDIA_LIB`
@@ -9,7 +9,7 @@ Master
   * UPDATE: glog is deprecated. Migrate to glog fork https://github.com/AVENTER-UG/glog
             and bump it to version 0.6.1. That will fix the issue with cleanup old logfiles.
             Be sure to set `cleanup_log_files` to the amount of days you want to keep and
-            `log_dir`.
+            `log_dir` to the mesos log directory (/var/log/mesos).
 
 Release Notes - Clusterd - Version 1.11.0-0.7.1
 -----------------------------------------------
