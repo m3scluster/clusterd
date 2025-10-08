@@ -45,7 +45,7 @@ set(XZ_URL              ${FETCH_URL}/xz-${XZ_VERSION}-modified.tar.gz)
 set(BOOST_URL           https://archives.boost.io/release/1.83.0/source/boost_${BOOST_VERSION}.tar.gz)
 set(ZOOKEEPER_URL       ${FETCH_URL}/downloads/zookeeper-${ZOOKEEPER_VERSION}.tar.gz)
 set(GRPC_URL            ${FETCH_URL}/downloads/grpc-${GRPC_VERSION}.tar.gz)
-set(GLOG_URL            ${FETCH_URL}/downloads/glog-${GLOG_VERSION}.tar.gz)
+set(GLOG_URL            https://github.com/AVENTER-UG/glog/archive/refs/tags/v${GLOG_VERSION}.tar.gz)
 set(LIBEVENT_URL        ${FETCH_URL}/downloads/libevent-${LIBEVENT_VERSION}-stable.tar.gz)
 
 set(CMAKE_CXX_STANDARD 14)
