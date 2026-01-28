@@ -25,13 +25,9 @@ greatly appreciate any feedback.
 
 [![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=H553XE4QJ9GJ8)
 
-# Documentation
+# Installation, Documentation
 
 Documentation is available in the [docs](https://github.com/m3scluster/clusterd-docs) repository. 
-
-# Installation
-
-Instructions are included on the [Getting Started](http://mesos.apache.org/getting-started/) page.
 
 # License
 
