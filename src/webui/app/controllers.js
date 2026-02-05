@@ -996,6 +996,52 @@
             })
           }
 
+          function enrichTaskDetails(task) {
+            if (!task.statuses || !task.statuses.length) return;
+
+            var last = task.statuses[task.statuses.length - 1];
+
+            task.state = last.state;
+            task.healthy = last.healthy;
+
+            task.ip = last.container_status?.network_infos?.[0]?.ip_addresses?.[0]?.ip_address;
+            task.networkName = last.container_status?.network_infos?.[0]?.name;
+
+            var netInfos = last.container_status?.network_infos || [];
+
+            task.networkNames = netInfos
+              .map(function(n){ return n.name; })
+              .filter(Boolean);
+
+            task.ipAddresses = [];
+            netInfos.forEach(function(n) {
+              (n.ip_addresses || []).forEach(function(ip) {
+                if (ip.ip_address) task.ipAddresses.push(ip.ip_address);
+              });
+            });
+
+            var docker = task.container?.docker || {};
+            task.dockerImage = docker.image;
+            task.privileged = docker.privileged;
+            task.dockerNetworks = docker.networks || [];
+
+            task.dockerPorts = (docker.port_mappings || []).map(function(p) {
+              return p.container_port + ' → ' + p.host_port;
+            });
+
+            task.dockerParams = (docker.parameters || [])
+              .map(function(p){ return p.key + '=' + p.value; });
+
+            task.dockerVolumes = (task.container?.volumes || []).map(function(vol) {
+              if (vol.source?.docker_volume) {
+                return vol.source.docker_volume.name + ' → ' + vol.container_path;
+              }
+              return vol.container_path; // fallback
+            });
+
+
+          }
+
           // Look for the executor; it's either active or completed.
           $scope.executor =
             _.find($scope.framework.executors, matchExecutor) ||
@@ -1020,6 +1066,11 @@
 
           setHealth($scope.executor.tasks);
           setTaskSandbox($scope.executor);
+
+          angular.forEach($scope.executor.tasks || [], enrichTaskDetails);
+          angular.forEach($scope.executor.completed_tasks || [], enrichTaskDetails);
+          angular.forEach($scope.executor.queued_tasks || [], enrichTaskDetails);
+
 
           $('#agent').show();
         })

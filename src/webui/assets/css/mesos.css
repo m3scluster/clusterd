@@ -271,3 +271,12 @@ a.badge-type:hover {
   color: #f33745;
   text-transform: capitalize;
 }
+
+.table td.overflow {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+

@@ -140,45 +140,117 @@
       class="table table-striped table-bordered table-condensed">
       <thead>
         <tr>
-          <th data-key="id" rowspan="2">ID</th>
-          <th data-key="name" rowspan="2">Name</th>
-          <th data-key="role" rowspan="2">Role</th>
-          <th data-key="state" rowspan="2">State</th>
-          <th data-key="healthy" rowspan="2">Health</th>
-          <th class="group-column" colspan="2">CPUs</th>
-          <th class="group-column" colspan="2">Mem</th>
-          <th data-key="resources.gpus" rowspan="2">GPUs (allocated)</th>
-          <th data-key="resources.disk" rowspan="2">Disk (allocated)</th>
+          <th rowspan="2">ID</th>
+          <th rowspan="2">Name</th>
+          <th rowspan="2">Role</th>
+          <th rowspan="2">State</th>
+          <th rowspan="2">Health</th>
+
+          <th colspan="2" class="group-column text-center">CPUs</th>
+          <th colspan="2" class="group-column text-center">Memory</th>
+
+          <th rowspan="2">GPUs</th>
+          <th rowspan="2">Disk</th>
+
+          <th colspan="7" class="group-column text-center">Container / Network</th>
+
           <th rowspan="2"></th>
         </tr>
         <tr>
-          <th class="begin-group-column" data-key="resources.cpus">Allocated</th>
-          <th class="end-group-column" data-key="limits.cpus">Limit</th>
-          <th class="begin-group-column" data-key="resources.mem">Allocated</th>
-          <th class="end-group-column" data-key="limits.mem">Limit</th>
+          <th>Alloc</th>
+          <th>Limit</th>
+          <th>Alloc</th>
+          <th>Limit</th>
+
+          <th>IP</th>
+          <th>Net-Name</th>
+          <th>Image</th>
+          <th>Ports</th>
+          <th>Priv</th>
+          <th>Param</th>
+          <th>Volume</th>
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="task in $data">
-          <td>{{task.id}}</td>
-          <td>{{task.name}}</td>
-          <td>{{task.role}}</td>
-          <td>{{task.state}}</td>
-          <td class="task-{{task.healthy | taskHealth}}">{{task.healthy | taskHealth}}</td>
-          <td>{{task.resources.cpus | number}}</td>
-          <td>{{task.limits.cpus | number}}</td>
-          <td>{{task.resources.mem * (1024 * 1024) | dataSize}}</td>
-          <td>{{task.limits.mem * (1024 * 1024) | dataSize}}</td>
-          <td>{{task.resources.gpus | number}}</td>
-          <td>{{task.resources.disk * (1024 * 1024) | dataSize}}</td>
-          <td>
-            <a href="{{'#/agents/' + agent_id + '/browse?path=' +
-                       encodeURIComponent(task.directory)}}">
-              Sandbox
-            </a>
-          </td>
-        </tr>
+      <tr ng-repeat="task in $data">
+
+        <td>{{task.id}}</td>
+        <td>{{task.name}}</td>
+        <td>{{task.role}}</td>
+
+        <!-- STATE -->
+        <td>
+          <span class="label"
+            ng-class="{
+              'label-success': task.state === 'TASK_RUNNING',
+              'label-warning': task.state === 'TASK_STARTING' || task.state === 'TASK_STAGING',
+              'label-danger':  task.state === 'TASK_FAILED' || task.state === 'TASK_ERROR' || task.state === 'TASK_LOST',
+              'label-default': task.state === 'TASK_FINISHED' || task.state === 'TASK_KILLED'
+            }">
+            {{task.state.replace('TASK_', '')}}
+          </span>
+        </td>
+
+        <!-- HEALTH -->
+        <td>
+          <span ng-if="task.healthy === true || task.healthy === false"
+                class="label"
+                ng-class="{
+                  'label-success': task.healthy === true,
+                  'label-danger':  task.healthy === false
+                }">
+            {{ task.healthy === true ? 'HEALTHY' : 'UNHEALTHY' }}
+          </span>
+        </td>
+
+        <!-- RESOURCES -->
+        <td>{{task.resources.cpus | number}}</td>
+        <td>{{task.limits.cpus | number}}</td>
+        <td>{{task.resources.mem * (1024*1024) | dataSize}}</td>
+        <td>{{task.limits.mem * (1024*1024) | dataSize}}</td>
+        <td>{{task.resources.gpus}}</td>
+        <td>{{task.resources.disk * (1024*1024) | dataSize}}</td>
+
+        <!-- NETWORK / CONTAINER -->
+        <td class="overflow" title="{{task.ipAddresses.join(', ')}}">
+          <span ng-repeat="ip in task.ipAddresses">
+            {{ip}}<span ng-if="!$last"><br></span>
+          </span>
+        </td>
+
+        <td class="overflow" title="{{task.networkNames.join(', ')}}">
+          <span ng-repeat="n in task.networkNames">
+            {{n}}<span ng-if="!$last"><br></span>
+          </span>
+        </td>
+
+        <td class="overflow" title="{{task.dockerImage}}">
+          {{task.dockerImage}}
+        </td>
+        <td class="overflow" title="{{task.dockerPorts.join(', ')}}">
+          <span ng-repeat="p in task.dockerPorts">
+            {{p}}<span ng-if="!$last"><br></span>
+          </span>
+        </td>
+        <td>{{task.privileged ? 'yes' : 'no'}}</td>
+        <td class="overflow" title="{{task.dockerParams.join(', ')}}">
+          <span ng-repeat="param in task.dockerParams">
+            {{param}}<span ng-if="!$last"><br></span>
+          </span>
+        </td>
+        <td class="overflow" title="{{task.dockerVolumes.join(', ')}}">
+          <span ng-repeat="v in task.dockerVolumes">
+            {{v}}<span ng-if="!$last"><br></span>
+          </span>
+        </td>
+
+        <td>
+          <a href="{{'#/agents/' + agent_id + '/browse?path=' + encodeURIComponent(task.directory)}}">Sandbox</a>
+        </td>
+
+      </tr>
       </tbody>
+
     </table>
 
     <table m-table table-content="executor.completed_tasks" title="Completed Tasks"

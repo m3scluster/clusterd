@@ -160,8 +160,27 @@
           </td>
           <td>{{task.name}}</td>
           <td>{{task.role}}</td>
-          <td>{{task.state | truncateMesosState}}</td>
-          <td class="task-{{task.healthy | taskHealth}}">{{task.healthy | taskHealth}}</td>
+          <td>
+            <span class="label"
+              ng-class="{
+                'label-success': task.state === 'TASK_RUNNING',
+                'label-warning': task.state === 'TASK_STARTING' || task.state === 'TASK_STAGING',
+                'label-danger':  task.state === 'TASK_FAILED' || task.state === 'TASK_ERROR' || task.state === 'TASK_LOST',
+                'label-default': task.state === 'TASK_FINISHED' || task.state === 'TASK_KILLED'
+              }">
+              {{task.state.replace('TASK_', '')}}
+            </span>
+          </td>
+          <td>
+            <span ng-if="task.healthy === true || task.healthy === false"
+                  class="label"
+                  ng-class="{
+                    'label-success': task.healthy === true,
+                    'label-danger':  task.healthy === false
+                  }">
+              {{ task.healthy === true ? 'HEALTHY' : 'UNHEALTHY' }}
+            </span>
+          </td>
           <td>
             <m-timestamp value="{{task.start_time}}"></m-timestamp>
           </td>
