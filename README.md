@@ -58,3 +58,9 @@ cmake -DUNBUNDLED_LIBEVENT=true -DENABLE_SSL=true -DENABLE_LIBEVENT=true -DCMAKE
 make
 make package
 ```
+
+## Alternate WebUI
+
+I'm developing a modernized web UI for ClusterD/Apache Mesos. You can check out
+the project on GitHub here: [https://github.com/m3scluster/clusterd-webui](https://github.com/m3scluster/clusterd-webui).
+
