@@ -17,6 +17,10 @@ tracking in clusterd or at my [repository](rpm.aventer.biz), I have no overview
 of who benefits from my work outside of my client base. Therefore, I would
 greatly appreciate any feedback.
 
+## Important
+
+With Version 1.11.0-0.6.0 CgroupsV2 is mandatory.
+
 ## Download
 
 [RPM and Deb Repositories](https://rpm.aventer.biz/)

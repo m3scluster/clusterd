@@ -1,8 +1,9 @@
 ## Master
 
 - UPDATE: glog to version 0.6.2 to fix cleanup info messages
-- ADD: [webui] more information to every running task
- ![clipboard_20260205181633.bmp](vx_images/clipboard_20260205181633.bmp)
+- ADD: [webui] more information to every running task 
+![clipboard_20260205181633.bmp](vx_images/clipboard_20260205181633.bmp)
+- FIX: [docker] docker entrypoint is not mandatory anymore. Change the check mechanism.
 
 
 ## v1.11.0-0.8.0

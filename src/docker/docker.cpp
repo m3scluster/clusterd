@@ -542,60 +542,40 @@ Try<Docker::Container> Docker::Container::create(const string& output)
 
 Try<Docker::Image> Docker::Image::create(const JSON::Object& json)
 {
-  Result<JSON::Value> entrypoint =
-    json.find<JSON::Value>("ContainerConfig.Entrypoint");
+  Result<JSON::Value> containerConfig = json.find<JSON::Value>("ContainerConfig");
 
   // Container and ContainerConfig was removed in Docker version >= 26.
   // https://docs.docker.com/engine/deprecated/#container-and-containerconfig-fields-in-image-inspect
-  Result<JSON::Value> entrypointConfig =
-    json.find<JSON::Value>("Config.Entrypoint");
+  Result<JSON::Value> config = json.find<JSON::Value>("Config");
 
-  if (entrypoint.isError() && entrypointConfig.isError()) {
-    return Error("Failed to find 'ContainerConfig- and Config.Entrypoint': " +
-                 entrypoint.error());
+  if (config.isError() && containerConfig.isError()) {
+    return Error("Failed to find 'ContainerConfig- and Config': " + config.error());
 
   } 
   
-  if (entrypoint.isNone()) {
-    if (entrypointConfig.isNone()) {
-      return Error("Unable to find 'ContainerConfig- and Config.Entrypoint'");
+  if (config.isNone()) {
+    if (containerConfig.isNone()) {
+      return Error("Unable to find 'ContainerConfig- and Config'");
     }
-    entrypoint = entrypointConfig;
+    config = containerConfig;
   }
 
   Option<vector<string>> entrypointOption = None();
 
-  if (!entrypoint->is<JSON::Null>()) {
-    if (!entrypoint->is<JSON::Array>()) {
-      return Error("Unexpected type found for 'ContainerConfig/Config.Entrypoint'");
-    }
-
-    const vector<JSON::Value>& values = entrypoint->as<JSON::Array>().values;
-    if (values.size() != 0) {
-      vector<string> result;
-
-      foreach (const JSON::Value& value, values) {
-        if (!value.is<JSON::String>()) {
-          return Error("Expecting entrypoint value to be type string");
-        }
-        result.push_back(value.as<JSON::String>().value);
-      }
-
-      entrypointOption = result;
-    }
+  if (!config->is<JSON::Object>()) {
+    return Error("Unexpected type found for 'ContainerConfig/Config'");      
   }
 
   Result<JSON::Value> env = None();
 
-  if (entrypointConfig.isSome()) {
+  if (config.isSome()) {
     env = json.find<JSON::Value>("Config.Env");
   } else {
     env = json.find<JSON::Value>("ContainerConfig.Env");    
-  }
+  }  
 
   if (env.isError()) {
-    return Error("Failed to find 'ContainerConfig/Config.Env': " +
-                 env.error());
+    return Error("Failed to find 'ContainerConfig/Config.Env': " + env.error());
   } else if (env.isNone()) {
     return Error("Unable to find 'ContainerConfig/Config.Env'");
   }
