@@ -284,6 +284,18 @@ static Try<Nothing> initializeCgroups2(const slave::Flags& flags)
                  + enable.error());
   }
 
+  // Make the requested controllers available to container cgroups created
+  // directly below the Mesos root. Enabling them only in the hierarchy root
+  // makes the controller files visible in `flags.cgroups_root`, but does not
+  // propagate them to its children.
+  enable = cgroups2::controllers::enable(
+      flags.cgroups_root, requestedControllersSet);
+  if (enable.isError()) {
+    return Error(
+        "Failed to enable the requested cgroup v2 controllers in the Mesos "
+        "root cgroup: " + enable.error());
+  }
+
   // Move the agent process into its own cgroup.
   Try<Nothing> assign = cgroups2::assign(agentLeaf, getpid());
   if (assign.isError()) {

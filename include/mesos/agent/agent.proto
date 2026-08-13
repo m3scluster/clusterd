@@ -99,6 +99,9 @@ message Call {
 
     MARK_RESOURCE_PROVIDER_GONE = 32; // See 'MarkResourceProviderGone' below.
 
+    // Updates the memory limit of a running top-level task container.
+    UPDATE_CONTAINER_MEMORY_LIMIT = 33;
+
     // Prune unused container images.
     PRUNE_IMAGES = 30;
   }
@@ -303,6 +306,14 @@ message Call {
     required ContainerID container_id = 1;
   }
 
+  // Updates the memory allocation and hard limit of a running top-level
+  // container.
+  // The memory limit is expressed in MiB and may be increased or decreased.
+  message UpdateContainerMemoryLimit {
+    required ContainerID container_id = 1;
+    required Value.Scalar memory_limit = 2;
+  }
+
   // Adds a new resource provider config file.
   //
   // The content of the `info` field will be written into a new config file in
@@ -420,6 +431,8 @@ message Call {
   optional RemoveResourceProviderConfig remove_resource_provider_config = 19;
 
   optional MarkResourceProviderGone mark_resource_provider_gone = 22;
+
+  optional UpdateContainerMemoryLimit update_container_memory_limit = 23;
 
   optional PruneImages prune_images = 21;
 }

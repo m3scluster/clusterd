@@ -887,6 +887,31 @@ TEST_F(DockerImageTest, ParseInspectonImage)
 }
 
 
+// Docker 26 removed the legacy `ContainerConfig` field from image inspect.
+TEST_F(DockerImageTest, ParseDocker26InspectImage)
+{
+  Try<JSON::Object> json = JSON::parse<JSON::Object>(R"~(
+    {
+      "Id": "sha256:synthetic",
+      "Config": {
+        "Entrypoint": ["/synthetic-entrypoint"],
+        "Env": ["SYNTHETIC_KEY=synthetic-value"]
+      }
+    }
+  )~");
+
+  ASSERT_SOME(json);
+
+  Try<Docker::Image> image = Docker::Image::create(json.get());
+  ASSERT_SOME(image);
+  ASSERT_SOME(image->entrypoint);
+  ASSERT_SOME(image->environment);
+
+  EXPECT_EQ("/synthetic-entrypoint", image->entrypoint->front());
+  EXPECT_EQ("synthetic-value", image->environment->at("SYNTHETIC_KEY"));
+}
+
+
 // Tests the --devices flag of 'docker run' by adding the
 // /dev/nvidiactl device (present alongside Nvidia GPUs).
 // Skip this test on Windows, since GPU support does not work yet.

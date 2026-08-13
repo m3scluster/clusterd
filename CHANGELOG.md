@@ -1,5 +1,9 @@
 ## Master
 
+- ADD: missing dependencies for debian/ubuntu packages
+
+## v1.11.0-0.9.0
+
 - UPDATE: glog to version 0.6.2 to fix cleanup info messages
 - ADD: [webui] more information to every running task 
 ![clipboard_20260205181633.bmp](vx_images/clipboard_20260205181633.bmp)

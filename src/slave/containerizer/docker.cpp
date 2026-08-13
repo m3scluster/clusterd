@@ -1683,17 +1683,6 @@ Future<Nothing> DockerContainerizerProcess::update(
     return Nothing();
   }
 
-  if (container->generatedForCommandTask) {
-    // Store the resources for usage().
-    container->resourceRequests = resourceRequests;
-    container->resourceLimits = resourceLimits;
-
-    LOG(INFO) << "Ignoring updating container " << containerId
-              << " because it is generated for a command task";
-
-    return Nothing();
-  }
-
   if (container->resourceRequests == resourceRequests &&
       container->resourceLimits == resourceLimits &&
       !force) {
@@ -1799,6 +1788,68 @@ Future<Nothing> DockerContainerizerProcess::_update(
   }
 
   containers_.at(containerId)->pid = container.pid.get();
+
+  if (cgroups2::enabled()) {
+    Option<Bytes> memoryRequest = resourceRequests.mem();
+    Option<double> memoryLimit;
+
+    if (resourceLimits.count("mem") > 0) {
+      memoryLimit = resourceLimits.at("mem").value();
+    }
+
+    if (memoryRequest.isNone() && memoryLimit.isNone()) {
+      return Nothing();
+    }
+
+    Try<string> cgroup = getCgroupV2Path(container.pid.get());
+    if (cgroup.isError()) {
+      return Failure(
+          "Failed to determine the cgroups v2 path for container " +
+          stringify(containerId) + ": " + cgroup.error());
+    }
+
+    if (cgroup.get() == stringify(os::PATH_SEPARATOR)) {
+      return Failure(
+          "Refusing to update the cgroups v2 hierarchy root for container " +
+          stringify(containerId));
+    }
+
+    const string cgroupPath = flags.cgroups_hierarchy + cgroup.get();
+
+    if (memoryRequest.isSome()) {
+      const Bytes low = std::max(memoryRequest.get(), MIN_MEMORY);
+      Try<Nothing> setLow = cgroups2::memory::set_low(cgroupPath, low);
+      if (setLow.isError()) {
+        return Failure(
+            "Failed to update 'memory.low' for container " +
+            stringify(containerId) + ": " + setLow.error());
+      }
+
+      LOG(INFO) << "Updated 'memory.low' to " << low << " at " << cgroupPath
+                << " for container " << containerId;
+    }
+
+    Option<Bytes> max = None();
+    if (memoryLimit.isSome() && !std::isinf(memoryLimit.get())) {
+      max = std::max(
+          Megabytes(static_cast<uint64_t>(memoryLimit.get())), MIN_MEMORY);
+    } else if (memoryLimit.isNone() && memoryRequest.isSome()) {
+      max = std::max(memoryRequest.get(), MIN_MEMORY);
+    }
+
+    Try<Nothing> setMax = cgroups2::memory::set_max(cgroupPath, max);
+    if (setMax.isError()) {
+      return Failure(
+          "Failed to update 'memory.max' for container " +
+          stringify(containerId) + ": " + setMax.error());
+    }
+
+    LOG(INFO) << "Updated 'memory.max' to "
+              << (max.isSome() ? stringify(max.get()) : "max") << " at "
+              << cgroupPath << " for container " << containerId;
+
+    return Nothing();
+  }
 
   // NOTE: Normally, a Docker container should be in its own cgroup.
   // However, a zombie process (exited but not reaped) will be
@@ -2012,10 +2063,9 @@ Future<Nothing> DockerContainerizerProcess::__update(
       hardLimit = std::max(memRequest.get(), MIN_MEMORY);
     }
 
-    // Only update if new limit is infinite or higher than current limit.
-    // TODO(benh): Introduce a MemoryWatcherProcess which monitors the
-    // discrepancy between usage and soft limit and introduces a
-    // "manual oom" if necessary.
+    // Apply both increases and decreases. The kernel reclaims memory when a
+    // lower limit is written and may invoke the cgroup OOM killer if reclaim
+    // cannot satisfy the new limit.
     if (isInfiniteLimit) {
       Try<Nothing> write = cgroups::write(
           memHierarchy.get(), memCgroup.get(), "memory.limit_in_bytes", "-1");
@@ -2028,7 +2078,7 @@ Future<Nothing> DockerContainerizerProcess::__update(
       LOG(INFO) << "Updated 'memory.limit_in_bytes' to -1 at "
                 << path::join(memHierarchy.get(), memCgroup.get())
                 << " for container " << containerId;
-    } else if (hardLimit.isSome() && hardLimit.get() > currentHardLimit.get()) {
+    } else if (hardLimit.isSome() && hardLimit.get() != currentHardLimit.get()) {
       Try<Nothing> write = cgroups::memory::limit_in_bytes(
           memHierarchy.get(), memCgroup.get(), hardLimit.get());
 

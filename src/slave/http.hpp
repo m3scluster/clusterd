@@ -85,6 +85,7 @@ public:
       const process::http::Request& request,
       const Option<process::http::authentication::Principal>& principal) const;
 
+
   static std::string API_HELP();
   static std::string EXECUTOR_HELP();
   static std::string RESOURCE_PROVIDER_HELP();
@@ -94,6 +95,7 @@ public:
   static std::string STATISTICS_HELP();
   static std::string CONTAINERS_HELP();
   static std::string CONTAINERIZER_DEBUG_HELP();
+
 
 private:
   JSON::Object _flags() const;
@@ -298,6 +300,11 @@ private:
 
   template <mesos::authorization::Action ACTION>
   process::Future<process::http::Response> killContainer(
+      const mesos::agent::Call& call,
+      ContentType acceptType,
+      const Option<process::http::authentication::Principal>& principal) const;
+
+  process::Future<process::http::Response> updateContainerMemoryLimit(
       const mesos::agent::Call& call,
       ContentType acceptType,
       const Option<process::http::authentication::Principal>& principal) const;

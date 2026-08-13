@@ -150,7 +150,23 @@ Future<Nothing> MemoryControllerProcess::update(
   }
 
   Bytes memory = *resourceRequests.mem();
-  Bytes softLimit = std::max(memory, CGROUPS2_MIN_MEMORY);
+
+  // An explicit memory limit update represents the memory assigned to the
+  // running container, not merely an accounting limit. Apply it to both
+  // `memory.low` (protected allocation) and `memory.max` (hard ceiling).
+  // Resource requests remain unchanged because those are scheduler accounting
+  // data owned by the master.
+  Bytes softLimit = [&resourceLimits, &memory]() -> Bytes {
+    if (resourceLimits.count("mem") > 0 &&
+        !std::isinf(resourceLimits.at("mem").value())) {
+      return std::max(
+          Megabytes(static_cast<uint64_t>(
+              resourceLimits.at("mem").value())),
+          CGROUPS2_MIN_MEMORY);
+    }
+
+    return std::max(memory, CGROUPS2_MIN_MEMORY);
+  }();
 
   // Set the soft memory limit.
   Try<Nothing> low = cgroups2::memory::set_low(cgroup, softLimit);
@@ -177,31 +193,20 @@ Future<Nothing> MemoryControllerProcess::update(
     return softLimit;
   }();
 
-  Result<Bytes> currentHardLimit = cgroups2::memory::max(cgroup);
-  if (currentHardLimit.isError()) {
-    return Failure("Failed to get current hard memory limit: "
-                   + currentHardLimit.error());
+  // `memory.max` supports both increasing and decreasing the limit. If the
+  // new limit is below the container's current usage, the kernel reclaims
+  // memory and may invoke the cgroup OOM killer until usage is below the new
+  // limit. This is the requested cgroups v2 semantics for explicit updates.
+  Try<Nothing> max = cgroups2::memory::set_max(cgroup, newHardLimit);
+  if (max.isError()) {
+    return Failure("Failed to set hard memory limit: " + max.error());
   }
 
-  // We only update the hard limit if:
-  // 1) The hard limit has not yet been set for the container, or
-  // 2) The new hard limit is greater than the existing hard limit.
-  //
-  // This is done to avoid the chance of triggering an OOM by reducing the
-  // hard limit to below the current memory usage.
+  infos[containerId].hardLimitUpdated = true;
 
-  bool updateHardLimit = !infos[containerId].hardLimitUpdated
-    || newHardLimit.isNone() // infinite memory limit
-    || *newHardLimit > *currentHardLimit;
-
-  if (updateHardLimit) {
-    Try<Nothing> max = cgroups2::memory::set_max(cgroup, newHardLimit);
-    if (max.isError()) {
-      return Failure("Failed to set hard memory limit: " + max.error());
-    }
-
-    infos[containerId].hardLimitUpdated = true;
-  }
+  LOG(INFO) << "Updated hard memory limit to "
+            << (newHardLimit.isSome() ? stringify(newHardLimit.get()) : "max")
+            << " for container " << containerId;
 
   return Nothing();
 }

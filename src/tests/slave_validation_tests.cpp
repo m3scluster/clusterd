@@ -653,6 +653,29 @@ TEST(AgentCallValidationTest, LaunchContainer)
 }
 
 
+TEST(AgentCallValidationTest, UpdateContainerMemoryLimit)
+{
+  agent::Call call;
+  call.set_type(agent::Call::UPDATE_CONTAINER_MEMORY_LIMIT);
+
+  Option<Error> error = validation::agent::call::validate(call);
+  EXPECT_SOME(error);
+
+  agent::Call::UpdateContainerMemoryLimit* update =
+    call.mutable_update_container_memory_limit();
+  update->mutable_container_id()->set_value("synthetic-container");
+  update->mutable_memory_limit()->set_value(0);
+
+  error = validation::agent::call::validate(call);
+  EXPECT_SOME(error);
+
+  update->mutable_memory_limit()->set_value(128);
+
+  error = validation::agent::call::validate(call);
+  EXPECT_NONE(error);
+}
+
+
 TEST(AgentCallValidationTest, AddResourceProviderConfig)
 {
   // Expecting `add_resource_provider_config`.

@@ -17,6 +17,7 @@
 #include "slave/constants.hpp"
 #include "slave/validation.hpp"
 
+#include <cmath>
 #include <string>
 
 #include <mesos/resources.hpp>
@@ -542,6 +543,39 @@ Option<Error> validate(
       if (error.isSome()) {
         return Error("'remove_container.container_id' is invalid"
                      ": " + error->message);
+      }
+
+      return None();
+    }
+
+    case mesos::agent::Call::UPDATE_CONTAINER_MEMORY_LIMIT: {
+      if (!call.has_update_container_memory_limit()) {
+        return Error(
+            "Expecting 'update_container_memory_limit' to be present");
+      }
+
+      const mesos::agent::Call::UpdateContainerMemoryLimit& update =
+        call.update_container_memory_limit();
+
+      Option<Error> error = validation::container::validateContainerId(
+          update.container_id());
+      if (error.isSome()) {
+        return Error(
+            "'update_container_memory_limit.container_id' is invalid: " +
+            error->message);
+      }
+
+      if (update.container_id().has_parent()) {
+        return Error(
+            "'update_container_memory_limit.container_id' must identify a "
+            "top-level task container");
+      }
+
+      const double memoryLimit = update.memory_limit().value();
+      if (!std::isfinite(memoryLimit) || memoryLimit <= 0) {
+        return Error(
+            "'update_container_memory_limit.memory_limit.value' must be "
+            "positive and finite");
       }
 
       return None();

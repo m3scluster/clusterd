@@ -2510,6 +2510,38 @@ TEST_F(SlaveTest, ContainersEndpointNoExecutor)
 }
 
 
+TEST_F(SlaveTest, UpdateContainerMemoryEndpointAuthenticationAndValidation)
+{
+  Try<Owned<cluster::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  Owned<MasterDetector> detector = master.get()->createDetector();
+  Try<Owned<cluster::Slave>> slave = StartSlave(detector.get());
+  ASSERT_SOME(slave);
+
+  const string body =
+    R"({"type":"UPDATE_CONTAINER_MEMORY_LIMIT","update_container_memory_limit":{"container_id":{"value":"synthetic-container"},"memory_limit":{"value":128}}})";
+
+  Future<Response> response = process::http::post(
+      slave.get()->pid,
+      "api/v1",
+      None(),
+      body,
+      APPLICATION_JSON);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(Unauthorized({}).status, response);
+
+  response = process::http::post(
+      slave.get()->pid,
+      "api/v1",
+      createBasicAuthHeaders(DEFAULT_CREDENTIAL),
+      R"({"type":"UPDATE_CONTAINER_MEMORY_LIMIT"})",
+      APPLICATION_JSON);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(BadRequest().status, response);
+}
+
+
 // This is an end-to-end test that verifies that the slave returns the
 // correct container status and resource statistics based on the currently
 // running executors, and ensures that '/containers' endpoint returns the
@@ -2742,6 +2774,52 @@ TEST_F(SlaveTest, ContainersEndpoint)
 
   AWAIT_READY(containerId1);
   AWAIT_READY(containerId2);
+
+  EXPECT_CALL(containerizer, update(containerId1.get(), _, _))
+    .WillOnce(Invoke(
+        [containerId1](
+            const ContainerID& containerId,
+            const Resources& resources,
+            const google::protobuf::Map<string, Value::Scalar>& limits) {
+          EXPECT_EQ(containerId1.get(), containerId);
+          EXPECT_SOME_EQ(Megabytes(768), resources.mem());
+          EXPECT_EQ(768, limits.at("mem").value());
+          return Nothing();
+        }));
+
+  Future<Response> updateResponse = process::http::post(
+      slave.get()->pid,
+      "api/v1",
+      createBasicAuthHeaders(DEFAULT_CREDENTIAL),
+      "{\"type\":\"UPDATE_CONTAINER_MEMORY_LIMIT\","
+        "\"update_container_memory_limit\":{\"container_id\":{\"value\":\"" +
+        containerId1->value() +
+        "\"},\"memory_limit\":{\"value\":768}}}",
+      APPLICATION_JSON);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, updateResponse);
+
+  EXPECT_CALL(containerizer, update(containerId1.get(), _, _))
+    .WillOnce(Invoke(
+        [](const ContainerID&,
+           const Resources& resources,
+           const google::protobuf::Map<string, Value::Scalar>& limits) {
+          EXPECT_SOME_EQ(Megabytes(256), resources.mem());
+          EXPECT_EQ(256, limits.at("mem").value());
+          return Nothing();
+        }));
+
+  updateResponse = process::http::post(
+      slave.get()->pid,
+      "api/v1",
+      createBasicAuthHeaders(DEFAULT_CREDENTIAL),
+      "{\"type\":\"UPDATE_CONTAINER_MEMORY_LIMIT\","
+        "\"update_container_memory_limit\":{\"container_id\":{\"value\":\"" +
+        containerId1->value() +
+        "\"},\"memory_limit\":{\"value\":256}}}",
+      APPLICATION_JSON);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, updateResponse);
 
   // Will be called once during the second request.
   EXPECT_CALL(containerizer, usage(_))

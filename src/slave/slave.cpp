@@ -918,6 +918,7 @@ void Slave::initialize()
               logResponse(request, response);
             });
         });
+
   route("/containerizer/debug",
         READONLY_HTTP_AUTHENTICATION_REALM,
         Http::CONTAINERIZER_DEBUG_HELP(),

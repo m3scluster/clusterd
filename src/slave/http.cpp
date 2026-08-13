@@ -654,6 +654,9 @@ Future<Response> Http::_api(
     case mesos::agent::Call::REMOVE_CONTAINER:
       return removeContainer(call, mediaTypes.accept, principal);
 
+    case mesos::agent::Call::UPDATE_CONTAINER_MEMORY_LIMIT:
+      return updateContainerMemoryLimit(call, mediaTypes.accept, principal);
+
     case mesos::agent::Call::ADD_RESOURCE_PROVIDER_CONFIG:
       return addResourceProviderConfig(call, principal);
 
@@ -3710,6 +3713,53 @@ Future<Response> Http::killContainer(
   }
 
   return killContainer<KILL_STANDALONE_CONTAINER>(call, acceptType, principal);
+}
+
+
+Future<Response> Http::updateContainerMemoryLimit(
+    const mesos::agent::Call& call,
+    ContentType /*acceptType*/,
+    const Option<Principal>& principal) const
+{
+  CHECK_EQ(mesos::agent::Call::UPDATE_CONTAINER_MEMORY_LIMIT, call.type());
+  CHECK(call.has_update_container_memory_limit());
+
+  const mesos::agent::Call::UpdateContainerMemoryLimit& update =
+    call.update_container_memory_limit();
+  const ContainerID& containerId = update.container_id();
+  const double memoryLimitMb = update.memory_limit().value();
+
+  LOG(INFO) << "Processing UPDATE_CONTAINER_MEMORY_LIMIT call for container '"
+            << containerId << "' with limit " << memoryLimitMb << " MiB for "
+            << "principal '"
+            << (principal.isSome() ? stringify(principal.get()) : "ANY") << "'";
+
+  Executor* executor = slave->getExecutor(containerId);
+
+  google::protobuf::Map<string, Value::Scalar> resourceLimits;
+  resourceLimits["mem"].set_value(memoryLimitMb);
+
+  Resources resourceRequests = executor != nullptr
+    ? executor->allocatedResources()
+    : Resources();
+  resourceRequests -= resourceRequests.get("mem");
+  resourceRequests += Resources::parse(
+      "mem:" + stringify(memoryLimitMb)).get();
+
+  return slave->containerizer->containers()
+    .then(defer(
+        slave->self(),
+        [=](const hashset<ContainerID>& containers) -> Future<Response> {
+          if (!containers.contains(containerId)) {
+            return NotFound(
+                "Running container '" + stringify(containerId) +
+                "' cannot be found");
+          }
+
+          return slave->containerizer
+            ->update(containerId, resourceRequests, resourceLimits)
+            .then([]() -> Response { return OK(); });
+        }));
 }
 
 
