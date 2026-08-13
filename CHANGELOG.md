@@ -1,6 +1,8 @@
 ## Master
 
 - ADD: missing dependencies for debian/ubuntu packages
+- ADD: (containerizer, agent, feature) update memory limits of running containers via cgroupsv2 #14 
+       Details: https://m3scluster.github.io/clusterd-docs/container-memory-limit.html
 
 ## v1.11.0-0.9.0
 
