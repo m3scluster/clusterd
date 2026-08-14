@@ -1,7 +1,8 @@
 ## Master
 
 - ADD: missing dependencies for debian/ubuntu packages
-- ADD: (containerizer, agent, feature) update memory limits of running containers via cgroupsv2 #14 
+- ADD: [containerizer, docker, mesos] update memory limits of running containers via 
+       cgroupsv2 #14 
        Details: https://m3scluster.github.io/clusterd-docs/container-memory-limit.html
 
 ## v1.11.0-0.9.0
@@ -17,12 +18,12 @@
 - ADD: Make it possible to set the nvidia library name via env variable `MESOS_NVIDIA_LIB`
 - ADD: Timestamp into CGroupsV2 Metrics of the mesos-agent for docker containers.
 - CHANGE: The "Could not find the CNI plugin..." message in the docker executor
-            is not an error message. It's just an information. I changed the
-            Log Message to INFO instead of ERROR.
+          is not an error message. It's just an information. I changed the
+          Log Message to INFO instead of ERROR.
 - UPDATE: glog is deprecated. Migrate to glog fork https://github.com/AVENTER-UG/glog
-            and bump it to version 0.6.1. That will fix the issue with cleanup old logfiles.
-            Be sure to set `cleanup_log_files` to the amount of days you want to keep and
-            `log_dir` to the mesos log directory (/var/log/mesos).
+          and bump it to version 0.6.1. That will fix the issue with cleanup old logfiles.
+          Be sure to set `cleanup_log_files` to the amount of days you want to keep and
+          `log_dir` to the mesos log directory (/var/log/mesos).
 
 ## v1.11.0-0.7.1
 
