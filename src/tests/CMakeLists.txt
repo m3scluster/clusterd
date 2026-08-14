@@ -343,6 +343,7 @@ if (NOT WIN32)
   # NOTE: These binaries do not yet build on Windows.
   add_dependencies(
     mesos-tests
+    mesos-docker-exec
     mesos-execute
     mesos-local
     mesos-log

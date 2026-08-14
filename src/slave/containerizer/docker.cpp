@@ -70,6 +70,9 @@
 
 #include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/docker.hpp"
+
+#include "slave/containerizer/mesos/io/switchboard.hpp"
+#include "slave/containerizer/mesos/isolator.hpp"
 #include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
@@ -114,6 +117,7 @@ const string DOCKER_SYMLINK_DIRECTORY = path::join("docker", "links");
 const string MESOS_DOCKER_EXECUTOR = "mesos-docker-executor.exe";
 #else
 const string MESOS_DOCKER_EXECUTOR = "mesos-docker-executor";
+const string MESOS_DOCKER_EXEC = "mesos-docker-exec";
 #endif // __WINDOWS__
 
 
@@ -229,6 +233,31 @@ DockerContainerizer::DockerContainerizer(
 {
   spawn(process.get());
 }
+
+
+DockerContainerizerProcess::DockerContainerizerProcess(
+    const Flags& _flags,
+    Fetcher* _fetcher,
+    const Owned<ContainerLogger>& _logger,
+    Shared<Docker> _docker,
+    const Option<NvidiaComponents>& _nvidia)
+  : flags(_flags),
+    fetcher(_fetcher),
+    logger(_logger),
+    docker(_docker),
+    ioSwitchboard(nullptr),
+    nvidia(_nvidia)
+{
+  Try<IOSwitchboard*> create = IOSwitchboard::create(flags, false);
+  CHECK_SOME(create);
+
+  ioSwitchboard = create.get();
+  ioSwitchboardIsolator.reset(new MesosIsolator(
+      Owned<MesosIsolatorProcess>(ioSwitchboard)));
+}
+
+
+DockerContainerizerProcess::~DockerContainerizerProcess() {}
 
 
 DockerContainerizer::~DockerContainerizer()
@@ -820,6 +849,16 @@ Future<Containerizer::LaunchResult> DockerContainerizer::launch(
 }
 
 
+Future<http::Connection> DockerContainerizer::attach(
+    const ContainerID& containerId)
+{
+  return dispatch(
+      process.get(),
+      &DockerContainerizerProcess::attach,
+      containerId);
+}
+
+
 Future<Nothing> DockerContainerizer::update(
     const ContainerID& containerId,
     const Resources& resourceRequests,
@@ -1141,7 +1180,7 @@ Future<Containerizer::LaunchResult> DockerContainerizerProcess::launch(
     const Option<string>& pidCheckpointPath)
 {
   if (containerId.has_parent()) {
-    return Failure("Nested containers are not supported");
+    return launchExec(containerId, containerConfig);
   }
 
   if (containers_.contains(containerId)) {
@@ -1353,6 +1392,140 @@ Future<Containerizer::LaunchResult> DockerContainerizerProcess::_launch(
     .then([]() {
       return Containerizer::LaunchResult::SUCCESS;
     });
+}
+
+
+Future<Containerizer::LaunchResult> DockerContainerizerProcess::launchExec(
+    const ContainerID& containerId,
+    const ContainerConfig& containerConfig)
+{
+  if (!containerConfig.has_container_class() ||
+      containerConfig.container_class() != mesos::slave::ContainerClass::DEBUG) {
+    return Containerizer::LaunchResult::NOT_SUPPORTED;
+  }
+
+  if (execSessions.contains(containerId)) {
+    return Containerizer::LaunchResult::ALREADY_LAUNCHED;
+  }
+
+  const ContainerID rootContainerId =
+    protobuf::getRootContainerId(containerId);
+
+  if (!containers_.contains(rootContainerId)) {
+    return Failure(
+        "Root Docker container " + stringify(rootContainerId) + " not found");
+  }
+
+  return ioSwitchboard->prepare(containerId, containerConfig)
+    .then(defer(
+        self(),
+        &Self::_launchExec,
+        containerId,
+        containerConfig,
+        lambda::_1));
+}
+
+
+Future<Containerizer::LaunchResult> DockerContainerizerProcess::_launchExec(
+    const ContainerID& containerId,
+    const ContainerConfig& containerConfig,
+    const Option<mesos::slave::ContainerLaunchInfo>&)
+{
+  return ioSwitchboard->extractContainerIO(containerId)
+    .then(defer(
+        self(),
+        &Self::__launchExec,
+        containerId,
+        containerConfig,
+        lambda::_1));
+}
+
+
+Future<Containerizer::LaunchResult> DockerContainerizerProcess::__launchExec(
+    const ContainerID& containerId,
+    const ContainerConfig& containerConfig,
+    const Option<ContainerIO>& containerIO)
+{
+  if (containerIO.isNone()) {
+    return Failure("I/O switchboard did not prepare Docker exec I/O");
+  }
+
+  const ContainerID rootContainerId =
+    protobuf::getRootContainerId(containerId);
+
+  if (!containers_.contains(rootContainerId)) {
+    return Failure(
+        "Root Docker container " + stringify(rootContainerId) +
+        " was destroyed while launching exec session");
+  }
+
+  const CommandInfo& command = containerConfig.command_info();
+
+  Docker::ExecOptions options;
+  options.container = containers_.at(rootContainerId)->containerName;
+  options.tty = containerConfig.has_container_info() &&
+    containerConfig.container_info().has_tty_info();
+
+  if (containerConfig.has_user()) {
+    options.user = containerConfig.user();
+  }
+
+  if (command.has_environment()) {
+    foreach (const Environment::Variable& variable,
+             command.environment().variables()) {
+      options.environment.push_back(variable.name() + "=" + variable.value());
+    }
+  }
+
+  options.command = Docker::createExecCommand(command);
+
+  Try<Docker::Exec> child = docker->exec(
+      options,
+      containerIO.get(),
+      path::join(flags.launcher_dir, MESOS_DOCKER_EXEC));
+
+  if (child.isError()) {
+    ioSwitchboard->cleanup(containerId);
+    return Failure("Failed to launch Docker API exec: " + child.error());
+  }
+
+  execSessions[containerId] = Owned<ExecSession>(
+      new ExecSession(child->pid));
+
+  child->status
+    .onAny(defer(self(), &Self::reapedExec, containerId, lambda::_1));
+
+  return Containerizer::LaunchResult::SUCCESS;
+}
+
+
+Future<http::Connection> DockerContainerizerProcess::attach(
+    const ContainerID& containerId)
+{
+  if (!execSessions.contains(containerId)) {
+    return Failure("Unknown Docker exec session " + stringify(containerId));
+  }
+
+  return ioSwitchboard->connect(containerId);
+}
+
+
+void DockerContainerizerProcess::reapedExec(
+    const ContainerID& containerId,
+    const Future<Option<int>>& status)
+{
+  if (!execSessions.contains(containerId)) {
+    return;
+  }
+
+  ContainerTermination termination;
+  termination.set_message("Docker exec session terminated");
+
+  if (status.isReady() && status->isSome()) {
+    termination.set_status(status->get());
+  }
+
+  execSessions.at(containerId)->termination.set(termination);
 }
 
 
@@ -2524,7 +2697,14 @@ Future<ContainerStatus> DockerContainerizerProcess::status(
 Future<Option<ContainerTermination>> DockerContainerizerProcess::wait(
     const ContainerID& containerId)
 {
-  CHECK(!containerId.has_parent());
+  if (containerId.has_parent()) {
+    if (!execSessions.contains(containerId)) {
+      return None();
+    }
+
+    return execSessions.at(containerId)->termination.future()
+      .then(Option<ContainerTermination>::some);
+  }
 
   if (!containers_.contains(containerId)) {
     return None();
@@ -2539,6 +2719,28 @@ Future<Option<ContainerTermination>> DockerContainerizerProcess::destroy(
     const ContainerID& containerId,
     bool killed)
 {
+  if (containerId.has_parent()) {
+    if (!execSessions.contains(containerId)) {
+      return None();
+    }
+
+    ExecSession* session = execSessions.at(containerId).get();
+
+    if (!session->termination.future().isReady()) {
+      os::killtree(session->pid, SIGKILL);
+    }
+
+    return session->termination.future()
+      .then(defer(self(), [this, containerId](
+          const ContainerTermination& termination) {
+        return ioSwitchboard->cleanup(containerId)
+          .then(defer(self(), [this, containerId, termination]() {
+            execSessions.erase(containerId);
+            return Option<ContainerTermination>::some(termination);
+          }));
+      }));
+  }
+
   if (!containers_.contains(containerId)) {
     // TODO(bmahler): Currently the agent does not log destroy
     // failures or unknown containers, so we log it here for now.
@@ -2880,7 +3082,11 @@ Future<Nothing> DockerContainerizerProcess::destroyTimeout(
 
 Future<hashset<ContainerID>> DockerContainerizerProcess::containers()
 {
-  return containers_.keys();
+  hashset<ContainerID> result = containers_.keys();
+  foreachkey (const ContainerID& containerId, execSessions) {
+    result.insert(containerId);
+  }
+  return result;
 }
 
 

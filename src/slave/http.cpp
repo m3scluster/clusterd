@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -4282,6 +4283,23 @@ Future<Response> Http::launchNestedContainerSession(
 {
   CHECK_EQ(mesos::agent::Call::LAUNCH_NESTED_CONTAINER_SESSION, call.type());
   CHECK(call.has_launch_nested_container_session());
+
+  bool enabled = false;
+  if (slave->flags.agent_subsystems.isSome()) {
+    const vector<string> subsystems =
+      strings::tokenize(slave->flags.agent_subsystems.get(), ",");
+
+    enabled = std::find(
+        subsystems.begin(),
+        subsystems.end(),
+        CONTAINER_EXEC_AGENT_SUBSYSTEM) != subsystems.end();
+  }
+
+  if (!enabled) {
+    return Forbidden(
+        "Remote container execution is disabled; enable it with "
+        "--agent_subsystems=container_exec");
+  }
 
   LOG(INFO) << "Processing LAUNCH_NESTED_CONTAINER_SESSION call for container '"
             << call.launch_nested_container_session().container_id() << "'";

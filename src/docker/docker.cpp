@@ -207,6 +207,72 @@ Future<Version> Docker::version() const
 }
 
 
+vector<string> Docker::createExecCommand(const mesos::CommandInfo& command)
+{
+  if (command.shell()) {
+    return {os::Shell::name, os::Shell::arg1, command.value()};
+  }
+
+  if (command.arguments_size() > 0) {
+    return vector<string>(
+        command.arguments().cbegin(), command.arguments().cend());
+  }
+
+  if (command.has_value()) {
+    return {command.value()};
+  }
+
+  return {};
+}
+
+
+Try<Docker::Exec> Docker::exec(
+    const ExecOptions& options,
+    const mesos::slave::ContainerIO& containerIO,
+    const string& helper) const
+{
+  JSON::Object configuration;
+  configuration.values["socket"] = socket;
+  configuration.values["container"] = options.container;
+  configuration.values["tty"] = options.tty;
+
+  JSON::Array command;
+  foreach (const string& argument, options.command) {
+    command.values.push_back(argument);
+  }
+  configuration.values["command"] = command;
+
+  JSON::Array environment;
+  foreach (const string& variable, options.environment) {
+    environment.values.push_back(variable);
+  }
+  configuration.values["environment"] = environment;
+
+  if (options.user.isSome()) {
+    configuration.values["user"] = options.user.get();
+  }
+
+  vector<string> argv = {
+    "mesos-docker-exec", "--config=" + stringify(configuration)};
+
+  Try<Subprocess> child = subprocess(
+      helper,
+      argv,
+      containerIO.in,
+      containerIO.out,
+      containerIO.err);
+
+  if (child.isError()) {
+    return Error("Failed to launch Docker API exec helper: " + child.error());
+  }
+
+  Exec result;
+  result.pid = child->pid();
+  result.status = child->status();
+  return result;
+}
+
+
 Future<Version> Docker::_version(const string& cmd, const Subprocess& s)
 {
   const Option<int>& status = s.status().get();

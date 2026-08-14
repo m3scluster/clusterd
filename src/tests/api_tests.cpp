@@ -6851,6 +6851,7 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(
   TestContainerizer containerizer(&exec);
 
   slave::Flags agentFlags = CreateSlaveFlags();
+  agentFlags.agent_subsystems = "container_exec";
   Try<Owned<cluster::Slave>> slave =
     StartSlave(detector.get(), &containerizer, agentFlags);
 
@@ -7017,8 +7018,51 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(
 }
 
 
+// This test verifies that remote container execution is disabled by default.
+TEST_P_TEMP_DISABLED_ON_WINDOWS(
+    AgentAPITest,
+    LaunchNestedContainerSessionDisabled)
+{
+  ContentType contentType = GetParam();
+
+  Future<Nothing> __recover = FUTURE_DISPATCH(_, &Slave::__recover);
+
+  Try<Owned<cluster::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  slave::Flags flags = CreateSlaveFlags();
+  Owned<MasterDetector> detector = master.get()->createDetector();
+
+  Try<Owned<cluster::Slave>> slave = StartSlave(detector.get(), flags);
+  ASSERT_SOME(slave);
+
+  AWAIT_READY(__recover);
+
+  v1::ContainerID containerId;
+  containerId.set_value(id::UUID::random().toString());
+  containerId.mutable_parent()->set_value(id::UUID::random().toString());
+
+  v1::agent::Call call;
+  call.set_type(v1::agent::Call::LAUNCH_NESTED_CONTAINER_SESSION);
+  call.mutable_launch_nested_container_session()->mutable_container_id()
+    ->CopyFrom(containerId);
+  call.mutable_launch_nested_container_session()->mutable_command()->set_value(
+      "true");
+
+  Future<http::Response> response = http::post(
+      slave.get()->pid,
+      "api/v1",
+      createBasicAuthHeaders(DEFAULT_CREDENTIAL),
+      serialize(contentType, call),
+      stringify(contentType));
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(http::Forbidden().status, response);
+}
+
+
 // This test verifies that launching a nested container session results
-// in stdout and stderr being streamed correctly.
+// in stdout and stderr being streamed correctly when remote container
+// execution is enabled through `--agent_subsystems=container_exec`.
 TEST_P_TEMP_DISABLED_ON_WINDOWS(AgentAPITest, LaunchNestedContainerSession)
 {
   ContentType contentType = GetParam();
@@ -7027,6 +7071,7 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(AgentAPITest, LaunchNestedContainerSession)
   ASSERT_SOME(master);
 
   slave::Flags flags = CreateSlaveFlags();
+  flags.agent_subsystems = "container_exec";
   Fetcher fetcher(flags);
 
   Try<MesosContainerizer*> _containerizer =
@@ -7141,6 +7186,7 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(
 
   slave::Flags flags = CreateSlaveFlags();
   flags.authenticate_http_readwrite = true;
+  flags.agent_subsystems = "container_exec";
 
   Fetcher fetcher(flags);
 
@@ -7247,6 +7293,7 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(
   ASSERT_SOME(master);
 
   slave::Flags flags = CreateSlaveFlags();
+  flags.agent_subsystems = "container_exec";
   Fetcher fetcher(flags);
 
   Try<MesosContainerizer*> _containerizer =
@@ -7365,6 +7412,7 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(
   ASSERT_SOME(master);
 
   slave::Flags flags = CreateSlaveFlags();
+  flags.agent_subsystems = "container_exec";
   Fetcher fetcher(flags);
 
   Try<MesosContainerizer*> _containerizer =
@@ -7487,6 +7535,7 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(
   slave::Flags flags = CreateSlaveFlags();
 
   flags.isolation = "cgroups/all,filesystem/linux,namespaces/pid";
+  flags.agent_subsystems = "container_exec";
 
   Fetcher fetcher(flags);
 
@@ -7617,6 +7666,7 @@ TEST_P_TEMP_DISABLED_ON_WINDOWS(
 
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "filesystem/linux,namespaces/pid";
+  flags.agent_subsystems = "container_exec";
 
   Fetcher fetcher(flags);
 

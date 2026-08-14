@@ -22,6 +22,7 @@
 #include <string>
 
 #include <mesos/slave/container_logger.hpp>
+#include <mesos/slave/isolator.hpp>
 
 #include <process/owned.hpp>
 #include <process/shared.hpp>
@@ -62,6 +63,7 @@ extern const std::string DOCKER_SYMLINK_DIRECTORY;
 
 // Forward declaration.
 class DockerContainerizerProcess;
+class IOSwitchboard;
 
 
 class DockerContainerizer : public Containerizer
@@ -94,6 +96,9 @@ public:
       const mesos::slave::ContainerConfig& containerConfig,
       const std::map<std::string, std::string>& environment,
       const Option<std::string>& pidCheckpointPath) override;
+
+  process::Future<process::http::Connection> attach(
+      const ContainerID& containerId) override;
 
   process::Future<Nothing> update(
       const ContainerID& containerId,
@@ -133,12 +138,9 @@ public:
       Fetcher* _fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& _logger,
       process::Shared<Docker> _docker,
-      const Option<NvidiaComponents>& _nvidia)
-    : flags(_flags),
-      fetcher(_fetcher),
-      logger(_logger),
-      docker(_docker),
-      nvidia(_nvidia) {}
+      const Option<NvidiaComponents>& _nvidia);
+
+  ~DockerContainerizerProcess() override;
 
   virtual process::Future<Nothing> recover(
       const Option<state::SlaveState>& state);
@@ -148,6 +150,9 @@ public:
       const mesos::slave::ContainerConfig& containerConfig,
       const std::map<std::string, std::string>& environment,
       const Option<std::string>& pidCheckpointPath);
+
+  virtual process::Future<process::http::Connection> attach(
+      const ContainerID& containerId);
 
   // force = true causes the containerizer to update the resources
   // for the container, even if they match what it has cached.
@@ -191,6 +196,24 @@ private:
 
     process::metrics::Timer<Milliseconds> image_pull;
   };
+
+  process::Future<Containerizer::LaunchResult> launchExec(
+      const ContainerID& containerId,
+      const mesos::slave::ContainerConfig& containerConfig);
+
+  process::Future<Containerizer::LaunchResult> _launchExec(
+      const ContainerID& containerId,
+      const mesos::slave::ContainerConfig& containerConfig,
+      const Option<mesos::slave::ContainerLaunchInfo>& launchInfo);
+
+  process::Future<Containerizer::LaunchResult> __launchExec(
+      const ContainerID& containerId,
+      const mesos::slave::ContainerConfig& containerConfig,
+      const Option<mesos::slave::ContainerIO>& containerIO);
+
+  void reapedExec(
+      const ContainerID& containerId,
+      const process::Future<Option<int>>& status);
 
   // Continuations and helpers.
   process::Future<Nothing> _fetch(
@@ -317,6 +340,9 @@ private:
   process::Owned<mesos::slave::ContainerLogger> logger;
 
   process::Shared<Docker> docker;
+
+  IOSwitchboard* ioSwitchboard;
+  process::Owned<mesos::slave::Isolator> ioSwitchboardIsolator;
 
   Option<NvidiaComponents> nvidia;
 
@@ -544,6 +570,16 @@ private:
   };
 
   hashmap<ContainerID, Container*> containers_;
+
+  struct ExecSession
+  {
+    explicit ExecSession(pid_t _pid) : pid(_pid) {}
+
+    pid_t pid;
+    process::Promise<mesos::slave::ContainerTermination> termination;
+  };
+
+  hashmap<ContainerID, process::Owned<ExecSession>> execSessions;
 };
 
 

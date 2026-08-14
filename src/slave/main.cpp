@@ -273,8 +273,12 @@ static Try<Nothing> initializeCgroups2(const slave::Flags& flags)
   const vector<string> requestedControllers = strings::tokenize(
       *flags.agent_subsystems, ",");
 
-  const set<string> requestedControllersSet(
-      requestedControllers.begin(), requestedControllers.end());
+  set<string> requestedControllersSet;
+  foreach (const string& controller, requestedControllers) {
+    if (controller != slave::CONTAINER_EXEC_AGENT_SUBSYSTEM) {
+      requestedControllersSet.insert(controller);
+    }
+  }
 
 
   Try<Nothing> enable = cgroups2::controllers::enable(
@@ -323,6 +327,10 @@ static Try<Nothing> initializeCgroups(const slave::Flags& flags)
 
   foreach (const string& subsystem,
            strings::tokenize(flags.agent_subsystems.get(), ",")) {
+    if (subsystem == slave::CONTAINER_EXEC_AGENT_SUBSYSTEM) {
+      continue;
+    }
+
     LOG(INFO) << "Moving agent process into its own cgroup for"
               << " subsystem: " << subsystem;
 

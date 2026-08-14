@@ -70,6 +70,28 @@ static constexpr char LIST_COMMAND[] = "ls -d";
 
 static constexpr char TEST_DIR_NAME[] = "test_dir";
 
+
+TEST(DockerExecTest, CommandArgumentsDoNotDuplicateExecutable)
+{
+  CommandInfo command;
+  command.set_shell(false);
+  command.set_value("/bin/sh");
+  command.add_arguments("/bin/sh");
+  command.add_arguments("-c");
+  command.add_arguments("printf synthetic-output");
+
+  EXPECT_EQ(
+      vector<string>({"/bin/sh", "-c", "printf synthetic-output"}),
+      Docker::createExecCommand(command));
+
+  command.clear_arguments();
+
+  EXPECT_EQ(
+      vector<string>({"/bin/sh"}),
+      Docker::createExecCommand(command));
+}
+
+
 class DockerTest : public MesosTest
 {
   void SetUp() override
@@ -306,6 +328,104 @@ TEST_F(DockerTest, ROOT_DOCKER_interface)
   foreach (const Docker::Container& container, containers.get()) {
     EXPECT_NE("/" + containerName, container.name);
   }
+}
+
+
+// Verifies that exec uses the Docker Engine API through the configured Unix
+// socket rather than invoking the Docker CLI.
+TEST_F(DockerTest, ROOT_DOCKER_ExecUsesApiSocket)
+{
+  const string containerName = NAME_PREFIX + "-api-exec-test";
+
+  Owned<Docker> docker = Docker::create(
+      tests::flags.docker,
+      tests::flags.docker_socket,
+      false).get();
+
+  Future<Nothing> remove = docker->rm(containerName, true);
+  ASSERT_TRUE(process::internal::await(remove, Seconds(10)));
+
+  Try<string> directory = environment->mkdtemp();
+  ASSERT_SOME(directory);
+
+  ContainerInfo containerInfo;
+  containerInfo.set_type(ContainerInfo::DOCKER);
+  containerInfo.mutable_docker()->set_image(DOCKER_TEST_IMAGE);
+
+  CommandInfo commandInfo;
+  commandInfo.set_value(SLEEP_COMMAND(120));
+
+  Try<Docker::RunOptions> runOptions = Docker::RunOptions::create(
+      containerInfo,
+      commandInfo,
+      containerName,
+      directory.get(),
+      DOCKER_MAPPED_DIR_PATH);
+  ASSERT_SOME(runOptions);
+
+  Future<Option<int>> run = docker->run(runOptions.get());
+  AWAIT_READY(docker->inspect(containerName, Seconds(1)));
+
+  Owned<Docker> apiDocker = Docker::create(
+      path::join(directory.get(), "nonexistent-docker-cli"),
+      tests::flags.docker_socket,
+      false).get();
+
+  const string stdinPath = path::join(directory.get(), "exec.stdin");
+  ASSERT_SOME(os::write(stdinPath, "synthetic-api-input\n"));
+
+  foreach (bool tty, vector<bool>({false, true})) {
+    for (size_t attempt = 0; attempt < 5; ++attempt) {
+      Docker::ExecOptions execOptions;
+      execOptions.container = containerName;
+      execOptions.command = {
+        os::Shell::name,
+        os::Shell::arg1,
+        "IFS= read -r value; "
+        "printf synthetic-api-stdout:$value; "
+        "printf synthetic-api-stderr >&2; exit 7"};
+      execOptions.tty = tty;
+
+      const string prefix =
+        string("exec-") + (tty ? "tty-" : "plain-") + stringify(attempt);
+      const string stdoutPath =
+        path::join(directory.get(), prefix + ".stdout");
+      const string stderrPath =
+        path::join(directory.get(), prefix + ".stderr");
+
+      mesos::slave::ContainerIO containerIO;
+      containerIO.in = mesos::slave::ContainerIO::IO::PATH(stdinPath);
+      containerIO.out = mesos::slave::ContainerIO::IO::PATH(stdoutPath);
+      containerIO.err = mesos::slave::ContainerIO::IO::PATH(stderrPath);
+
+      Try<Docker::Exec> exec = apiDocker->exec(
+          execOptions,
+          containerIO,
+          path::join(BUILD_DIR, "src", "mesos-docker-exec"));
+      ASSERT_SOME(exec);
+      AWAIT_READY(exec->status);
+      ASSERT_SOME(exec->status.get());
+      EXPECT_WEXITSTATUS_EQ(7, exec->status->get());
+
+      Try<string> output = os::read(stdoutPath);
+      ASSERT_SOME(output);
+      EXPECT_TRUE(strings::contains(
+          output.get(), "synthetic-api-stdout:synthetic-api-input"));
+
+      if (tty) {
+        EXPECT_TRUE(strings::contains(output.get(), "synthetic-api-stderr"));
+        ASSERT_SOME_EQ("", os::read(stderrPath));
+      } else {
+        EXPECT_EQ(
+            "synthetic-api-stdout:synthetic-api-input", output.get());
+        ASSERT_SOME_EQ("synthetic-api-stderr", os::read(stderrPath));
+      }
+    }
+  }
+
+  AWAIT_READY(docker->stop(containerName));
+  assertDockerKillStatus(run);
+  AWAIT_READY(docker->rm(containerName));
 }
 
 

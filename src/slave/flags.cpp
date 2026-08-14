@@ -46,6 +46,16 @@
 
 using std::string;
 
+namespace mesos {
+namespace internal {
+namespace slave {
+
+const char CONTAINER_EXEC_AGENT_SUBSYSTEM[] = "container_exec";
+
+} // namespace slave
+} // namespace internal
+} // namespace mesos
+
 mesos::internal::slave::Flags::Flags()
 {
   add(&Flags::hostname,
@@ -731,6 +741,8 @@ mesos::internal::slave::Flags::Flags()
       flags::DeprecatedName("slave_subsystems"),
       "List of comma-separated cgroup subsystems to run the agent binary\n"
       "in, e.g., `memory,cpuacct`. The default is none.\n"
+      "The special `container_exec` entry enables authenticated remote\n"
+      "command sessions and is not treated as a cgroup subsystem.\n"
       "Present functionality is intended for resource monitoring and\n"
       "no cgroup limits are set, they are inherited from the root mesos\n"
       "cgroup.");

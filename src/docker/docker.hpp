@@ -38,6 +38,7 @@
 #include <stout/os/rm.hpp>
 
 #include "mesos/resources.hpp"
+#include "mesos/slave/containerizer.hpp"
 
 #include "messages/flags.hpp"
 
@@ -256,6 +257,33 @@ public:
     // Arguments for docker run.
     std::vector<std::string> arguments;
   };
+
+  struct ExecOptions
+  {
+    std::string container;
+    std::vector<std::string> command;
+    std::vector<std::string> environment;
+    Option<std::string> user;
+    bool tty = false;
+  };
+
+  struct Exec
+  {
+    pid_t pid;
+    process::Future<Option<int>> status;
+  };
+
+  // Converts Mesos `CommandInfo` semantics to the argv expected by the Docker
+  // Engine exec API. `arguments` already contains argv[0] when present.
+  static std::vector<std::string> createExecCommand(
+      const mesos::CommandInfo& command);
+
+  // Starts an exec instance through the Docker Engine API exposed by the
+  // configured Unix socket. `helper` is the mesos-docker-exec launcher.
+  virtual Try<Exec> exec(
+      const ExecOptions& options,
+      const mesos::slave::ContainerIO& containerIO,
+      const std::string& helper) const;
 
   // Performs 'docker run IMAGE'. Returns the exit status of the
   // container. Note that currently the exit status may correspond

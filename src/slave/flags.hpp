@@ -36,6 +36,8 @@ namespace mesos {
 namespace internal {
 namespace slave {
 
+extern const char CONTAINER_EXEC_AGENT_SUBSYSTEM[];
+
 class Flags : public virtual logging::Flags
 {
 public:
