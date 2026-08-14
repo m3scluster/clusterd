@@ -4,6 +4,8 @@
 - ADD: [containerizer, docker, mesos] update memory limits of running containers via 
        cgroupsv2 #14 
        Details: https://m3scluster.github.io/clusterd-docs/container-memory-limit.html
+- ADD: [containerizer, docker, mesos] support to attach/exec into the container.
+       Details: https://m3scluster.github.io/clusterd-docs/task-exec-http-api.html?highlight=task%20exec#task-exec-http-endpoint-reference
 
 ## v1.11.0-0.9.0
 
