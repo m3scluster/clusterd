@@ -21,6 +21,12 @@
 
 #include <gtest/gtest.h>
 
+#ifndef __WINDOWS__
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
+#endif // __WINDOWS__
+
 #include <process/future.hpp>
 #include <process/gtest.hpp>
 #include <process/owned.hpp>
@@ -90,6 +96,65 @@ TEST(DockerExecTest, CommandArgumentsDoNotDuplicateExecutable)
       vector<string>({"/bin/sh"}),
       Docker::createExecCommand(command));
 }
+
+
+TEST(DockerExecTest, TtyOutputFilterTerminatesCursorPositionQuery)
+{
+  Docker::TtyOutputFilter filter;
+
+  Docker::TtyOutput first = filter.process("synthetic-output\x1b[");
+  EXPECT_EQ("synthetic-output", first.data);
+  EXPECT_EQ(0u, first.cursorPositionQueries);
+
+  Docker::TtyOutput second = filter.process("6n-after-query");
+  EXPECT_EQ("-after-query", second.data);
+  EXPECT_EQ(1u, second.cursorPositionQueries);
+
+  Docker::TtyOutput third = filter.process("\x1b[5n");
+  EXPECT_EQ("\x1b[5n", third.data);
+  EXPECT_EQ(0u, third.cursorPositionQueries);
+
+  Docker::TtyOutput fourth = filter.process("\x1b[6n-between\x1b[6n");
+  EXPECT_EQ("-between", fourth.data);
+  EXPECT_EQ(2u, fourth.cursorPositionQueries);
+
+  Docker::TtyOutput empty = filter.process("");
+  EXPECT_EQ("", empty.data);
+  EXPECT_EQ(0u, empty.cursorPositionQueries);
+
+  Docker::TtyOutput partial = filter.process("final\x1b[6");
+  EXPECT_EQ("final", partial.data);
+  EXPECT_EQ(0u, partial.cursorPositionQueries);
+  EXPECT_EQ("\x1b[6", filter.flush());
+}
+
+
+#ifndef __WINDOWS__
+TEST(DockerExecTest, TtyInputPreservesControlCharacters)
+{
+  const int master = ::posix_openpt(O_RDWR | O_NOCTTY);
+  ASSERT_NE(-1, master);
+  ASSERT_EQ(0, ::grantpt(master));
+  ASSERT_EQ(0, ::unlockpt(master));
+
+  const char* name = ::ptsname(master);
+  ASSERT_NE(nullptr, name);
+  const int slave = ::open(name, O_RDWR | O_NOCTTY);
+  ASSERT_NE(-1, slave);
+
+  ASSERT_SOME(Docker::configureTtyInput(slave));
+
+  const char controlC = '\x03';
+  ASSERT_EQ(1, ::write(master, &controlC, 1));
+
+  char received;
+  ASSERT_EQ(1, ::read(slave, &received, 1));
+  EXPECT_EQ(controlC, received);
+
+  ::close(slave);
+  ::close(master);
+}
+#endif // __WINDOWS__
 
 
 class DockerTest : public MesosTest

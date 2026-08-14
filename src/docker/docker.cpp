@@ -14,7 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cerrno>
 #include <cmath>
+#include <cstring>
 #include <map>
 #include <mutex>
 #include <utility>
@@ -37,6 +39,9 @@
 
 #ifdef __WINDOWS__
 #include <stout/os/windows/jobobject.hpp>
+#else
+#include <termios.h>
+#include <unistd.h>
 #endif // __WINDOWS__
 
 #include <process/check.hpp>
@@ -224,6 +229,79 @@ vector<string> Docker::createExecCommand(const mesos::CommandInfo& command)
 
   return {};
 }
+
+
+Docker::TtyOutput Docker::TtyOutputFilter::process(const string& chunk)
+{
+  static const string cursorPositionQuery = "\x1b[6n";
+
+  pending += chunk;
+
+  TtyOutput result;
+  size_t offset = 0;
+  size_t position;
+
+  while ((position = pending.find(cursorPositionQuery, offset)) != string::npos) {
+    result.data.append(pending, offset, position - offset);
+    ++result.cursorPositionQueries;
+    offset = position + cursorPositionQuery.size();
+  }
+
+  const string remainder = pending.substr(offset);
+  size_t retained = 0;
+  const size_t maximum = std::min(
+      remainder.size(), cursorPositionQuery.size() - 1);
+
+  for (size_t length = maximum; length > 0; --length) {
+    if (remainder.compare(
+            remainder.size() - length,
+            length,
+            cursorPositionQuery,
+            0,
+            length) == 0) {
+      retained = length;
+      break;
+    }
+  }
+
+  result.data.append(remainder, 0, remainder.size() - retained);
+  pending = remainder.substr(remainder.size() - retained);
+
+  return result;
+}
+
+
+string Docker::TtyOutputFilter::flush()
+{
+  string result;
+  result.swap(pending);
+  return result;
+}
+
+
+#ifndef __WINDOWS__
+Try<Nothing> Docker::configureTtyInput(int fd)
+{
+  if (::isatty(fd) == 0) {
+    return Nothing();
+  }
+
+  struct termios attributes;
+  if (::tcgetattr(fd, &attributes) != 0) {
+    return Error("Failed to read TTY input attributes: " +
+                 string(std::strerror(errno)));
+  }
+
+  ::cfmakeraw(&attributes);
+
+  if (::tcsetattr(fd, TCSANOW, &attributes) != 0) {
+    return Error("Failed to configure raw TTY input: " +
+                 string(std::strerror(errno)));
+  }
+
+  return Nothing();
+}
+#endif // __WINDOWS__
 
 
 Try<Docker::Exec> Docker::exec(

@@ -30,6 +30,8 @@
 #include <stout/result.hpp>
 #include <stout/stringify.hpp>
 
+#include "docker/docker.hpp"
+
 using std::cerr;
 using std::endl;
 using std::string;
@@ -240,12 +242,28 @@ string urlEncode(const string& value)
 
 bool relayStreams(int fd, bool tty, string pending)
 {
+  static const string cursorPositionReport = "\x1b[1;1R";
+
   char buffer[8192];
   bool inputOpen = true;
+  Docker::TtyOutputFilter ttyOutputFilter;
 
   while (true) {
     if (tty && !pending.empty()) {
-      if (!writeAll(STDOUT_FILENO, pending)) {
+      const Docker::TtyOutput output = ttyOutputFilter.process(pending);
+
+      for (size_t i = 0; i < output.cursorPositionQueries; ++i) {
+        if (!sendAll(
+                fd,
+                cursorPositionReport.data(),
+                cursorPositionReport.size())) {
+          cerr << "Failed to answer Docker exec cursor position query: "
+               << std::strerror(errno) << endl;
+          return false;
+        }
+      }
+
+      if (!writeAll(STDOUT_FILENO, output.data)) {
         return false;
       }
       pending.clear();
@@ -335,7 +353,11 @@ bool relayStreams(int fd, bool tty, string pending)
     }
   }
 
-  if (!pending.empty()) {
+  if (tty) {
+    if (!writeAll(STDOUT_FILENO, ttyOutputFilter.flush())) {
+      return false;
+    }
+  } else if (!pending.empty()) {
     cerr << "Docker exec stream ended with an incomplete frame" << endl;
     return false;
   }
@@ -371,6 +393,14 @@ int main(int argc, char** argv)
       environment.isNone() || tty.isNone()) {
     cerr << "Docker exec configuration is missing a required field" << endl;
     return EXIT_FAILURE;
+  }
+
+  if (tty->value) {
+    Try<Nothing> configured = Docker::configureTtyInput(STDIN_FILENO);
+    if (configured.isError()) {
+      cerr << configured.error() << endl;
+      return EXIT_FAILURE;
+    }
   }
 
   JSON::Array commandJson;

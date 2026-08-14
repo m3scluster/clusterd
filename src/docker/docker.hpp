@@ -273,6 +273,28 @@ public:
     process::Future<Option<int>> status;
   };
 
+  struct TtyOutput
+  {
+    std::string data;
+    size_t cursorPositionQueries = 0;
+  };
+
+  class TtyOutputFilter
+  {
+  public:
+    TtyOutput process(const std::string& chunk);
+    std::string flush();
+
+  private:
+    std::string pending;
+  };
+
+#ifndef __WINDOWS__
+  // Disables the outer Mesos PTY line discipline so control characters reach
+  // the Docker exec PTY instead of being consumed by the helper's terminal.
+  static Try<Nothing> configureTtyInput(int fd);
+#endif // __WINDOWS__
+
   // Converts Mesos `CommandInfo` semantics to the argv expected by the Docker
   // Engine exec API. `arguments` already contains argv[0] when present.
   static std::vector<std::string> createExecCommand(
