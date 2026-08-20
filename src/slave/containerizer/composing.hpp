@@ -75,6 +75,9 @@ public:
   process::Future<ContainerStatus> status(
       const ContainerID& containerId) override;
 
+  process::Future<std::pair<std::string, std::string>> logs(
+      const ContainerID& containerId) override;
+
   process::Future<Option<mesos::slave::ContainerTermination>> wait(
       const ContainerID& containerId) override;
 

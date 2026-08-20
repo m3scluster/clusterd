@@ -118,6 +118,12 @@ Option<Error> validate(const mesos::master::Call& call)
       }
       return None();
 
+    case mesos::master::Call::READ_LOG:
+      if (!call.has_read_log()) {
+        return Error("Expecting 'read_log' to be present");
+      }
+      return None();
+
     case mesos::master::Call::GET_STATE:
       return None();
 

@@ -85,6 +85,20 @@ namespace internal {
 namespace tests {
 
 
+TEST(MasterCallValidationTest, ReadLog)
+{
+  mesos::master::Call call;
+  call.set_type(mesos::master::Call::READ_LOG);
+
+  Option<Error> error = master::validation::master::call::validate(call);
+  EXPECT_SOME(error);
+
+  call.mutable_read_log()->set_offset(17);
+  error = master::validation::master::call::validate(call);
+  EXPECT_NONE(error);
+}
+
+
 TEST(MasterCallValidationTest, UpdateQuota)
 {
   Option<Error> error;

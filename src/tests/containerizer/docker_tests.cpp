@@ -24,6 +24,7 @@
 #ifndef __WINDOWS__
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #endif // __WINDOWS__
 
@@ -98,61 +99,39 @@ TEST(DockerExecTest, CommandArgumentsDoNotDuplicateExecutable)
 }
 
 
-TEST(DockerExecTest, TtyOutputFilterTerminatesCursorPositionQuery)
-{
-  Docker::TtyOutputFilter filter;
-
-  Docker::TtyOutput first = filter.process("synthetic-output\x1b[");
-  EXPECT_EQ("synthetic-output", first.data);
-  EXPECT_EQ(0u, first.cursorPositionQueries);
-
-  Docker::TtyOutput second = filter.process("6n-after-query");
-  EXPECT_EQ("-after-query", second.data);
-  EXPECT_EQ(1u, second.cursorPositionQueries);
-
-  Docker::TtyOutput third = filter.process("\x1b[5n");
-  EXPECT_EQ("\x1b[5n", third.data);
-  EXPECT_EQ(0u, third.cursorPositionQueries);
-
-  Docker::TtyOutput fourth = filter.process("\x1b[6n-between\x1b[6n");
-  EXPECT_EQ("-between", fourth.data);
-  EXPECT_EQ(2u, fourth.cursorPositionQueries);
-
-  Docker::TtyOutput empty = filter.process("");
-  EXPECT_EQ("", empty.data);
-  EXPECT_EQ(0u, empty.cursorPositionQueries);
-
-  Docker::TtyOutput partial = filter.process("final\x1b[6");
-  EXPECT_EQ("final", partial.data);
-  EXPECT_EQ(0u, partial.cursorPositionQueries);
-  EXPECT_EQ("\x1b[6", filter.flush());
-}
-
-
 #ifndef __WINDOWS__
-TEST(DockerExecTest, TtyInputPreservesControlCharacters)
+TEST(DockerCommandTest, LogsUsesConfiguredDockerExecutable)
 {
-  const int master = ::posix_openpt(O_RDWR | O_NOCTTY);
-  ASSERT_NE(-1, master);
-  ASSERT_EQ(0, ::grantpt(master));
-  ASSERT_EQ(0, ::unlockpt(master));
+  Try<string> directory = environment->mkdtemp();
+  ASSERT_SOME(directory);
 
-  const char* name = ::ptsname(master);
-  ASSERT_NE(nullptr, name);
-  const int slave = ::open(name, O_RDWR | O_NOCTTY);
-  ASSERT_NE(-1, slave);
+  const string executable = path::join(directory.get(), "docker");
+  ASSERT_SOME(os::write(
+      executable,
+      "#!/bin/sh\n"
+      "test \"$1\" = \"-H\" || exit 11\n"
+      "test \"$2\" = \"unix:///synthetic.sock\" || exit 12\n"
+      "test \"$3\" = \"logs\" || exit 13\n"
+      "test \"$4\" = \"recovered-container-name\" || exit 14\n"
+      "test \"$#\" = \"4\" || exit 15\n"
+      "printf synthetic-stdout\n"
+      "printf synthetic-stderr >&2\n"));
+  ASSERT_SOME(os::chmod(
+      executable,
+      S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH));
 
-  ASSERT_SOME(Docker::configureTtyInput(slave));
+  Try<Owned<Docker>> docker = Docker::create(
+      executable,
+      "/synthetic.sock",
+      false);
+  ASSERT_SOME(docker);
 
-  const char controlC = '\x03';
-  ASSERT_EQ(1, ::write(master, &controlC, 1));
+  Future<std::pair<string, string>> logs =
+    docker.get()->logs("recovered-container-name");
 
-  char received;
-  ASSERT_EQ(1, ::read(slave, &received, 1));
-  EXPECT_EQ(controlC, received);
-
-  ::close(slave);
-  ::close(master);
+  AWAIT_READY(logs);
+  EXPECT_EQ("synthetic-stdout", logs->first);
+  EXPECT_EQ("synthetic-stderr", logs->second);
 }
 #endif // __WINDOWS__
 
@@ -396,9 +375,8 @@ TEST_F(DockerTest, ROOT_DOCKER_interface)
 }
 
 
-// Verifies that exec uses the Docker Engine API through the configured Unix
-// socket rather than invoking the Docker CLI.
-TEST_F(DockerTest, ROOT_DOCKER_ExecUsesApiSocket)
+// Verifies that exec uses the configured Docker executable and socket.
+TEST_F(DockerTest, ROOT_DOCKER_ExecUsesConfiguredCli)
 {
   const string containerName = NAME_PREFIX + "-api-exec-test";
 
@@ -431,13 +409,13 @@ TEST_F(DockerTest, ROOT_DOCKER_ExecUsesApiSocket)
   Future<Option<int>> run = docker->run(runOptions.get());
   AWAIT_READY(docker->inspect(containerName, Seconds(1)));
 
-  Owned<Docker> apiDocker = Docker::create(
-      path::join(directory.get(), "nonexistent-docker-cli"),
+  Owned<Docker> cliDocker = Docker::create(
+      tests::flags.docker,
       tests::flags.docker_socket,
       false).get();
 
   const string stdinPath = path::join(directory.get(), "exec.stdin");
-  ASSERT_SOME(os::write(stdinPath, "synthetic-api-input\n"));
+  ASSERT_SOME(os::write(stdinPath, "synthetic-cli-input\n"));
 
   foreach (bool tty, vector<bool>({false, true})) {
     for (size_t attempt = 0; attempt < 5; ++attempt) {
@@ -447,8 +425,8 @@ TEST_F(DockerTest, ROOT_DOCKER_ExecUsesApiSocket)
         os::Shell::name,
         os::Shell::arg1,
         "IFS= read -r value; "
-        "printf synthetic-api-stdout:$value; "
-        "printf synthetic-api-stderr >&2; exit 7"};
+        "printf synthetic-cli-stdout:$value; "
+        "printf synthetic-cli-stderr >&2; exit 7"};
       execOptions.tty = tty;
 
       const string prefix =
@@ -459,31 +437,53 @@ TEST_F(DockerTest, ROOT_DOCKER_ExecUsesApiSocket)
         path::join(directory.get(), prefix + ".stderr");
 
       mesos::slave::ContainerIO containerIO;
-      containerIO.in = mesos::slave::ContainerIO::IO::PATH(stdinPath);
+      int master = -1;
+      int slave = -1;
+      if (tty) {
+        master = ::posix_openpt(O_RDWR | O_NOCTTY);
+        ASSERT_NE(-1, master);
+        ASSERT_EQ(0, ::grantpt(master));
+        ASSERT_EQ(0, ::unlockpt(master));
+
+        const char* name = ::ptsname(master);
+        ASSERT_NE(nullptr, name);
+        slave = ::open(name, O_RDWR | O_NOCTTY);
+        ASSERT_NE(-1, slave);
+
+        const string input = "synthetic-cli-input\n";
+        ASSERT_EQ(
+            static_cast<ssize_t>(input.size()),
+            ::write(master, input.data(), input.size()));
+        containerIO.in = mesos::slave::ContainerIO::IO::FD(slave, false);
+      } else {
+        containerIO.in = mesos::slave::ContainerIO::IO::PATH(stdinPath);
+      }
       containerIO.out = mesos::slave::ContainerIO::IO::PATH(stdoutPath);
       containerIO.err = mesos::slave::ContainerIO::IO::PATH(stderrPath);
 
-      Try<Docker::Exec> exec = apiDocker->exec(
-          execOptions,
-          containerIO,
-          path::join(BUILD_DIR, "src", "mesos-docker-exec"));
+      Try<Docker::Exec> exec = cliDocker->exec(execOptions, containerIO);
       ASSERT_SOME(exec);
       AWAIT_READY(exec->status);
       ASSERT_SOME(exec->status.get());
       EXPECT_WEXITSTATUS_EQ(7, exec->status->get());
 
+      if (tty) {
+        ::close(slave);
+        ::close(master);
+      }
+
       Try<string> output = os::read(stdoutPath);
       ASSERT_SOME(output);
       EXPECT_TRUE(strings::contains(
-          output.get(), "synthetic-api-stdout:synthetic-api-input"));
+          output.get(), "synthetic-cli-stdout:synthetic-cli-input"));
 
       if (tty) {
-        EXPECT_TRUE(strings::contains(output.get(), "synthetic-api-stderr"));
+        EXPECT_TRUE(strings::contains(output.get(), "synthetic-cli-stderr"));
         ASSERT_SOME_EQ("", os::read(stderrPath));
       } else {
         EXPECT_EQ(
-            "synthetic-api-stdout:synthetic-api-input", output.get());
-        ASSERT_SOME_EQ("synthetic-api-stderr", os::read(stderrPath));
+            "synthetic-cli-stdout:synthetic-cli-input", output.get());
+        ASSERT_SOME_EQ("synthetic-cli-stderr", os::read(stderrPath));
       }
     }
   }

@@ -18,6 +18,8 @@
 #define __CONTAINERIZER_HPP__
 
 #include <map>
+#include <string>
+#include <utility>
 
 #include <mesos/mesos.hpp>
 #include <mesos/resources.hpp>
@@ -139,6 +141,13 @@ public:
       const ContainerID &containerId)
   {
     return ContainerStatus();
+  }
+
+  // Returns a snapshot of stdout and stderr for a running container.
+  virtual process::Future<std::pair<std::string, std::string>> logs(
+      const ContainerID& containerId)
+  {
+    return process::Failure("Unsupported");
   }
 
   // Wait on the 'ContainerTermination'. If the executor terminates,

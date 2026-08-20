@@ -102,6 +102,9 @@ message Call {
     // Updates the memory limit of a running top-level task container.
     UPDATE_CONTAINER_MEMORY_LIMIT = 33;
 
+    // Reads the agent log or an executor container's sandbox logs.
+    READ_LOG = 34;
+
     // Prune unused container images.
     PRUNE_IMAGES = 30;
   }
@@ -142,6 +145,20 @@ message Call {
     // The maximum number of bytes to read. The read length is capped at 16
     // memory pages.
     optional uint64 length = 3;
+  }
+
+  message ReadLog {
+    enum Source {
+      UNKNOWN = 0;
+      CONTAINER = 1;
+      AGENT = 2;
+    }
+
+    required Source source = 1;
+    optional ContainerID container_id = 2;
+    optional uint64 stdout_offset = 3 [default = 0];
+    optional uint64 stderr_offset = 4 [default = 0];
+    optional uint64 length = 5;
   }
 
   // Lists active containers on the agent.
@@ -434,6 +451,8 @@ message Call {
 
   optional UpdateContainerMemoryLimit update_container_memory_limit = 23;
 
+  optional ReadLog read_log = 24;
+
   optional PruneImages prune_images = 21;
 }
 
@@ -468,6 +487,7 @@ message Response {
 
     WAIT_NESTED_CONTAINER = 13 [deprecated = true];
     WAIT_CONTAINER = 15;           // See 'WaitContainer' below.
+    READ_LOG = 18;
   }
 
   // `healthy` would be true if the agent is healthy. Delayed responses are also
@@ -507,6 +527,16 @@ message Response {
     required uint64 size = 1;
 
     required bytes data = 2;
+  }
+
+  message ReadLog {
+    message Data {
+      required uint64 size = 1;
+      required bytes data = 2;
+    }
+
+    optional Data stdout = 1;
+    optional Data stderr = 2;
   }
 
   // Contains full state of the agent i.e. information about the tasks,
@@ -664,6 +694,7 @@ message Response {
   optional GetResourceProviders get_resource_providers = 17;
   optional WaitNestedContainer wait_nested_container = 14;
   optional WaitContainer wait_container = 16;
+  optional ReadLog read_log = 19;
 }
 
 

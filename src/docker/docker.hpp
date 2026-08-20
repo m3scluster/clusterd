@@ -20,6 +20,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -273,39 +274,15 @@ public:
     process::Future<Option<int>> status;
   };
 
-  struct TtyOutput
-  {
-    std::string data;
-    size_t cursorPositionQueries = 0;
-  };
-
-  class TtyOutputFilter
-  {
-  public:
-    TtyOutput process(const std::string& chunk);
-    std::string flush();
-
-  private:
-    std::string pending;
-  };
-
-#ifndef __WINDOWS__
-  // Disables the outer Mesos PTY line discipline so control characters reach
-  // the Docker exec PTY instead of being consumed by the helper's terminal.
-  static Try<Nothing> configureTtyInput(int fd);
-#endif // __WINDOWS__
-
   // Converts Mesos `CommandInfo` semantics to the argv expected by the Docker
-  // Engine exec API. `arguments` already contains argv[0] when present.
+  // executable. `arguments` already contains argv[0] when present.
   static std::vector<std::string> createExecCommand(
       const mesos::CommandInfo& command);
 
-  // Starts an exec instance through the Docker Engine API exposed by the
-  // configured Unix socket. `helper` is the mesos-docker-exec launcher.
+  // Starts an exec instance through the configured Docker executable.
   virtual Try<Exec> exec(
       const ExecOptions& options,
-      const mesos::slave::ContainerIO& containerIO,
-      const std::string& helper) const;
+      const mesos::slave::ContainerIO& containerIO) const;
 
   // Performs 'docker run IMAGE'. Returns the exit status of the
   // container. Note that currently the exit status may correspond
@@ -324,6 +301,11 @@ public:
         process::Subprocess::FD(STDOUT_FILENO),
       const process::Subprocess::IO& _stderr =
         process::Subprocess::FD(STDERR_FILENO)) const;
+
+  // Returns the current stdout and stderr logs of a container through the
+  // configured Docker executable.
+  virtual process::Future<std::pair<std::string, std::string>> logs(
+      const std::string& containerName) const;
 
   // Returns the current docker version.
   virtual process::Future<Version> version() const;
@@ -389,6 +371,13 @@ protected:
          config(_config) {}
 
 private:
+  static process::Future<std::pair<std::string, std::string>> _logs(
+      const std::string& cmd,
+      const std::tuple<
+          process::Future<Option<int>>,
+          process::Future<std::string>,
+          process::Future<std::string>>& result);
+
   static process::Future<Version> _version(
       const std::string& cmd,
       const process::Subprocess& s);

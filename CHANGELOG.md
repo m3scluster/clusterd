@@ -1,5 +1,7 @@
 ## Master
 
+- ADD: [api, containerizer] authenticated READ_LOG operator calls for Docker,
+       Mesos, agent, and master logs.
 - ADD: missing dependencies for debian/ubuntu packages
 - ADD: [containerizer, docker, mesos] update memory limits of running containers via 
        cgroupsv2 #14 

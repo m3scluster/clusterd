@@ -109,6 +109,9 @@ message Call {
     TEARDOWN = 31;       // See 'Teardown' below.
 
     MARK_AGENT_GONE = 32; // See 'MarkAgentGone' below.
+
+    // Reads the master's own log without exposing an arbitrary file path.
+    READ_LOG = 40;
   }
 
   // Provides a snapshot of the current metrics tracked by the master.
@@ -147,6 +150,11 @@ message Call {
     // The maximum number of bytes to read. The read length is capped at 16
     // memory pages.
     optional uint64 length = 3;
+  }
+
+  message ReadLog {
+    optional uint64 offset = 1 [default = 0];
+    optional uint64 length = 2;
   }
 
   message UpdateWeights {
@@ -340,6 +348,7 @@ message Call {
   optional UpdateQuota update_quota = 20;
   optional Teardown teardown = 16;
   optional MarkAgentGone mark_agent_gone = 17;
+  optional ReadLog read_log = 24;
 
   optional SetQuota set_quota = 14 [deprecated = true];
   optional RemoveQuota remove_quota = 15 [deprecated = true];
@@ -382,6 +391,7 @@ message Response {
     GET_MAINTENANCE_SCHEDULE = 17; // See 'GetMaintenanceSchedule' below.
 
     GET_QUOTA = 18;
+    READ_LOG = 20;
   }
 
   // `healthy` would be true if the master is healthy. Delayed responses are
@@ -420,6 +430,11 @@ message Response {
     // The size of file (in bytes).
     required uint64 size = 1;
 
+    required bytes data = 2;
+  }
+
+  message ReadLog {
+    required uint64 size = 1;
     required bytes data = 2;
   }
 
@@ -632,6 +647,7 @@ message Response {
   optional GetMaintenanceStatus get_maintenance_status = 17;
   optional GetMaintenanceSchedule get_maintenance_schedule = 18;
   optional GetQuota get_quota = 19;
+  optional ReadLog read_log = 21;
 }
 
 

@@ -676,6 +676,37 @@ TEST(AgentCallValidationTest, UpdateContainerMemoryLimit)
 }
 
 
+TEST(AgentCallValidationTest, ReadLog)
+{
+  agent::Call call;
+  call.set_type(agent::Call::READ_LOG);
+
+  Option<Error> error = validation::agent::call::validate(call);
+  EXPECT_SOME(error);
+
+  agent::Call::ReadLog* readLog = call.mutable_read_log();
+  readLog->set_source(agent::Call::ReadLog::UNKNOWN);
+  error = validation::agent::call::validate(call);
+  EXPECT_SOME(error);
+
+  readLog->set_source(agent::Call::ReadLog::CONTAINER);
+  error = validation::agent::call::validate(call);
+  EXPECT_SOME(error);
+
+  readLog->mutable_container_id()->set_value("synthetic-container");
+  error = validation::agent::call::validate(call);
+  EXPECT_NONE(error);
+
+  readLog->set_source(agent::Call::ReadLog::AGENT);
+  error = validation::agent::call::validate(call);
+  EXPECT_SOME(error);
+
+  readLog->clear_container_id();
+  error = validation::agent::call::validate(call);
+  EXPECT_NONE(error);
+}
+
+
 TEST(AgentCallValidationTest, AddResourceProviderConfig)
 {
   // Expecting `add_resource_provider_config`.

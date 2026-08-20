@@ -1,0 +1,75 @@
+name: Nightly DEB Build
+
+on:
+  schedule:
+    # Run at 01:00 UTC every night.
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-deb:
+    name: Build DEB package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            autoconf \
+            automake \
+            build-essential \
+            cmake \
+            libapr1-dev \
+            libcurl4-openssl-dev \
+            libevent-dev \
+            libsasl2-dev \
+            libssl-dev \
+            libsvn-dev \
+            libtool \
+            pkg-config \
+            protobuf-compiler \
+            zlib1g-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DUNBUNDLED_LIBEVENT=true \
+            -DENABLE_SSL=true \
+            -DENABLE_LIBEVENT=true \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCPACK_BINARY_DEB=true
+
+      - name: Build package
+        run: cmake --build build --target package --parallel 2
+
+      - name: Collect package
+        run: |
+          mkdir -p dist
+          mapfile -t packages < <(find build -maxdepth 1 -type f -name '*.deb' -print)
+          if (( ${#packages[@]} == 0 )); then
+            echo 'No DEB package was produced' >&2
+            exit 1
+          fi
+          cp -- "${packages[@]}" dist/
+
+      - name: Upload nightly package
+        uses: actions/upload-artifact@v4
+        with:
+          name: clusterd-nightly-${{ matrix.os }}-${{ github.run_number }}
+          path: dist/*.deb
+          if-no-files-found: error
+          retention-days: 7

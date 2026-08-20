@@ -37,6 +37,7 @@
 using namespace process;
 
 using std::map;
+using std::pair;
 using std::string;
 using std::vector;
 
@@ -83,6 +84,8 @@ public:
 
   Future<ContainerStatus> status(
       const ContainerID& containerId);
+
+  Future<pair<string, string>> logs(const ContainerID& containerId);
 
   Future<Option<ContainerTermination>> wait(
       const ContainerID& containerId);
@@ -220,6 +223,13 @@ Future<ContainerStatus> ComposingContainerizer::status(
     const ContainerID& containerId)
 {
   return dispatch(process, &ComposingContainerizerProcess::status, containerId);
+}
+
+
+Future<pair<string, string>> ComposingContainerizer::logs(
+    const ContainerID& containerId)
+{
+  return dispatch(process, &ComposingContainerizerProcess::logs, containerId);
 }
 
 
@@ -582,6 +592,17 @@ Future<ContainerStatus> ComposingContainerizerProcess::status(
   }
 
   return containers_[containerId]->containerizer->status(containerId);
+}
+
+
+Future<pair<string, string>> ComposingContainerizerProcess::logs(
+    const ContainerID& containerId)
+{
+  if (!containers_.contains(containerId)) {
+    return Failure("Container not found");
+  }
+
+  return containers_[containerId]->containerizer->logs(containerId);
 }
 
 

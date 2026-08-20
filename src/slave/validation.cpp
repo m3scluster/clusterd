@@ -143,6 +143,35 @@ Option<Error> validate(
       }
       return None();
 
+    case mesos::agent::Call::READ_LOG: {
+      if (!call.has_read_log()) {
+        return Error("Expecting 'read_log' to be present");
+      }
+
+      const mesos::agent::Call::ReadLog& readLog = call.read_log();
+      if (readLog.source() == mesos::agent::Call::ReadLog::UNKNOWN) {
+        return Error("'read_log.source' must be CONTAINER or AGENT");
+      }
+
+      if (readLog.source() == mesos::agent::Call::ReadLog::CONTAINER) {
+        if (!readLog.has_container_id()) {
+          return Error(
+              "Expecting 'read_log.container_id' for CONTAINER source");
+        }
+
+        Option<Error> error = validation::container::validateContainerId(
+            readLog.container_id());
+        if (error.isSome()) {
+          return Error("'read_log.container_id' is invalid: " + error->message);
+        }
+      } else if (readLog.has_container_id()) {
+        return Error(
+            "'read_log.container_id' is only valid for CONTAINER source");
+      }
+
+      return None();
+    }
+
     case mesos::agent::Call::GET_STATE:
       return None();
 

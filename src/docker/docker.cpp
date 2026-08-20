@@ -40,7 +40,6 @@
 #ifdef __WINDOWS__
 #include <stout/os/windows/jobobject.hpp>
 #else
-#include <termios.h>
 #include <unistd.h>
 #endif // __WINDOWS__
 
@@ -77,6 +76,7 @@ using std::mutex;
 using std::pair;
 using std::shared_ptr;
 using std::string;
+using std::tuple;
 using std::vector;
 
 using mesos::internal::ContainerDNSInfo;
@@ -212,6 +212,72 @@ Future<Version> Docker::version() const
 }
 
 
+Future<pair<string, string>> Docker::logs(const string& containerName) const
+{
+  vector<string> argv = {
+    path, "-H", socket, "logs", containerName};
+  const string cmd = strings::join(" ", argv);
+
+  Try<Subprocess> s = subprocess(
+      path,
+      argv,
+      Subprocess::PATH(os::DEV_NULL),
+      Subprocess::PIPE(),
+      Subprocess::PIPE(),
+      nullptr,
+      None(),
+      None(),
+      createParentHooks());
+
+  if (s.isError()) {
+    return Failure("Failed to create subprocess '" + cmd + "': " + s.error());
+  }
+
+  CHECK_SOME(s->out());
+  CHECK_SOME(s->err());
+
+  return await(
+      s->status(),
+      io::read(s->out().get()),
+      io::read(s->err().get()))
+    .then(lambda::bind(&Docker::_logs, cmd, lambda::_1))
+    .onDiscard(lambda::bind(&commandDiscarded, s.get(), cmd));
+}
+
+
+Future<pair<string, string>> Docker::_logs(
+    const string& cmd,
+    const tuple<Future<Option<int>>, Future<string>, Future<string>>& result)
+{
+  const Future<Option<int>>& status = std::get<0>(result);
+  const Future<string>& out = std::get<1>(result);
+  const Future<string>& err = std::get<2>(result);
+
+  if (!status.isReady()) {
+    return Failure(
+        "Failed to get exit status for '" + cmd + "': " +
+        (status.isFailed() ? status.failure() : "discarded"));
+  }
+
+  if (status->isNone() || status->get() != 0) {
+    string message = "Failed to execute '" + cmd + "'";
+    if (status->isSome()) {
+      message += ": exit status " + stringify(status->get());
+    }
+    if (err.isReady() && !err->empty()) {
+      message += ": " + strings::trim(err.get());
+    }
+    return Failure(message);
+  }
+
+  if (!out.isReady() || !err.isReady()) {
+    return Failure("Failed to read output from '" + cmd + "'");
+  }
+
+  return pair<string, string>(out.get(), err.get());
+}
+
+
 vector<string> Docker::createExecCommand(const mesos::CommandInfo& command)
 {
   if (command.shell()) {
@@ -231,117 +297,34 @@ vector<string> Docker::createExecCommand(const mesos::CommandInfo& command)
 }
 
 
-Docker::TtyOutput Docker::TtyOutputFilter::process(const string& chunk)
-{
-  static const string cursorPositionQuery = "\x1b[6n";
-
-  pending += chunk;
-
-  TtyOutput result;
-  size_t offset = 0;
-  size_t position;
-
-  while ((position = pending.find(cursorPositionQuery, offset)) != string::npos) {
-    result.data.append(pending, offset, position - offset);
-    ++result.cursorPositionQueries;
-    offset = position + cursorPositionQuery.size();
-  }
-
-  const string remainder = pending.substr(offset);
-  size_t retained = 0;
-  const size_t maximum = std::min(
-      remainder.size(), cursorPositionQuery.size() - 1);
-
-  for (size_t length = maximum; length > 0; --length) {
-    if (remainder.compare(
-            remainder.size() - length,
-            length,
-            cursorPositionQuery,
-            0,
-            length) == 0) {
-      retained = length;
-      break;
-    }
-  }
-
-  result.data.append(remainder, 0, remainder.size() - retained);
-  pending = remainder.substr(remainder.size() - retained);
-
-  return result;
-}
-
-
-string Docker::TtyOutputFilter::flush()
-{
-  string result;
-  result.swap(pending);
-  return result;
-}
-
-
-#ifndef __WINDOWS__
-Try<Nothing> Docker::configureTtyInput(int fd)
-{
-  if (::isatty(fd) == 0) {
-    return Nothing();
-  }
-
-  struct termios attributes;
-  if (::tcgetattr(fd, &attributes) != 0) {
-    return Error("Failed to read TTY input attributes: " +
-                 string(std::strerror(errno)));
-  }
-
-  ::cfmakeraw(&attributes);
-
-  if (::tcsetattr(fd, TCSANOW, &attributes) != 0) {
-    return Error("Failed to configure raw TTY input: " +
-                 string(std::strerror(errno)));
-  }
-
-  return Nothing();
-}
-#endif // __WINDOWS__
-
-
 Try<Docker::Exec> Docker::exec(
     const ExecOptions& options,
-    const mesos::slave::ContainerIO& containerIO,
-    const string& helper) const
+    const mesos::slave::ContainerIO& containerIO) const
 {
-  JSON::Object configuration;
-  configuration.values["socket"] = socket;
-  configuration.values["container"] = options.container;
-  configuration.values["tty"] = options.tty;
-
-  JSON::Array command;
-  foreach (const string& argument, options.command) {
-    command.values.push_back(argument);
+  vector<string> argv = {path, "-H", socket, "exec", "--interactive"};
+  if (options.tty) {
+    argv.push_back("--tty");
   }
-  configuration.values["command"] = command;
-
-  JSON::Array environment;
-  foreach (const string& variable, options.environment) {
-    environment.values.push_back(variable);
-  }
-  configuration.values["environment"] = environment;
-
   if (options.user.isSome()) {
-    configuration.values["user"] = options.user.get();
+    argv.push_back("--user");
+    argv.push_back(options.user.get());
   }
-
-  vector<string> argv = {
-    "mesos-docker-exec", "--config=" + stringify(configuration)};
+  foreach (const string& variable, options.environment) {
+    argv.push_back("--env");
+    argv.push_back(variable);
+  }
+  argv.push_back(options.container);
+  argv.insert(argv.end(), options.command.begin(), options.command.end());
 
   Try<Subprocess> child = subprocess(
-      helper,
+      path,
       argv,
       containerIO.in,
       containerIO.out,
       containerIO.err);
 
   if (child.isError()) {
-    return Error("Failed to launch Docker API exec helper: " + child.error());
+    return Error("Failed to launch Docker exec: " + child.error());
   }
 
   Exec result;

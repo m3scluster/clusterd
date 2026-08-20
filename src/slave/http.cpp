@@ -596,6 +596,9 @@ Future<Response> Http::_api(
     case mesos::agent::Call::READ_FILE:
       return readFile(call, mediaTypes.accept, principal);
 
+    case mesos::agent::Call::READ_LOG:
+      return readLog(call, mediaTypes.accept, principal);
+
     case mesos::agent::Call::GET_STATE:
       return getState(call, mediaTypes.accept, principal);
 
@@ -3266,6 +3269,142 @@ Future<Response> Http::readFile(
 
       return OK(serialize(acceptType, evolve(response)),
                 stringify(acceptType));
+    });
+}
+
+
+Future<Response> Http::readLog(
+    const mesos::agent::Call& call,
+    ContentType acceptType,
+    const Option<Principal>& principal) const
+{
+  CHECK_EQ(mesos::agent::Call::READ_LOG, call.type());
+  CHECK(call.has_read_log());
+
+  const mesos::agent::Call::ReadLog& readLog = call.read_log();
+
+  Option<size_t> length;
+  if (readLog.has_length()) {
+    length = readLog.length();
+  }
+
+  auto errorResponse = [](const FilesError& error) -> Response {
+    switch (error.type) {
+      case FilesError::Type::INVALID:
+        return BadRequest(error.message);
+      case FilesError::Type::UNAUTHORIZED:
+        return Forbidden(error.message);
+      case FilesError::Type::NOT_FOUND:
+        return NotFound(error.message);
+      case FilesError::Type::UNKNOWN:
+        return InternalServerError(error.message);
+    }
+    UNREACHABLE();
+  };
+
+  if (readLog.source() == mesos::agent::Call::ReadLog::AGENT) {
+    return slave->files->read(
+        readLog.stdout_offset(), length, AGENT_LOG_VIRTUAL_PATH, principal)
+      .then([=](const Try<tuple<size_t, string>, FilesError>& result)
+          -> Response {
+        if (result.isError()) {
+          return errorResponse(result.error());
+        }
+
+        mesos::agent::Response response;
+        response.set_type(mesos::agent::Response::READ_LOG);
+        response.mutable_read_log()->mutable_stdout()->set_size(
+            std::get<0>(result.get()));
+        response.mutable_read_log()->mutable_stdout()->set_data(
+            std::get<1>(result.get()));
+        return OK(
+            serialize(acceptType, evolve(response)), stringify(acceptType));
+      });
+  }
+
+  const ContainerID& containerId = readLog.container_id();
+  Executor* executor = slave->getExecutor(containerId);
+  if (executor == nullptr) {
+    return NotFound(
+        "Container '" + stringify(containerId) + "' cannot be found");
+  }
+
+  if (executor->info.has_container() &&
+      executor->info.container().type() == ContainerInfo::DOCKER) {
+    return slave->authorizeSandboxAccess(
+        principal, executor->frameworkId, executor->id)
+      .then([=](bool authorized) -> Future<Response> {
+        if (!authorized) {
+          return Forbidden();
+        }
+
+        return slave->containerizer->logs(containerId)
+          .then([=](const std::pair<string, string>& logs) -> Response {
+            const string& stdout = logs.first;
+            const string& stderr = logs.second;
+
+            const size_t stdoutOffset = std::min(
+                static_cast<size_t>(readLog.stdout_offset()), stdout.size());
+            const size_t stderrOffset = std::min(
+                static_cast<size_t>(readLog.stderr_offset()), stderr.size());
+
+            const string stdoutData = length.isSome()
+              ? stdout.substr(stdoutOffset, length.get())
+              : stdout.substr(stdoutOffset);
+            const string stderrData = length.isSome()
+              ? stderr.substr(stderrOffset, length.get())
+              : stderr.substr(stderrOffset);
+
+            mesos::agent::Response response;
+            response.set_type(mesos::agent::Response::READ_LOG);
+            response.mutable_read_log()->mutable_stdout()->set_size(
+                stdout.size());
+            response.mutable_read_log()->mutable_stdout()->set_data(stdoutData);
+            response.mutable_read_log()->mutable_stderr()->set_size(
+                stderr.size());
+            response.mutable_read_log()->mutable_stderr()->set_data(stderrData);
+
+            return OK(
+                serialize(acceptType, evolve(response)), stringify(acceptType));
+          })
+          .repair([](const Future<Response>& failure) -> Response {
+            return InternalServerError(failure.failure());
+          });
+      });
+  }
+
+  const string stdoutPath = path::join(executor->directory, "stdout");
+  const string stderrPath = path::join(executor->directory, "stderr");
+
+  return slave->files->read(
+      readLog.stdout_offset(), length, stdoutPath, principal)
+    .then([=](const Try<tuple<size_t, string>, FilesError>& out)
+        -> Future<Response> {
+      if (out.isError()) {
+        return errorResponse(out.error());
+      }
+
+      return slave->files->read(
+          readLog.stderr_offset(), length, stderrPath, principal)
+        .then([=](const Try<tuple<size_t, string>, FilesError>& err)
+            -> Response {
+          if (err.isError()) {
+            return errorResponse(err.error());
+          }
+
+          mesos::agent::Response response;
+          response.set_type(mesos::agent::Response::READ_LOG);
+          response.mutable_read_log()->mutable_stdout()->set_size(
+              std::get<0>(out.get()));
+          response.mutable_read_log()->mutable_stdout()->set_data(
+              std::get<1>(out.get()));
+          response.mutable_read_log()->mutable_stderr()->set_size(
+              std::get<0>(err.get()));
+          response.mutable_read_log()->mutable_stderr()->set_data(
+              std::get<1>(err.get()));
+          return OK(
+              serialize(acceptType, evolve(response)), stringify(acceptType));
+        });
     });
 }
 

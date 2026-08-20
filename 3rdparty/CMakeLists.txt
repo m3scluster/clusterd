@@ -134,8 +134,15 @@ list(APPEND CMAKE_FORWARD_ARGS
   # TODO(andschwa): Set the CMAKE_GENERATOR explicitly as an argmuent to
   # `ExternalProject_Add`.
   -G${CMAKE_GENERATOR}
+  -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE}
   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS})
+
+# CMake 4 removes compatibility with policy versions older than 3.5, while
+# some of the bundled dependencies still declare an older minimum version.
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 4.0)
+  list(APPEND CMAKE_FORWARD_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+endif ()
 
 # This only matters for single-configuration generators.
 # E.g. Makefile, but not Visual Studio.

@@ -315,6 +315,9 @@ Future<Response> Master::Http::api(
     case mesos::master::Call::READ_FILE:
       return readFile(call, principal, acceptType);
 
+    case mesos::master::Call::READ_LOG:
+      return readLog(call, principal, acceptType);
+
     case mesos::master::Call::GET_STATE:
       return getState(call, principal, acceptType);
 
@@ -2513,6 +2516,48 @@ Future<Response> Master::Http::readFile(
 
       return OK(serialize(contentType, evolve(response)),
                 stringify(contentType));
+    });
+}
+
+
+Future<Response> Master::Http::readLog(
+    const mesos::master::Call& call,
+    const Option<Principal>& principal,
+    ContentType contentType) const
+{
+  CHECK_EQ(mesos::master::Call::READ_LOG, call.type());
+  CHECK(call.has_read_log());
+
+  Option<size_t> length;
+  if (call.read_log().has_length()) {
+    length = call.read_log().length();
+  }
+
+  return master->files->read(
+      call.read_log().offset(), length, "/master/log", principal)
+    .then([contentType](const Try<tuple<size_t, string>, FilesError>& result)
+        -> Response {
+      if (result.isError()) {
+        const FilesError& error = result.error();
+        switch (error.type) {
+          case FilesError::Type::INVALID:
+            return BadRequest(error.message);
+          case FilesError::Type::UNAUTHORIZED:
+            return Forbidden(error.message);
+          case FilesError::Type::NOT_FOUND:
+            return NotFound(error.message);
+          case FilesError::Type::UNKNOWN:
+            return InternalServerError(error.message);
+        }
+        UNREACHABLE();
+      }
+
+      mesos::master::Response response;
+      response.set_type(mesos::master::Response::READ_LOG);
+      response.mutable_read_log()->set_size(std::get<0>(result.get()));
+      response.mutable_read_log()->set_data(std::get<1>(result.get()));
+      return OK(
+          serialize(contentType, evolve(response)), stringify(contentType));
     });
 }
 

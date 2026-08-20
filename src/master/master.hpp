@@ -1767,6 +1767,11 @@ private:
         const Option<process::http::authentication::Principal>& principal,
         ContentType contentType) const;
 
+    process::Future<process::http::Response> readLog(
+        const mesos::master::Call& call,
+        const Option<process::http::authentication::Principal>& principal,
+        ContentType contentType) const;
+
     process::Future<process::http::Response> getMaster(
         const mesos::master::Call& call,
         const Option<process::http::authentication::Principal>& principal,

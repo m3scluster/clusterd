@@ -83,6 +83,7 @@ using namespace process;
 
 using std::list;
 using std::map;
+using std::pair;
 using std::set;
 using std::string;
 using std::vector;
@@ -117,7 +118,6 @@ const string DOCKER_SYMLINK_DIRECTORY = path::join("docker", "links");
 const string MESOS_DOCKER_EXECUTOR = "mesos-docker-executor.exe";
 #else
 const string MESOS_DOCKER_EXECUTOR = "mesos-docker-executor";
-const string MESOS_DOCKER_EXEC = "mesos-docker-exec";
 #endif // __WINDOWS__
 
 
@@ -894,6 +894,16 @@ Future<ContainerStatus> DockerContainerizer::status(
 }
 
 
+Future<pair<string, string>> DockerContainerizer::logs(
+    const ContainerID& containerId)
+{
+  return dispatch(
+      process.get(),
+      &DockerContainerizerProcess::logs,
+      containerId);
+}
+
+
 Future<Option<ContainerTermination>> DockerContainerizer::wait(
     const ContainerID& containerId)
 {
@@ -1479,14 +1489,11 @@ Future<Containerizer::LaunchResult> DockerContainerizerProcess::__launchExec(
 
   options.command = Docker::createExecCommand(command);
 
-  Try<Docker::Exec> child = docker->exec(
-      options,
-      containerIO.get(),
-      path::join(flags.launcher_dir, MESOS_DOCKER_EXEC));
+  Try<Docker::Exec> child = docker->exec(options, containerIO.get());
 
   if (child.isError()) {
     ioSwitchboard->cleanup(containerId);
-    return Failure("Failed to launch Docker API exec: " + child.error());
+    return Failure("Failed to launch Docker exec: " + child.error());
   }
 
   execSessions[containerId] = Owned<ExecSession>(
@@ -2691,6 +2698,17 @@ Future<ContainerStatus> DockerContainerizerProcess::status(
   ContainerStatus result;
   result.mutable_container_id()->CopyFrom(containerId);
   return result;
+}
+
+
+Future<pair<string, string>> DockerContainerizerProcess::logs(
+    const ContainerID& containerId)
+{
+  if (!containers_.contains(containerId)) {
+    return Failure("Container '" + stringify(containerId) + "' not found");
+  }
+
+  return docker->logs(containers_.at(containerId)->containerName);
 }
 
 

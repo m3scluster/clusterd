@@ -19,17 +19,6 @@
 add_executable(mesos-tcp-connect tcp_connect.cpp)
 target_link_libraries(mesos-tcp-connect PRIVATE mesos)
 
-if (NOT WIN32)
-  add_executable(mesos-docker-exec docker_exec.cpp)
-  target_link_libraries(mesos-docker-exec PRIVATE mesos)
-endif ()
-
 install(
   TARGETS mesos-tcp-connect
   RUNTIME DESTINATION ${MESOS_INSTALL_LAUNCHER})
-
-if (NOT WIN32)
-  install(
-    TARGETS mesos-docker-exec
-    RUNTIME DESTINATION ${MESOS_INSTALL_LAUNCHER})
-endif ()
