@@ -235,7 +235,8 @@ public:
 #ifdef __linux__
       Result<string> user = os::user();
       CHECK_SOME(user);
-      return *user != "root" || !cgroups2::enabled();
+      Try<bool> mounted = cgroups2::mounted();
+      return *user != "root" || mounted.isError() || !*mounted;
 #else
       return true;
 #endif // __linux__

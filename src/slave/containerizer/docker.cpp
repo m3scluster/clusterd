@@ -1969,7 +1969,14 @@ Future<Nothing> DockerContainerizerProcess::_update(
 
   containers_.at(containerId)->pid = container.pid.get();
 
-  if (cgroups2::enabled()) {
+  Try<bool> cgroups2Mounted = cgroups2::mounted();
+  if (cgroups2Mounted.isError()) {
+    return Failure(
+        "Failed to determine if the cgroup2 filesystem is mounted: " +
+        cgroups2Mounted.error());
+  }
+
+  if (*cgroups2Mounted) {
     Option<Bytes> memoryRequest = resourceRequests.mem();
     Option<double> memoryLimit;
 
@@ -2309,7 +2316,14 @@ Future<ResourceStatistics> DockerContainerizerProcess::usage(
     ResourceStatistics result;
 
 #ifdef __linux__
-    if (!cgroups2::enabled()) {
+    Try<bool> cgroups2Mounted = cgroups2::mounted();
+    if (cgroups2Mounted.isError()) {
+      return Failure(
+          "Failed to determine if the cgroup2 filesystem is mounted: " +
+          cgroups2Mounted.error());
+    }
+
+    if (!*cgroups2Mounted) {
       const Try<ResourceStatistics> cgroupStats = cgroupsStatistics(pid);
       if (cgroupStats.isError()) {
         return Failure("Failed to collect cgroup stats: " + cgroupStats.error());
