@@ -1856,6 +1856,42 @@ Future<Nothing> _send(Encoder* encoder, Socket socket)
 } // namespace internal {
 
 
+static Response corsResponse(
+    const Response& _response,
+    const string& origin,
+    bool preflight = false)
+{
+  Response response = _response;
+  response.headers["Access-Control-Allow-Origin"] = origin;
+  response.headers["Access-Control-Allow-Credentials"] = "true";
+  response.headers["Access-Control-Expose-Headers"] = "Mesos-Stream-Id";
+
+  const Option<string> vary = response.headers.get("Vary");
+  bool variesByOrigin = false;
+  if (vary.isSome()) {
+    foreach (const string& value, strings::tokenize(vary.get(), ",")) {
+      if (strings::lower(strings::trim(value)) == "origin") {
+        variesByOrigin = true;
+        break;
+      }
+    }
+  }
+
+  if (!variesByOrigin) {
+    response.headers["Vary"] =
+      vary.isSome() ? vary.get() + ", Origin" : "Origin";
+  }
+
+  if (preflight) {
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
+    response.headers["Access-Control-Allow-Headers"] =
+      "Authorization, Content-Type, Accept, Mesos-Stream-Id";
+  }
+
+  return response;
+}
+
+
 void SocketManager::send(Encoder* encoder, bool persist, const Socket& socket)
 {
   CHECK(encoder != nullptr);
@@ -3713,6 +3749,23 @@ void ProcessBase::consume(HttpEvent&& event)
 
     const HttpEndpoint& endpoint = handlers.http[name];
 
+    const Option<string> origin = event.request->headers.get("Origin");
+    const bool allowedOrigin =
+      origin.isSome() && corsAllowedOrigins.count(origin.get()) > 0;
+
+    const Option<string> requestedMethod =
+      event.request->headers.get("Access-Control-Request-Method");
+
+    if (event.request->method == "OPTIONS" &&
+        allowedOrigin &&
+        requestedMethod.isSome() &&
+        (requestedMethod.get() == "GET" || requestedMethod.get() == "POST")) {
+      CHECK_SOME(event.request->reader);
+      event.request->reader->readAll();
+      event.response->associate(corsResponse(OK(), origin.get(), true));
+      return;
+    }
+
     Owned<Request> request(new Request(*event.request));
     Future<Response> response;
 
@@ -3725,6 +3778,12 @@ void ProcessBase::consume(HttpEvent&& event)
         }));
     } else {
       response = _consume(endpoint, name, request);
+    }
+
+    if (allowedOrigin) {
+      response = response.then([origin](const Response& response) {
+        return corsResponse(response, origin.get());
+      });
     }
 
     response
@@ -3766,11 +3825,15 @@ void ProcessBase::consume(HttpEvent&& event)
       response.headers["Content-Type"] = assets[name].types[extension.get()];
     }
 
-    // TODO(benh): Use "text/plain" for assets that don't have an
+    // TODO(benh): Use "text/plain" for assets that don't have a
     // extension or we don't have a mapping for? It might be better to
     // just let the browser guess (or do its own default).
 
-    event.response->associate(response);
+    const Option<string> origin = event.request->headers.get("Origin");
+    event.response->associate(
+        origin.isSome() && corsAllowedOrigins.count(origin.get()) > 0
+          ? corsResponse(response, origin.get())
+          : response);
 
     return;
   }
@@ -3778,7 +3841,11 @@ void ProcessBase::consume(HttpEvent&& event)
   VLOG(1) << "Returning '404 Not Found' for"
           << " '" << event.request->url.path << "'";
 
-  event.response->associate(NotFound());
+  const Option<string> origin = event.request->headers.get("Origin");
+  event.response->associate(
+      origin.isSome() && corsAllowedOrigins.count(origin.get()) > 0
+        ? corsResponse(NotFound(), origin.get())
+        : NotFound());
 }
 
 

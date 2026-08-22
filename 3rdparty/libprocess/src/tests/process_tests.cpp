@@ -1919,6 +1919,139 @@ public:
 };
 
 
+class CorsProcess : public Process<CorsProcess>
+{
+public:
+  CorsProcess()
+  {
+    setCorsAllowedOrigins({"https://master1.example:5050"});
+  }
+
+  void initialize() override
+  {
+    route("/handler", None(), &CorsProcess::handler);
+  }
+
+  MOCK_METHOD1(handler, Future<http::Response>(const http::Request&));
+};
+
+
+TEST_F(ProcessTest, CorsAllowedOrigin)
+{
+  CorsProcess process;
+  PID<CorsProcess> pid = spawn(process);
+
+  EXPECT_CALL(process, handler(_))
+    .WillOnce(Return(http::OK()));
+
+  http::Headers headers;
+  headers["Origin"] = "https://master1.example:5050";
+
+  Future<http::Response> response =
+    http::get(pid, "handler", None(), headers);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(http::OK().status, response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      "https://master1.example:5050",
+      "Access-Control-Allow-Origin",
+      response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ("true", "Access-Control-Allow-Credentials", response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ("Origin", "Vary", response);
+
+  terminate(process);
+  wait(process);
+}
+
+
+TEST_F(ProcessTest, CorsPreflightDoesNotInvokeHandler)
+{
+  CorsProcess process;
+  PID<CorsProcess> pid = spawn(process);
+
+  EXPECT_CALL(process, handler(_)).Times(0);
+
+  http::Request request;
+  request.method = "OPTIONS";
+  request.url = http::URL(
+      "http",
+      pid.address.ip,
+      pid.address.port,
+      pid.id + "/handler");
+  request.headers["Origin"] = "https://master1.example:5050";
+  request.headers["Access-Control-Request-Method"] = "POST";
+  request.headers["Access-Control-Request-Headers"] =
+    "authorization,content-type";
+
+  Future<http::Response> response = http::request(request);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(http::OK().status, response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      "https://master1.example:5050",
+      "Access-Control-Allow-Origin",
+      response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      "GET, POST, OPTIONS",
+      "Access-Control-Allow-Methods",
+      response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      "Authorization, Content-Type, Accept, Mesos-Stream-Id",
+      "Access-Control-Allow-Headers",
+      response);
+
+  terminate(process);
+  wait(process);
+}
+
+
+TEST_F(ProcessTest, CorsRejectsUnconfiguredOrigin)
+{
+  CorsProcess process;
+  PID<CorsProcess> pid = spawn(process);
+
+  EXPECT_CALL(process, handler(_))
+    .WillOnce(Return(http::OK()));
+
+  http::Headers headers;
+  headers["Origin"] = "https://attacker.example:5050";
+
+  Future<http::Response> response =
+    http::get(pid, "handler", None(), headers);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(http::OK().status, response);
+  AWAIT_READY(response);
+  EXPECT_NONE(response->headers.get("Access-Control-Allow-Origin"));
+
+  terminate(process);
+  wait(process);
+}
+
+
+TEST_F(ProcessTest, CorsPreservesExistingVaryHeader)
+{
+  CorsProcess process;
+  PID<CorsProcess> pid = spawn(process);
+
+  http::OK ok;
+  ok.headers["Vary"] = "Accept-Encoding";
+
+  EXPECT_CALL(process, handler(_))
+    .WillOnce(Return(ok));
+
+  http::Headers headers;
+  headers["Origin"] = "https://master1.example:5050";
+
+  Future<http::Response> response =
+    http::get(pid, "handler", None(), headers);
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(http::OK().status, response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      "Accept-Encoding, Origin", "Vary", response);
+
+  terminate(process);
+  wait(process);
+}
+
+
 // Sets firewall rules which disable endpoints on a process and then
 // attempts to connect to those endpoints.
 TEST_F(ProcessTest, FirewallDisablePaths)

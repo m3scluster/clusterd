@@ -18,6 +18,7 @@
 #define __SLAVE_FLAGS_HPP__
 
 #include <cstdint>
+#include <set>
 #include <string>
 
 #include <stout/bytes.hpp>
@@ -197,6 +198,7 @@ public:
   std::string authenticatee;
   std::string authorizer;
   Option<std::string> http_authenticators;
+  Option<std::set<std::string>> http_cors_allowed_origins;
   bool authenticate_http_readonly;
   bool authenticate_http_readwrite;
 #ifdef USE_SSL_SOCKET

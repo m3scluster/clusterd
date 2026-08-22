@@ -245,7 +245,12 @@ Slave::Slave(const string& id,
     executorSocket(_executorSocket),
 #endif // __WINDOWS__
     authorizer(_authorizer),
-    resourceVersion(protobuf::createUUID()) {}
+    resourceVersion(protobuf::createUUID())
+{
+  if (flags.http_cors_allowed_origins.isSome()) {
+    setCorsAllowedOrigins(flags.http_cors_allowed_origins.get());
+  }
+}
 
 
 Slave::~Slave()

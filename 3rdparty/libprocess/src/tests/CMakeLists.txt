@@ -114,6 +114,7 @@ if (ENABLE_SSL)
 endif ()
 
 add_test(NAME ProcessTests COMMAND ${TEST_DRIVER} libprocess-tests)
+set_property(TEST ProcessTests PROPERTY FIXTURES_REQUIRED TestBinaries)
 
 # LIBPROCESS BENCHMARK TESTS.
 #############################

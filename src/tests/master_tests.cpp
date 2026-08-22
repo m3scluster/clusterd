@@ -144,6 +144,41 @@ namespace tests {
 class MasterTest : public MesosTest {};
 
 
+TEST_F(MasterTest, CorsAllowedOriginOnMasterAndAgent)
+{
+  const string origin = "https://master1.example:5050";
+
+  master::Flags masterFlags = CreateMasterFlags();
+  masterFlags.http_cors_allowed_origins = std::set<string>{origin};
+
+  Try<Owned<cluster::Master>> master = StartMaster(masterFlags);
+  ASSERT_SOME(master);
+
+  Owned<MasterDetector> detector = master.get()->createDetector();
+
+  slave::Flags slaveFlags = CreateSlaveFlags();
+  slaveFlags.http_cors_allowed_origins = std::set<string>{origin};
+
+  Try<Owned<cluster::Slave>> slave = StartSlave(detector.get(), slaveFlags);
+  ASSERT_SOME(slave);
+
+  http::Headers headers;
+  headers["Origin"] = origin;
+
+  Future<Response> masterResponse =
+    process::http::get(master.get()->pid, "health", None(), headers);
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, masterResponse);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      origin, "Access-Control-Allow-Origin", masterResponse);
+
+  Future<Response> agentResponse =
+    process::http::get(slave.get()->pid, "health", None(), headers);
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, agentResponse);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      origin, "Access-Control-Allow-Origin", agentResponse);
+}
+
+
 TEST_F(MasterTest, TaskRunning)
 {
   Try<Owned<cluster::Master>> master = StartMaster();

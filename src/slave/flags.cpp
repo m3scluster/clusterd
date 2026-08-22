@@ -1555,6 +1555,14 @@ mesos::internal::slave::Flags::Flags()
       "`" + string(DEFAULT_BASIC_HTTP_AUTHENTICATOR) + "`, or load an\n"
       "alternate HTTP authenticator module using `--modules`.");
 
+  add(&Flags::http_cors_allowed_origins,
+      "http_cors_allowed_origins",
+      "Comma-separated list of exact master origins allowed to access the\n"
+      "agent's HTTP endpoints from a web browser. Each origin must include\n"
+      "its scheme, hostname, and Mesos master port, for example:\n"
+      "  `https://master1.example:5050,https://master2.example:5050`.\n"
+      "Requests from other origins receive no CORS access headers.");
+
   add(&Flags::authenticate_http_readwrite,
       "authenticate_http_readwrite",
       "If `true`, only authenticated requests for read-write HTTP endpoints\n"

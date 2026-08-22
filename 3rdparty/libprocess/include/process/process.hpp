@@ -18,6 +18,7 @@
 #include <memory>
 #include <map>
 #include <queue>
+#include <set>
 #include <vector>
 
 #include <process/address.hpp>
@@ -280,6 +281,15 @@ protected:
       const RouteOptions& options = RouteOptions());
 
   /**
+   * Enables CORS for requests whose `Origin` exactly matches one of the
+   * configured origins.
+   */
+  void setCorsAllowedOrigins(const std::set<std::string>& origins)
+  {
+    corsAllowedOrigins = origins;
+  }
+
+  /**
    * @copydoc process::ProcessBase::route
    */
   template <typename T>
@@ -480,6 +490,9 @@ private:
 
   // Static assets(s) to provide.
   std::map<std::string, Asset> assets;
+
+  // Origins permitted to access this process through a web browser.
+  std::set<std::string> corsAllowedOrigins;
 
   // Queue of received events. We employ the PIMPL idiom here and use
   // a pointer so we can hide the implementation of `EventQueue`.

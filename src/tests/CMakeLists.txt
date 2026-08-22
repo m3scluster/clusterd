@@ -407,5 +407,6 @@ endif()
 # ADD TEST TARGET (runs when you do, e.g., `make check`).
 #########################################################
 add_test(NAME MesosTests COMMAND ${TEST_DRIVER} "${CMAKE_BINARY_DIR}/src/mesos-tests")
+set_property(TEST MesosTests PROPERTY FIXTURES_REQUIRED TestBinaries)
 set_property(TEST MesosTests PROPERTY ENVIRONMENT
   "MESOS_GTEST_RUNNER_FLAGS=--sequential=*ROOT_* $ENV{MESOS_GTEST_RUNNER_FLAGS}")

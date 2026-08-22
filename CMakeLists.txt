@@ -47,6 +47,8 @@ include(cotire)
 
 # TESTS.
 ########
+set(CMAKE_CTEST_ARGUMENTS --verbose --output-on-failure)
+
 add_custom_target(check COMMAND ctest -V -C $<CONFIG> DEPENDS tests)
 add_custom_target(
   tests
@@ -121,6 +123,17 @@ include(MesosConfigure)
 #################
 add_subdirectory(3rdparty)
 add_subdirectory(src)
+
+# CMake's generated `test` target only invokes CTest; it does not build the
+# test executables first.  Use a setup fixture so `make test` builds all test
+# binaries before running the registered suites.  The build is intentionally
+# serial because compiling Mesos can exceed memory limits in parallel.
+add_test(
+  NAME BuildTestBinaries
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target tests)
+set_tests_properties(
+  BuildTestBinaries
+  PROPERTIES FIXTURES_SETUP TestBinaries RUN_SERIAL TRUE)
 
 message(STATUS "Distribution: ${OS_DISTRIBUTION}")
 message(STATUS "Architecture: ${PROCESSOR_ARCH}")

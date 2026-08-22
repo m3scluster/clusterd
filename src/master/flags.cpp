@@ -592,6 +592,14 @@ mesos::internal::master::Flags::Flags()
       "Currently there is no support for multiple HTTP framework\n"
       "authenticators.");
 
+  add(&Flags::http_cors_allowed_origins,
+      "http_cors_allowed_origins",
+      "Comma-separated list of exact origins allowed to access the master's\n"
+      "HTTP endpoints from a web browser. Each origin must include its scheme,\n"
+      "hostname, and Mesos master port, for example:\n"
+      "  `https://master1.example:5050,https://master2.example:5050`.\n"
+      "Requests from other origins receive no CORS access headers.");
+
   add(&Flags::max_operator_event_stream_subscribers,
       "max_operator_event_stream_subscribers",
       "Maximum number of simultaneous subscribers to the master's operator\n"

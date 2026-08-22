@@ -338,6 +338,10 @@ Master::Master(
         {{flags.offer_constraints_re2_max_mem,
           flags.offer_constraints_re2_max_program_size}})
 {
+  if (flags.http_cors_allowed_origins.isSome()) {
+    setCorsAllowedOrigins(flags.http_cors_allowed_origins.get());
+  }
+
   slaves.limiter = _slaveRemovalLimiter;
 
   // NOTE: We populate 'info_' here instead of inside 'initialize()'

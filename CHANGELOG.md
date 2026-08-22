@@ -1,5 +1,8 @@
 ## Master
 
+- ADD: [master, agent, webui] configurable CORS origin allowlist for browser
+       access to master and agent HTTP endpoints.
+       Details: https://m3scluster.github.io/clusterd-docs/cors.html
 - ADD: [api, containerizer] authenticated READ_LOG operator calls for Docker,
        Mesos, agent, and master logs.
 - ADD: missing dependencies for debian/ubuntu packages
