@@ -137,6 +137,21 @@ TEST_F(Cgroups2Test, CGROUPS2_Path)
 }
 
 
+class HierarchyVersionDetectionTest : public TemporaryDirectoryTest {};
+
+
+TEST_F(HierarchyVersionDetectionTest, HybridHierarchyUsesV1)
+{
+  const string mountTable = path::join(sandbox.get(), "mounts");
+
+  ASSERT_SOME(os::write(
+      mountTable,
+      "cgroup2 /sys/fs/cgroup/unified cgroup2 rw 0 0\n"));
+
+  EXPECT_SOME_EQ(false, cgroups2::mounted(mountTable));
+}
+
+
 TEST_F(Cgroups2Test, ROOT_CGROUPS2_AvailableSubsystems)
 {
 

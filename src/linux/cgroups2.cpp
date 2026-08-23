@@ -273,20 +273,18 @@ Try<Nothing> mount()
 }
 
 
-Try<bool> mounted()
+Try<bool> mounted(const string& mountTablePath)
 {
-  Try<MountTable> mountTable = MountTable::read("/proc/mounts");
+  Try<MountTable> mountTable = MountTable::read(mountTablePath);
   if (mountTable.isError()) {
-    return Error("Failed to read /proc/mounts: " + mountTable.error());
+    return Error(
+        "Failed to read mount table '" + mountTablePath + "': " +
+        mountTable.error());
   }
 
   foreach (MountTable::Entry entry, mountTable->entries) {
-    if (entry.type == cgroups2::FILE_SYSTEM) {
-      if (entry.dir == MOUNT_POINT) {
-        return true;
-      }
-      return Error("Found cgroups2 mount at an unexpected location"
-                   " '" + entry.dir + "'");
+    if (entry.type == cgroups2::FILE_SYSTEM && entry.dir == MOUNT_POINT) {
+      return true;
     }
   }
 

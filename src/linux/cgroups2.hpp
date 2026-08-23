@@ -48,9 +48,10 @@ bool enabled();
 Try<Nothing> mount();
 
 
-// Checks if the cgroup2 file systems is mounted at /sys/fs/cgroup,
-// returns an error if the mount is found at an unexpected location.
-Try<bool> mounted();
+// Checks if the cgroup2 file system is mounted at /sys/fs/cgroup. A cgroup2
+// mount at another location does not indicate a unified hierarchy and is
+// ignored. `mountTable` can be overridden by tests.
+Try<bool> mounted(const std::string& mountTable = "/proc/mounts");
 
 
 // Unmounts the cgroups2 file system from /sys/fs/cgroup. Errors if
