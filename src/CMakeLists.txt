@@ -331,6 +331,8 @@ set(LINUX_SRC
   slave/containerizer/mesos/isolators/gpu/allocator.cpp
   slave/containerizer/mesos/isolators/gpu/isolator.cpp
   slave/containerizer/mesos/isolators/gpu/nvml.cpp
+  slave/containerizer/mesos/isolators/gpu/rocm_allocator.cpp
+  slave/containerizer/mesos/isolators/gpu/rocm_isolator.cpp
   slave/containerizer/mesos/isolators/gpu/volume.cpp
   slave/containerizer/mesos/isolators/linux/capabilities.cpp
   slave/containerizer/mesos/isolators/linux/devices.cpp

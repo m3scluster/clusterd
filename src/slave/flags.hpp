@@ -122,6 +122,7 @@ public:
   Option<std::string> agent_subsystems;
   Option<std::string> host_path_volume_force_creation;
   Option<std::vector<unsigned int>> nvidia_gpu_devices;
+  Option<std::vector<unsigned int>> rocm_gpu_devices;
   Option<std::string> perf_events;
   Duration perf_interval;
   Duration perf_duration;

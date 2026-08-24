@@ -181,7 +181,8 @@ mesos::internal::slave::Flags::Flags()
       "`windows/cpu,windows/mem` if you are on Windows), or\n"
       "`cgroups/cpu,cgroups/mem`, or `network/port_mapping`\n"
       "(configure with flag: `--with-network-isolator` to enable),\n"
-      "or `gpu/nvidia` for nvidia specific gpu isolation,\n"
+      "or `gpu/nvidia` for Nvidia specific GPU isolation,\n"
+      "or `gpu/rocm` for ROCm specific GPU isolation,\n"
       "or load an alternate isolator module using the `--modules`\n"
       "flag. if `cgroups/all` is specified, any other cgroups related\n"
       "isolation options (e.g., `cgroups/cpu`) will be ignored, and all\n"
@@ -762,6 +763,14 @@ mesos::internal::slave::Flags::Flags()
       "seen by running the command `nvidia-smi` on an Nvidia GPU\n"
       "equipped system).  The GPUs listed will only be isolated if the\n"
       "`--isolation` flag contains the string `gpu/nvidia`.");
+
+  add(&Flags::rocm_gpu_devices,
+      "rocm_gpu_devices",
+      "A comma-separated list of ROCm GPU devices. When `gpus` is\n"
+      "specified in the `--resources` flag, this flag determines which DRM\n"
+      "render devices are made available. Device indices correspond to the\n"
+      "sorted `/dev/dri/renderD*` device enumeration. The devices are only\n"
+      "isolated if `--isolation` contains `gpu/rocm`.");
 
   add(&Flags::perf_events,
       "perf_events",

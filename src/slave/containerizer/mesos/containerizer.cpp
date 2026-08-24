@@ -116,6 +116,8 @@
 #include "slave/containerizer/mesos/isolators/volume/image.hpp"
 #include "slave/containerizer/mesos/isolators/volume/secret.hpp"
 #include "slave/containerizer/mesos/isolators/volume/csi/isolator.hpp"
+#include "slave/containerizer/mesos/isolators/gpu/rocm_allocator.hpp"
+#include "slave/containerizer/mesos/isolators/gpu/rocm_isolator.hpp"
 
 #include "linux/cgroups2.hpp"
 
@@ -534,6 +536,24 @@ Try<MesosContainerizer*> MesosContainerizer::create(
 
         return NvidiaGpuIsolatorProcess::create(
             flags, nvidia.get(), device_manager);
+      }},
+    {"gpu/rocm",
+      [device_manager] (const Flags& flags) -> Try<Isolator*> {
+        Try<Resources> resources = RocmGpuAllocator::resources(flags);
+        if (resources.isError()) {
+          return Error("Cannot create the ROCm GPU isolator: " +
+                       resources.error());
+        }
+
+        Try<RocmGpuAllocator> allocator =
+          RocmGpuAllocator::create(flags, resources.get());
+        if (allocator.isError()) {
+          return Error("Cannot create the ROCm GPU allocator: " +
+                       allocator.error());
+        }
+
+        return RocmGpuIsolatorProcess::create(
+            flags, allocator.get(), device_manager);
       }},
 #endif // __linux__
 

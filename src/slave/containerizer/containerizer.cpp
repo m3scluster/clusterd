@@ -49,6 +49,7 @@
 #endif // __linux__
 
 #include "slave/containerizer/mesos/isolators/gpu/nvidia.hpp"
+#include "slave/containerizer/mesos/isolators/gpu/rocm_allocator.hpp"
 
 using std::map;
 using std::set;
@@ -125,7 +126,17 @@ Try<Resources> Containerizer::resources(const Flags& flags)
 
 #ifdef __linux__
   // GPU resource.
-  Try<Resources> gpus = NvidiaGpuAllocator::resources(flags);
+  const vector<string> isolationTokens = strings::tokenize(flags.isolation, ",");
+  const set<string> isolators(isolationTokens.begin(), isolationTokens.end());
+
+  if (isolators.count("gpu/nvidia") > 0 && isolators.count("gpu/rocm") > 0) {
+    return Error("The 'gpu/nvidia' and 'gpu/rocm' isolators cannot be enabled"
+                 " together because both allocate the 'gpus' resource");
+  }
+
+  Try<Resources> gpus = isolators.count("gpu/rocm") > 0
+    ? RocmGpuAllocator::resources(flags)
+    : NvidiaGpuAllocator::resources(flags);
   if (gpus.isError()) {
     return Error("Failed to obtain GPU resources: " + gpus.error());
   }

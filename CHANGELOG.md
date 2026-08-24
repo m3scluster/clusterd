@@ -1,5 +1,11 @@
 ## Master
 
+- ADD: [containerizer, gpu] ROCm support for AMD GPUs through the new
+       `gpu/rocm` isolator. Agents discover `/dev/kfd` and
+       `/dev/dri/renderD*`, advertise the `gpus` resource, and apply
+       per-container device-cgroup isolation. ROCm user-space libraries
+       are provided by the task image rather than injected from the host.
+       Details: https://m3scluster.github.io/clusterd-docs/gpu-support.html
 - ADD: [master, agent, webui] configurable CORS origin allowlist for browser
        access to master and agent HTTP endpoints.
        Details: https://m3scluster.github.io/clusterd-docs/cors.html
