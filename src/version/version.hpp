@@ -23,6 +23,8 @@
 #include <process/http.hpp>
 #include <process/process.hpp>
 
+#include <mesos/version.hpp>
+
 #include "common/build.hpp"
 
 namespace mesos {
@@ -32,7 +34,10 @@ namespace internal {
 inline JSON::Object version()
 {
   JSON::Object object;
-  object.values["version"] = MESOS_VERSION;
+  object.values["version"] = CLUSTERD_VERSION;
+  object.values["name"] = "ClusterD";
+  object.values["implementation"] = "ClusterD";
+  object.values["mesos_version"] = MESOS_VERSION;
 
   if (build::GIT_SHA.isSome()) {
     object.values["git_sha"] = build::GIT_SHA.get();

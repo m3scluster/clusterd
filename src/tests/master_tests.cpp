@@ -26,6 +26,7 @@
 
 #include <mesos/executor.hpp>
 #include <mesos/scheduler.hpp>
+#include <mesos/version.hpp>
 
 #include <mesos/allocator/allocator.hpp>
 
@@ -4999,6 +5000,27 @@ TEST_F(MasterTest, ReleaseResourcesForTerminalTaskWithPendingUpdates)
 
   driver.stop();
   driver.join();
+}
+
+
+TEST_F(MasterTest, VersionEndpoint)
+{
+  Try<Owned<cluster::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  Future<Response> response = process::http::get(
+      master.get()->pid,
+      "version");
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, response);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(APPLICATION_JSON, "Content-Type", response);
+
+  Try<JSON::Object> parse = JSON::parse<JSON::Object>(response->body);
+  ASSERT_SOME(parse);
+
+  EXPECT_EQ(CLUSTERD_VERSION, parse->values["version"]);
+  EXPECT_EQ("ClusterD", parse->values["name"]);
+  EXPECT_EQ("ClusterD", parse->values["implementation"]);
 }
 
 

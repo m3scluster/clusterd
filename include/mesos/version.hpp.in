@@ -20,6 +20,7 @@
 #define __MESOS_VERSION_HPP__
 
 #define MESOS_VERSION "@PACKAGE_VERSION@"
+#define CLUSTERD_VERSION "@CLUSTERD_VERSION@"
 
 // TODO(zhitao): Change the string-valued macros to use integers
 // after a deprecation cycle started with 1.1.
