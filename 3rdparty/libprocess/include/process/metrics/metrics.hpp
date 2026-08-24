@@ -45,9 +45,11 @@ public:
   Future<std::map<std::string, double>> snapshot(
       const Option<Duration>& timeout);
 
-  void setCorsAllowedOrigins(const std::set<std::string>& origins)
+  Future<Nothing> setCorsAllowedOrigins(
+      const std::set<std::string>& origins)
   {
     ProcessBase::setCorsAllowedOrigins(origins);
+    return Nothing();
   }
 
 protected:
