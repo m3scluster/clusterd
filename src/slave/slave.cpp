@@ -54,6 +54,7 @@
 #include <process/http.hpp>
 #include <process/id.hpp>
 #include <process/loop.hpp>
+#include <process/metrics/metrics.hpp>
 #include <process/reap.hpp>
 #include <process/time.hpp>
 
@@ -249,6 +250,8 @@ Slave::Slave(const string& id,
 {
   if (flags.http_cors_allowed_origins.isSome()) {
     setCorsAllowedOrigins(flags.http_cors_allowed_origins.get());
+    process::metrics::setCorsAllowedOrigins(
+        flags.http_cors_allowed_origins.get());
   }
 }
 

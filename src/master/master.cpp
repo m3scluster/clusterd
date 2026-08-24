@@ -340,6 +340,8 @@ Master::Master(
 {
   if (flags.http_cors_allowed_origins.isSome()) {
     setCorsAllowedOrigins(flags.http_cors_allowed_origins.get());
+    process::metrics::setCorsAllowedOrigins(
+        flags.http_cors_allowed_origins.get());
   }
 
   slaves.limiter = _slaveRemovalLimiter;

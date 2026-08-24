@@ -177,6 +177,32 @@ TEST_F(MasterTest, CorsAllowedOriginOnMasterAndAgent)
   AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, agentResponse);
   AWAIT_EXPECT_RESPONSE_HEADER_EQ(
       origin, "Access-Control-Allow-Origin", agentResponse);
+
+  Future<Response> metricsResponse = process::http::get(
+      process::metrics::internal::metrics,
+      "snapshot",
+      None(),
+      headers);
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, metricsResponse);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      origin, "Access-Control-Allow-Origin", metricsResponse);
+
+  http::Request metricsPreflight;
+  metricsPreflight.method = "OPTIONS";
+  metricsPreflight.url = http::URL(
+      "http",
+      process::metrics::internal::metrics.address.ip,
+      process::metrics::internal::metrics.address.port,
+      process::metrics::internal::metrics.id + "/snapshot");
+  metricsPreflight.headers["Origin"] = origin;
+  metricsPreflight.headers["Access-Control-Request-Method"] = "GET";
+  metricsPreflight.headers["Access-Control-Request-Headers"] = "authorization";
+
+  Future<Response> metricsPreflightResponse =
+    process::http::request(metricsPreflight);
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, metricsPreflightResponse);
+  AWAIT_EXPECT_RESPONSE_HEADER_EQ(
+      origin, "Access-Control-Allow-Origin", metricsPreflightResponse);
 }
 
 

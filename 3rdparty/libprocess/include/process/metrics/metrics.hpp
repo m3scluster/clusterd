@@ -14,6 +14,7 @@
 #define __PROCESS_METRICS_METRICS_HPP__
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -43,6 +44,11 @@ public:
 
   Future<std::map<std::string, double>> snapshot(
       const Option<Duration>& timeout);
+
+  void setCorsAllowedOrigins(const std::set<std::string>& origins)
+  {
+    ProcessBase::setCorsAllowedOrigins(origins);
+  }
 
 protected:
   void initialize() override;
@@ -128,6 +134,19 @@ inline Future<std::map<std::string, double>> snapshot(
       internal::metrics,
       &internal::MetricsProcess::snapshot,
       timeout);
+}
+
+
+inline Future<Nothing> setCorsAllowedOrigins(
+    const std::set<std::string>& origins)
+{
+  // The metrics process is instantiated in `process::initialize`.
+  process::initialize();
+
+  return dispatch(
+      internal::metrics,
+      &internal::MetricsProcess::setCorsAllowedOrigins,
+      origins);
 }
 
 }  // namespace metrics {
