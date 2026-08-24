@@ -1355,6 +1355,12 @@ TEST_F(SlaveTest, MetricsInMetricsEndpoint)
 
   EXPECT_EQ(1u, snapshot.values.count("slave/container_launch_errors"));
 
+  EXPECT_EQ(1u, snapshot.values.count("slave/cpus_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("slave/mem_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("slave/disk_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("slave/gpus_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("slave/load_utilization"));
+
   EXPECT_EQ(1u, snapshot.values.count("slave/cpus_total"));
   EXPECT_EQ(1u, snapshot.values.count("slave/cpus_used"));
   EXPECT_EQ(1u, snapshot.values.count("slave/cpus_percent"));

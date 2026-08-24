@@ -1,9 +1,12 @@
 ## Master
 
+- ADD: [master, agent, metrics] live host utilization gauges for CPU, memory,
+       disk, GPU, and normalized load. Metrics are exposed as
+       `master/*_utilization` and `slave/*_utilization` percentages without
+       changing existing capacity or allocation metrics.
+       Details: https://m3scluster.github.io/clusterd-docs/monitoring.html#live-host-utilization
 - ADD: [containerizer, docker, mesos] OCI image support for both the Mesos
-       and Docker containerizers. OCI image indexes and Docker manifest lists
-       select the host platform, and OCI manifests, configuration, and layers
-       are fetched and provisioned. Details:
+       and Docker containerizcharers. Details:
        https://m3scluster.github.io/clusterd-docs/container-image.html#oci-and-multi-architecture-images
 - ADD: [containerizer, gpu] ROCm support for AMD GPUs through the new
        `gpu/rocm` isolator. Agents discover `/dev/kfd` and

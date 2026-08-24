@@ -234,6 +234,14 @@ struct Metrics
   process::metrics::PullGauge event_queue_dispatches;
   process::metrics::PullGauge event_queue_http_requests;
 
+  // Live host utilization percentages. These are independent of the
+  // scheduler resource capacity and allocation metrics below.
+  process::metrics::PullGauge cpus_utilization;
+  process::metrics::PullGauge mem_utilization;
+  process::metrics::PullGauge disk_utilization;
+  process::metrics::PullGauge gpus_utilization;
+  process::metrics::PullGauge load_utilization;
+
   // Successful registry operations.
   process::metrics::Counter slave_registrations;
   process::metrics::Counter slave_reregistrations;

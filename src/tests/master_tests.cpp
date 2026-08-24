@@ -2390,6 +2390,12 @@ TEST_F(MasterTest, MetricsInMetricsEndpoint)
   EXPECT_EQ(1u, snapshot.values.count("master/slave_unreachable_completed"));
   EXPECT_EQ(1u, snapshot.values.count("master/slave_unreachable_canceled"));
 
+  EXPECT_EQ(1u, snapshot.values.count("master/cpus_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("master/mem_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("master/disk_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("master/gpus_utilization"));
+  EXPECT_EQ(1u, snapshot.values.count("master/load_utilization"));
+
   EXPECT_EQ(1u, snapshot.values.count("master/cpus_total"));
   EXPECT_EQ(1u, snapshot.values.count("master/cpus_used"));
   EXPECT_EQ(1u, snapshot.values.count("master/cpus_percent"));

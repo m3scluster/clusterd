@@ -71,6 +71,14 @@ struct Metrics
 
   process::metrics::Counter container_launch_errors;
 
+  // Live host utilization percentages. These are independent of the
+  // scheduler resource capacity and allocation metrics below.
+  process::metrics::PullGauge cpus_utilization;
+  process::metrics::PullGauge mem_utilization;
+  process::metrics::PullGauge disk_utilization;
+  process::metrics::PullGauge gpus_utilization;
+  process::metrics::PullGauge load_utilization;
+
   // Non-revocable resources.
   std::vector<process::metrics::PullGauge> resources_total;
   std::vector<process::metrics::PullGauge> resources_used;

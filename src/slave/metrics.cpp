@@ -21,6 +21,7 @@
 
 #include <stout/foreach.hpp>
 
+#include "common/system_metrics.hpp"
 #include "slave/metrics.hpp"
 #include "slave/slave.hpp"
 
@@ -91,7 +92,22 @@ Metrics::Metrics(const Slave& slave)
         "slave/executor_directory_max_allowed_age_secs",
         defer(slave, &Slave::_executor_directory_max_allowed_age_secs)),
     container_launch_errors(
-        "slave/container_launch_errors")
+        "slave/container_launch_errors"),
+    cpus_utilization(
+        "slave/cpus_utilization",
+        []() { return system_metrics::cpuUtilization(); }),
+    mem_utilization(
+        "slave/mem_utilization",
+        []() { return system_metrics::memoryUtilization(); }),
+    disk_utilization(
+        "slave/disk_utilization",
+        []() { return system_metrics::diskUtilization("/"); }),
+    gpus_utilization(
+        "slave/gpus_utilization",
+        []() { return system_metrics::gpuUtilization(); }),
+    load_utilization(
+        "slave/load_utilization",
+        []() { return system_metrics::loadUtilization(); })
 {
   // TODO(dhamon): Check return values for metric registration.
   process::metrics::add(uptime_secs);
@@ -126,6 +142,11 @@ Metrics::Metrics(const Slave& slave)
   process::metrics::add(executor_directory_max_allowed_age_secs);
 
   process::metrics::add(container_launch_errors);
+  process::metrics::add(cpus_utilization);
+  process::metrics::add(mem_utilization);
+  process::metrics::add(disk_utilization);
+  process::metrics::add(gpus_utilization);
+  process::metrics::add(load_utilization);
 
   // Create resource gauges.
   // TODO(dhamon): Set these up dynamically when creating a slave
@@ -213,6 +234,11 @@ Metrics::~Metrics()
   process::metrics::remove(executor_directory_max_allowed_age_secs);
 
   process::metrics::remove(container_launch_errors);
+  process::metrics::remove(cpus_utilization);
+  process::metrics::remove(mem_utilization);
+  process::metrics::remove(disk_utilization);
+  process::metrics::remove(gpus_utilization);
+  process::metrics::remove(load_utilization);
 
   foreach (const PullGauge& gauge, resources_total) {
     process::metrics::remove(gauge);

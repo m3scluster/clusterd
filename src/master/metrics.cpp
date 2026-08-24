@@ -27,6 +27,7 @@
 
 #include <stout/foreach.hpp>
 
+#include "common/system_metrics.hpp"
 #include "master/master.hpp"
 #include "master/metrics.hpp"
 
@@ -202,6 +203,21 @@ Metrics::Metrics(const Master& master)
     event_queue_http_requests(
         "master/event_queue_http_requests",
         defer(master, &Master::_event_queue_http_requests)),
+    cpus_utilization(
+        "master/cpus_utilization",
+        []() { return system_metrics::cpuUtilization(); }),
+    mem_utilization(
+        "master/mem_utilization",
+        []() { return system_metrics::memoryUtilization(); }),
+    disk_utilization(
+        "master/disk_utilization",
+        []() { return system_metrics::diskUtilization("/"); }),
+    gpus_utilization(
+        "master/gpus_utilization",
+        []() { return system_metrics::gpuUtilization(); }),
+    load_utilization(
+        "master/load_utilization",
+        []() { return system_metrics::loadUtilization(); }),
     slave_registrations(
         "master/slave_registrations"),
     slave_reregistrations(
@@ -316,6 +332,11 @@ Metrics::Metrics(const Master& master)
   process::metrics::add(event_queue_messages);
   process::metrics::add(event_queue_dispatches);
   process::metrics::add(event_queue_http_requests);
+  process::metrics::add(cpus_utilization);
+  process::metrics::add(mem_utilization);
+  process::metrics::add(disk_utilization);
+  process::metrics::add(gpus_utilization);
+  process::metrics::add(load_utilization);
 
   process::metrics::add(slave_registrations);
   process::metrics::add(slave_reregistrations);
@@ -498,6 +519,11 @@ Metrics::~Metrics()
   process::metrics::remove(event_queue_messages);
   process::metrics::remove(event_queue_dispatches);
   process::metrics::remove(event_queue_http_requests);
+  process::metrics::remove(cpus_utilization);
+  process::metrics::remove(mem_utilization);
+  process::metrics::remove(disk_utilization);
+  process::metrics::remove(gpus_utilization);
+  process::metrics::remove(load_utilization);
 
   process::metrics::remove(slave_registrations);
   process::metrics::remove(slave_reregistrations);
