@@ -369,10 +369,12 @@ Option<Error> validate(const ImageManifest& manifest)
   }
 
   if (manifest.mediatype() !=
-      "application/vnd.docker.distribution.manifest.v2+json") {
+          "application/vnd.docker.distribution.manifest.v2+json" &&
+      manifest.mediatype() != "application/vnd.oci.image.manifest.v1+json") {
     return Error(
-        "'mediaType' field must be "
-        "'application/vnd.docker.distribution.manifest.v2+json'");
+        "'mediaType' field must be either "
+        "'application/vnd.docker.distribution.manifest.v2+json' or "
+        "'application/vnd.oci.image.manifest.v1+json'");
   }
 
   return None();

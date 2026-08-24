@@ -27,8 +27,10 @@
 #include <process/process.hpp>
 #include <process/subprocess.hpp>
 
+#include <stout/json.hpp>
 #include <stout/none.hpp>
 #include <stout/option.hpp>
+#include <stout/os.hpp>
 #include <stout/strings.hpp>
 
 #include <stout/os/constants.hpp>
@@ -82,6 +84,86 @@ static set<string> schemes()
     "docker-manifest",  // Fetch image manifest only.
     "docker-blob"       // Fetch a single image blob.
   };
+}
+
+
+// Returns the OCI platform corresponding to the host running the fetcher.
+static Try<tuple<string, string>> getHostPlatform()
+{
+  Try<os::UTSInfo> info = os::uname();
+  if (info.isError()) {
+    return Error("Unable to determine host platform: " + info.error());
+  }
+
+  string architecture;
+  if (info->machine == "x86_64") {
+    architecture = "amd64";
+  } else if (info->machine == "aarch64") {
+    architecture = "arm64";
+  } else if (info->machine == "i386" || info->machine == "i686") {
+    architecture = "386";
+  } else if (info->machine == "ppc64le") {
+    architecture = "ppc64le";
+  } else if (info->machine == "s390x") {
+    architecture = "s390x";
+  } else {
+    return Error("Unsupported host architecture: " + info->machine);
+  }
+
+  return tuple<string, string>(strings::lower(info->sysname), architecture);
+}
+
+
+// Selects the manifest digest for the host platform from an OCI image index.
+static Try<string> selectOCIManifest(
+    const string& body,
+    const string& contentType)
+{
+  Try<JSON::Object> index = JSON::parse<JSON::Object>(body);
+  if (index.isError()) {
+    return Error("Failed to parse the OCI image index: " + index.error());
+  }
+
+  Result<JSON::Array> manifests = index->find<JSON::Array>("manifests");
+  if (manifests.isError() || manifests.isNone()) {
+    return Error("OCI image index does not contain a 'manifests' array");
+  }
+
+  Try<tuple<string, string>> host = getHostPlatform();
+  if (host.isError()) {
+    return host.error();
+  }
+
+  const string& hostOS = std::get<0>(host.get());
+  const string& hostArchitecture = std::get<1>(host.get());
+
+  foreach (const JSON::Value& value, manifests->values) {
+    if (!value.is<JSON::Object>()) {
+      continue;
+    }
+
+    const JSON::Object& descriptor = value.as<JSON::Object>();
+    Result<JSON::String> digest = descriptor.find<JSON::String>("digest");
+    Result<JSON::Object> platform = descriptor.find<JSON::Object>("platform");
+    if (digest.isError() || digest.isNone() ||
+        platform.isError() || platform.isNone()) {
+      continue;
+    }
+
+    Result<JSON::String> os = platform->find<JSON::String>("os");
+    Result<JSON::String> architecture =
+      platform->find<JSON::String>("architecture");
+    if (os.isSome() && architecture.isSome() &&
+        strings::lower(os->value) == hostOS &&
+        strings::lower(architecture->value) == hostArchitecture) {
+      return digest->value;
+    }
+  }
+
+  return Error(
+      "OCI image index has no manifest for host platform '" +
+      hostOS + "/" + hostArchitecture + "' (Content-Type: " +
+      contentType + ")");
 }
 
 void commandDiscarded(const Subprocess& s, const string& cmd)
@@ -787,6 +869,9 @@ Future<Nothing> DockerFetcherPluginProcess::fetch(
   http::Headers manifestHeaders = {
     {"Accept",
      "application/vnd.docker.distribution.manifest.v2+json,"
+     "application/vnd.docker.distribution.manifest.list.v2+json,"
+     "application/vnd.oci.image.index.v1+json,"
+     "application/vnd.oci.image.manifest.v1+json,"
      "application/vnd.docker.distribution.manifest.v1+json,"
      "application/vnd.docker.distribution.manifest.v1+prettyjws"
     }
@@ -879,6 +964,56 @@ Future<Nothing> DockerFetcherPluginProcess::__fetch(
   bool isV2Schema2 =
     contentType.get() == "application/vnd.docker.distribution.manifest.v2+json";
 
+  // Support both Docker and OCI V2 schema 2 manifests.
+  bool isOCISchema2Manifest =
+    strings::startsWith(
+        contentType.get(),
+        "application/vnd.oci.image.manifest.v1+json");
+
+  bool isOCIImageIndex =
+    strings::startsWith(
+        contentType.get(), "application/vnd.oci.image.index.v1+json") ||
+    strings::startsWith(
+        contentType.get(),
+        "application/vnd.docker.distribution.manifest.list.v2+json");
+
+  if (isOCIImageIndex) {
+    Try<string> digest = selectOCIManifest(response.body, contentType.get());
+    if (digest.isError()) {
+      return Failure(digest.error());
+    }
+
+    URI childUri = uri.scheme() == "docker-manifest"
+      ? uri::docker::manifest(
+          uri.path(),
+          digest.get(),
+          uri.host(),
+          uri.has_fragment() ? Option<string>(uri.fragment()) : None(),
+          uri.has_port() ? Option<int>(uri.port()) : None())
+      : uri::docker::image(
+          uri.path(),
+          digest.get(),
+          uri.host(),
+          uri.has_fragment() ? Option<string>(uri.fragment()) : None(),
+          uri.has_port() ? Option<int>(uri.port()) : None());
+
+    http::Headers childManifestHeaders = {
+      {"Accept",
+       "application/vnd.docker.distribution.manifest.v2+json,"
+       "application/vnd.oci.image.manifest.v1+json"}
+    };
+
+    return curl(getManifestUri(childUri),
+                childManifestHeaders + authHeaders,
+                stallTimeout)
+      .then(defer(self(),
+                  &Self::__fetch,
+                  childUri,
+                  directory,
+                  authHeaders,
+                  lambda::_1));
+  }
+
   if (isV2Schema1) {
     // Parse V2 schema 1 image manifest.
     Try<spec::v2::ImageManifest> manifest = spec::v2::parse(response.body);
@@ -909,7 +1044,7 @@ Future<Nothing> DockerFetcherPluginProcess::__fetch(
     }
 
     return fetchBlobs(uri, directory, digests, authHeaders);
-  } else if (isV2Schema2) {
+  } else if (isV2Schema2 || isOCISchema2Manifest) {
     // Parse V2 schema 2 manifest.
     Try<spec::v2_2::ImageManifest> manifest =
       spec::v2_2::parse(response.body);
