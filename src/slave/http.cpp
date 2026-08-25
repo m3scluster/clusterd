@@ -1046,16 +1046,16 @@ Future<Response> Http::getHealth(
 
 Future<Response> Http::getVersion(
     const mesos::agent::Call& call,
-    ContentType acceptType,
+    ContentType contentType,
     const Option<Principal>& principal) const
 {
   CHECK_EQ(mesos::agent::Call::GET_VERSION, call.type());
 
   LOG(INFO) << "Processing GET_VERSION call";
 
-  return OK(serialize(acceptType,
+  return OK(serialize(contentType,
                       evolve<v1::agent::Response::GET_VERSION>(version())),
-            stringify(acceptType));
+            stringify(contentType));
 }
 
 
@@ -1227,8 +1227,10 @@ Future<Response> Http::listFiles(
         listFiles->add_file_infos()->CopyFrom(fileInfo);
       }
 
-      return OK(serialize(acceptType, evolve(response)),
+      Response final_response = OK(serialize(acceptType, evolve(response)),
                 stringify(acceptType));
+
+      return final_response;
     });
 }
 

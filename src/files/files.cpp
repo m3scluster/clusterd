@@ -88,6 +88,7 @@ using process::http::authentication::Principal;
 
 using std::list;
 using std::map;
+using std::set;
 using std::string;
 using std::tuple;
 using std::vector;
@@ -99,7 +100,8 @@ class FilesProcess : public Process<FilesProcess>
 {
 public:
   FilesProcess(const Option<string>& _authenticationRealm,
-               const Option<Authorizer*>& _authorizer);
+               const Option<Authorizer*>& _authorizer,
+               const Option<set<string>>& _corsAllowedOrigins);
 
   // Files implementation.
   Future<Nothing> attach(
@@ -209,19 +211,26 @@ private:
   // FilesProcess needs an authorizer object to add authorization in
   // `/files/debug` endpoint.
   Option<Authorizer*> authorizer;
+
+  Option<set<string>> corsAllowedOrigins;
 };
 
 
 FilesProcess::FilesProcess(
     const Option<string>& _authenticationRealm,
-    const Option<Authorizer*>& _authorizer)
+    const Option<Authorizer*>& _authorizer,
+    const Option<set<string>>& _corsAllowedOrigins)
   : ProcessBase("files"),
     authenticationRealm(_authenticationRealm),
-    authorizer(_authorizer) {}
+    authorizer(_authorizer),
+    corsAllowedOrigins(_corsAllowedOrigins) {}
 
 
 void FilesProcess::initialize()
 {
+    if (corsAllowedOrigins.isSome()) {
+      setCorsAllowedOrigins(corsAllowedOrigins.get());
+    }
     route("/browse",
           authenticationRealm,
           FilesProcess::BROWSE_HELP,
@@ -902,9 +911,10 @@ Result<string> FilesProcess::resolve(const string& path)
 
 
 Files::Files(const Option<string>& authenticationRealm,
-             const Option<Authorizer*>& authorizer)
+             const Option<Authorizer*>& authorizer,
+             const Option<set<string>>& corsAllowedOrigins)
 {
-  process = new FilesProcess(authenticationRealm, authorizer);
+  process = new FilesProcess(authenticationRealm, authorizer, corsAllowedOrigins);
   spawn(process);
 }
 

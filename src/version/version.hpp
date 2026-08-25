@@ -18,6 +18,7 @@
 #define __VERSION_HPP__
 
 #include <string>
+#include <set>
 
 #include <process/future.hpp>
 #include <process/http.hpp>
@@ -62,12 +63,14 @@ inline JSON::Object version()
 class VersionProcess : public process::Process<VersionProcess>
 {
 public:
-  VersionProcess();
+  explicit VersionProcess(
+      const Option<std::set<std::string>>& corsAllowedOrigins = None());
+
+private:
+  Option<std::set<std::string>> corsAllowedOrigins;
 
 protected:
   void initialize() override;
-
-private:
   static process::Future<process::http::Response> version(
       const process::http::Request& request);
 };

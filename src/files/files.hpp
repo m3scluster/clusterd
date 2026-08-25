@@ -18,6 +18,7 @@
 #define __FILES_HPP__
 
 #include <string>
+#include <set>
 
 #include <mesos/authorizer/authorizer.hpp>
 
@@ -74,7 +75,8 @@ class Files
 {
 public:
   Files(const Option<std::string>& authenticationRealm = None(),
-        const Option<mesos::Authorizer*>& authorizer = None());
+        const Option<mesos::Authorizer*>& authorizer = None(),
+        const Option<std::set<std::string>>& corsAllowedOrigins = None());
   ~Files();
 
   // Returns the result of trying to attach the specified path

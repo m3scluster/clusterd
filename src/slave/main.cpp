@@ -617,7 +617,7 @@ int main(int argc, char** argv)
                        << "`main()` was not the function's first invocation";
   }
 
-  spawn(new VersionProcess(), true);
+  spawn(new VersionProcess(flags.http_cors_allowed_origins), true);
 
   if (flags.firewall_rules.isSome()) {
     vector<Owned<FirewallRule>> rules;
@@ -857,7 +857,10 @@ int main(int argc, char** argv)
         mesos::authorization::createAuthorizationCallbacks(authorizer_.get()));
   }
 
-  Files* files = new Files(READONLY_HTTP_AUTHENTICATION_REALM, authorizer_);
+  Files* files = new Files(
+      READONLY_HTTP_AUTHENTICATION_REALM,
+      authorizer_,
+      flags.http_cors_allowed_origins);
   TaskStatusUpdateManager* taskStatusUpdateManager =
     new TaskStatusUpdateManager(flags);
 

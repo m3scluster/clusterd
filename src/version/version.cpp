@@ -64,13 +64,18 @@ static const string VERSION_HELP()
 }
 
 
-VersionProcess::VersionProcess()
-  : ProcessBase("version")
+VersionProcess::VersionProcess(
+    const Option<std::set<std::string>>& _corsAllowedOrigins)
+  : ProcessBase("version"),
+    corsAllowedOrigins(_corsAllowedOrigins)
 {}
 
 
 void VersionProcess::initialize()
 {
+  if (corsAllowedOrigins.isSome()) {
+    setCorsAllowedOrigins(corsAllowedOrigins.get());
+  }
   route("/", VERSION_HELP(), &VersionProcess::version);
 }
 
