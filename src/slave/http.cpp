@@ -241,7 +241,9 @@ struct ExecutorWriter
           continue;
         }
 
-        writer->element(*task);
+        Task taskWithExecutor = *task;
+        taskWithExecutor.mutable_executor_id()->set_value(executor_->id.value());
+        writer->element(taskWithExecutor);
       }
     });
 
@@ -251,7 +253,9 @@ struct ExecutorWriter
           continue;
         }
 
-        writer->element(task);
+        TaskInfo taskWithExecutor = task;
+        taskWithExecutor.mutable_executor()->mutable_executor_id()->set_value(executor_->id.value());
+        writer->element(taskWithExecutor);
       }
     });
 
@@ -261,7 +265,9 @@ struct ExecutorWriter
           continue;
         }
 
-        writer->element(*task);
+        Task taskWithExecutor = *task;
+        taskWithExecutor.mutable_executor_id()->set_value(executor_->id.value());
+        writer->element(taskWithExecutor);
       }
 
       // NOTE: We add 'terminatedTasks' to 'completed_tasks' for
@@ -271,7 +277,9 @@ struct ExecutorWriter
           continue;
         }
 
-        writer->element(*task);
+        Task taskWithExecutor = *task;
+        taskWithExecutor.mutable_executor_id()->set_value(executor_->id.value());
+        writer->element(taskWithExecutor);
       }
     });
   }

@@ -70,6 +70,20 @@ namespace master {
 // Pull in model overrides from common.
 using mesos::internal::model;
 
+// Command executors share the task ID as their executor ID. The master task
+// record may leave executor_id empty, while the agent correctly exposes the
+// task ID as the executor ID in its state.
+Task taskWithExecutorId(const Task& task)
+{
+  Task result = task;
+
+  if (!result.has_executor_id() || result.executor_id().value().empty()) {
+    result.mutable_executor_id()->set_value(result.task_id().value());
+  }
+
+  return result;
+}
+
 // The summary representation of `T` to support the `/state-summary` endpoint.
 // e.g., `Summary<Slave>`.
 template <typename T>
@@ -1247,7 +1261,7 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
             // Collect 'limit' number of tasks starting from 'offset'.
             size_t end = std::min(offset + limit, tasks.size());
             for (size_t i = offset; i < end; i++) {
-              writer->element(*tasks[i]);
+              writer->element(taskWithExecutorId(*tasks[i]));
             }
           });
   };
@@ -1947,7 +1961,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetTasks(
                 continue;
               }
 
-              writer->element(asV1Protobuf(*task));
+              writer->element(model(taskWithExecutorId(*task)));
             }
           }
         });
@@ -1965,7 +1979,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetTasks(
                 continue;
               }
 
-              writer->element(asV1Protobuf(*task));
+              writer->element(model(taskWithExecutorId(*task)));
             }
           }
         });
@@ -1982,7 +1996,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetTasks(
                 continue;
               }
 
-              writer->element(asV1Protobuf(*task));
+              writer->element(model(taskWithExecutorId(*task)));
             }
           }
         });
@@ -2036,7 +2050,7 @@ string Master::ReadOnlyHandler::serializeGetTasks(
 
       WireFormatLite2::WriteMessageWithoutCachedSizes(
           mesos::v1::master::Response::GetTasks::kTasksFieldNumber,
-          *task,
+          taskWithExecutorId(*task),
           &writer);
     }
 
@@ -2049,7 +2063,7 @@ string Master::ReadOnlyHandler::serializeGetTasks(
 
       WireFormatLite2::WriteMessageWithoutCachedSizes(
           mesos::v1::master::Response::GetTasks::kUnreachableTasksFieldNumber,
-          *task,
+          taskWithExecutorId(*task),
           &writer);
     }
 
@@ -2062,7 +2076,7 @@ string Master::ReadOnlyHandler::serializeGetTasks(
 
       WireFormatLite2::WriteMessageWithoutCachedSizes(
           mesos::v1::master::Response::GetTasks::kCompletedTasksFieldNumber,
-          *task,
+          taskWithExecutorId(*task),
           &writer);
     }
   }
