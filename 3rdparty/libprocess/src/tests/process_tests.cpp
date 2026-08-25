@@ -1980,7 +1980,7 @@ TEST_F(ProcessTest, CorsPreflightDoesNotInvokeHandler)
   request.headers["Origin"] = "https://master1.example:5050";
   request.headers["Access-Control-Request-Method"] = "POST";
   request.headers["Access-Control-Request-Headers"] =
-    "authorization,content-type";
+    "authorization,content-type,message-accept,message-content-type";
 
   Future<http::Response> response = http::request(request);
 
@@ -1994,7 +1994,7 @@ TEST_F(ProcessTest, CorsPreflightDoesNotInvokeHandler)
       "Access-Control-Allow-Methods",
       response);
   AWAIT_EXPECT_RESPONSE_HEADER_EQ(
-      "Authorization, Content-Type, Accept, Mesos-Stream-Id",
+      "authorization,content-type,message-accept,message-content-type",
       "Access-Control-Allow-Headers",
       response);
 

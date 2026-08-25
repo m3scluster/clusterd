@@ -1859,7 +1859,8 @@ Future<Nothing> _send(Encoder* encoder, Socket socket)
 static Response corsResponse(
     const Response& _response,
     const string& origin,
-    bool preflight = false)
+    bool preflight = false,
+    const Option<string>& requestedHeaders = None())
 {
   Response response = _response;
   response.headers["Access-Control-Allow-Origin"] = origin;
@@ -1885,7 +1886,9 @@ static Response corsResponse(
   if (preflight) {
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
     response.headers["Access-Control-Allow-Headers"] =
-      "Authorization, Content-Type, Accept, Mesos-Stream-Id";
+      requestedHeaders.isSome()
+        ? requestedHeaders.get()
+        : "Authorization, Content-Type, Accept, Mesos-Stream-Id";
   }
 
   return response;
@@ -3762,7 +3765,11 @@ void ProcessBase::consume(HttpEvent&& event)
         (requestedMethod.get() == "GET" || requestedMethod.get() == "POST")) {
       CHECK_SOME(event.request->reader);
       event.request->reader->readAll();
-      event.response->associate(corsResponse(OK(), origin.get(), true));
+      event.response->associate(corsResponse(
+          OK(),
+          origin.get(),
+          true,
+          event.request->headers.get("Access-Control-Request-Headers")));
       return;
     }
 
