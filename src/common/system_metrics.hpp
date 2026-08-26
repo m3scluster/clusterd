@@ -24,6 +24,10 @@
 #include <sstream>
 #include <string>
 
+#ifdef __linux__
+#include <glob.h>
+#endif
+
 #include <stout/fs.hpp>
 #include <stout/os.hpp>
 #include <stout/try.hpp>
@@ -127,30 +131,48 @@ inline double loadUtilization()
 }
 
 
-// Returns the average NVIDIA GPU utilization when nvidia-smi is available.
-// A zero value means that no supported GPU telemetry was available at scrape
-// time; existing scheduler GPU capacity/allocation metrics are unaffected.
+// Returns the average GPU utilization. NVIDIA telemetry is read through
+// nvidia-smi. On Linux systems without nvidia-smi, DRM drivers such as amdgpu
+// expose the utilization of each card through sysfs.
 inline double gpuUtilization()
 {
   FILE* process = popen(
       "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null",
       "r");
-  if (process == nullptr) {
-    return 0.0;
-  }
-
   double total = 0.0;
   unsigned int count = 0;
   char line[128];
-  while (fgets(line, sizeof(line), process) != nullptr) {
-    char* end = nullptr;
-    const double value = std::strtod(line, &end);
-    if (end != line && value >= 0.0) {
-      total += value;
-      ++count;
+  if (process != nullptr) {
+    while (fgets(line, sizeof(line), process) != nullptr) {
+      char* end = nullptr;
+      const double value = std::strtod(line, &end);
+      if (end != line && value >= 0.0) {
+        total += value;
+        ++count;
+      }
+    }
+    pclose(process);
+  }
+
+  if (count > 0) {
+    return total / static_cast<double>(count);
+  }
+
+#ifdef __linux__
+  glob_t paths = {};
+  if (glob("/sys/class/drm/card*/device/gpu_busy_percent", 0, nullptr,
+           &paths) == 0) {
+    for (size_t i = 0; i < paths.gl_pathc; ++i) {
+      std::ifstream input(paths.gl_pathv[i]);
+      double value = 0.0;
+      if (input >> value && value >= 0.0 && value <= 100.0) {
+        total += value;
+        ++count;
+      }
     }
   }
-  pclose(process);
+  globfree(&paths);
+#endif
 
   return count == 0 ? 0.0 : total / static_cast<double>(count);
 }

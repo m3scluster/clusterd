@@ -19,6 +19,8 @@
        `/dev/dri/renderD*` devices; hosts with GPUs do not map them
        automatically into containers.
        Details: https://m3scluster.github.io/clusterd-docs/gpu-support.html
+- FIX: [metrics, gpu] report AMD/ROCm GPU utilization from the Linux DRM
+       `gpu_busy_percent` sysfs telemetry when `nvidia-smi` is unavailable.
 - ADD: [master, agent, webui] configurable CORS origin allowlist for browser
        access to master and agent HTTP endpoints.
        Details: https://m3scluster.github.io/clusterd-docs/cors.html
