@@ -42,6 +42,7 @@ using ::testing::_;
 using ::testing::Invoke;
 
 using mesos::internal::slave::NvidiaComponents;
+using mesos::internal::slave::RocmComponents;
 
 namespace mesos {
 namespace internal {
@@ -140,7 +141,8 @@ public:
       slave::Fetcher* fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& logger,
       process::Shared<Docker> docker,
-      const Option<NvidiaComponents>& nvidia = None());
+      const Option<NvidiaComponents>& nvidia = None(),
+      const Option<RocmComponents>& rocm = None());
 
   MockDockerContainerizer(
       const process::Owned<slave::DockerContainerizerProcess>& process);
@@ -212,7 +214,8 @@ public:
       slave::Fetcher* fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& logger,
       const process::Shared<Docker>& docker,
-      const Option<NvidiaComponents>& nvidia = None());
+      const Option<NvidiaComponents>& nvidia = None(),
+      const Option<RocmComponents>& rocm = None());
 
   ~MockDockerContainerizerProcess() override;
 

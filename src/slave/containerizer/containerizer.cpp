@@ -246,6 +246,7 @@ Try<Containerizer*> Containerizer::create(
 
   // Optionally create the Nvidia components.
   Option<NvidiaComponents> nvidia;
+  Option<RocmComponents> rocm;
 
 #ifdef __linux__
   if (nvml::isAvailable()) {
@@ -292,6 +293,26 @@ Try<Containerizer*> Containerizer::create(
       nvidia = NvidiaComponents(allocator.get(), volume.get());
     }
   }
+
+  if (containerizerTypes.count("docker") > 0 &&
+      !nvidia.isSome() &&
+      os::exists("/dev/kfd")) {
+    Try<Resources> gpus = RocmGpuAllocator::resources(flags);
+    if (gpus.isError()) {
+      return Error("Failed call to RocmGpuAllocator::resources: " +
+                   gpus.error());
+    }
+
+    if (gpus->gpus().getOrElse(0) > 0) {
+      Try<RocmGpuAllocator> allocator =
+        RocmGpuAllocator::create(flags, gpus.get());
+      if (allocator.isError()) {
+        return Error("Failed to RocmGpuAllocator::create: " +
+                     allocator.error());
+      }
+      rocm = RocmComponents(allocator.get());
+    }
+  }
 #endif
 
   // TODO(benh): We need to store which containerizer or
@@ -321,7 +342,7 @@ Try<Containerizer*> Containerizer::create(
       }
     } else if (type == "docker") {
       Try<DockerContainerizer*> containerizer =
-        DockerContainerizer::create(flags, fetcher, nvidia);
+        DockerContainerizer::create(flags, fetcher, nvidia, rocm);
       if (containerizer.isError()) {
         return Error("Could not create DockerContainerizer: " +
                      containerizer.error());

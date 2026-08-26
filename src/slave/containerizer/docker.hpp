@@ -72,7 +72,8 @@ public:
   static Try<DockerContainerizer*> create(
       const Flags& flags,
       Fetcher* fetcher,
-      const Option<NvidiaComponents>& nvidia = None());
+      const Option<NvidiaComponents>& nvidia = None(),
+      const Option<RocmComponents>& rocm = None());
 
   // This is only public for tests.
   DockerContainerizer(
@@ -80,7 +81,8 @@ public:
       Fetcher* fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& logger,
       process::Shared<Docker> docker,
-      const Option<NvidiaComponents>& nvidia = None());
+      const Option<NvidiaComponents>& nvidia = None(),
+      const Option<RocmComponents>& rocm = None());
 
   // This is only public for tests.
   DockerContainerizer(
@@ -141,7 +143,8 @@ public:
       Fetcher* _fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& _logger,
       process::Shared<Docker> _docker,
-      const Option<NvidiaComponents>& _nvidia);
+      const Option<NvidiaComponents>& _nvidia,
+      const Option<RocmComponents>& _rocm);
 
   ~DockerContainerizerProcess() override;
 
@@ -324,6 +327,21 @@ private:
   process::Future<Nothing> _deallocateNvidiaGpus(
       const ContainerID& containerId,
       const std::set<Gpu>& deallocated);
+
+  process::Future<Nothing> allocateRocmGpus(
+      const ContainerID& containerId,
+      const size_t count);
+
+  process::Future<Nothing> _allocateRocmGpus(
+      const ContainerID& containerId,
+      const std::set<Gpu>& allocated);
+
+  process::Future<Nothing> deallocateRocmGpus(
+      const ContainerID& containerId);
+
+  process::Future<Nothing> _deallocateRocmGpus(
+      const ContainerID& containerId,
+      const std::set<Gpu>& deallocated);
 #endif // __linux__
 
   Try<ResourceStatistics> cgroupsStatistics(pid_t pid) const;
@@ -351,6 +369,7 @@ private:
   process::Owned<mesos::slave::Isolator> ioSwitchboardIsolator;
 
   Option<NvidiaComponents> nvidia;
+  Option<RocmComponents> rocm;
 
   Metrics metrics;
 

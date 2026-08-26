@@ -19,6 +19,7 @@
 
 #ifdef __linux__
 #include "slave/containerizer/mesos/isolators/gpu/allocator.hpp"
+#include "slave/containerizer/mesos/isolators/gpu/rocm_allocator.hpp"
 #include "slave/containerizer/mesos/isolators/gpu/volume.hpp"
 #endif
 
@@ -42,6 +43,18 @@ struct NvidiaComponents
 
   NvidiaGpuAllocator allocator;
   NvidiaVolume volume;
+#endif
+};
+
+
+// Defines the ROCm components needed by containerizers.
+struct RocmComponents
+{
+#ifdef __linux__
+  explicit RocmComponents(const RocmGpuAllocator& _allocator)
+    : allocator(_allocator) {}
+
+  RocmGpuAllocator allocator;
 #endif
 };
 

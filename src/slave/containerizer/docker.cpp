@@ -20,6 +20,12 @@
 #include <string>
 #include <vector>
 
+#ifdef __linux__
+extern "C" {
+#include <sys/sysmacros.h>
+}
+#endif // __linux__
+
 #include <mesos/slave/container_logger.hpp>
 #include <mesos/slave/containerizer.hpp>
 
@@ -121,6 +127,60 @@ const string MESOS_DOCKER_EXECUTOR = "mesos-docker-executor";
 #endif // __WINDOWS__
 
 
+#ifdef __linux__
+Try<vector<Docker::Device>> rocmDevices(const set<Gpu>& gpus)
+{
+  vector<Docker::Device> devices;
+
+  if (gpus.empty()) {
+    return devices;
+  }
+
+  Docker::Device kfd;
+  kfd.hostPath = Path("/dev/kfd");
+  kfd.containerPath = Path("/dev/kfd");
+  kfd.access.read = true;
+  kfd.access.write = true;
+  kfd.access.mknod = true;
+  devices.push_back(kfd);
+
+  Try<list<string>> paths = os::glob("/dev/dri/renderD*");
+  if (paths.isError()) {
+    return Error("Failed to enumerate ROCm render devices: " + paths.error());
+  }
+
+  foreach (const string& path, paths.get()) {
+    Try<dev_t> device = os::stat::rdev(path);
+    if (device.isError()) {
+      return Error("Failed to obtain device ID for '" + path + "': " +
+                   device.error());
+    }
+
+    Gpu gpu;
+    gpu.major = major(device.get());
+    gpu.minor = minor(device.get());
+    if (gpus.count(gpu) == 0) {
+      continue;
+    }
+
+    Docker::Device render;
+    render.hostPath = Path(path);
+    render.containerPath = Path(path);
+    render.access.read = true;
+    render.access.write = true;
+    render.access.mknod = true;
+    devices.push_back(render);
+  }
+
+  if (devices.size() != gpus.size() + 1) {
+    return Error("Failed to find all allocated ROCm render devices");
+  }
+
+  return devices;
+}
+#endif // __linux__
+
+
 
 // Parse the ContainerID from a Docker container and return None if
 // the container was not launched from Mesos.
@@ -176,7 +236,8 @@ Option<ContainerID> parse(const Docker::Container& container)
 Try<DockerContainerizer*> DockerContainerizer::create(
     const Flags& flags,
     Fetcher* fetcher,
-    const Option<NvidiaComponents>& nvidia)
+    const Option<NvidiaComponents>& nvidia,
+    const Option<RocmComponents>& rocm)
 {
   // Create and initialize the container logger module.
   Try<ContainerLogger*> logger =
@@ -206,7 +267,8 @@ Try<DockerContainerizer*> DockerContainerizer::create(
       fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker,
-      nvidia);
+      nvidia,
+      rocm);
 }
 
 
@@ -223,13 +285,15 @@ DockerContainerizer::DockerContainerizer(
     Fetcher* fetcher,
     const Owned<ContainerLogger>& logger,
     Shared<Docker> docker,
-    const Option<NvidiaComponents>& nvidia)
+    const Option<NvidiaComponents>& nvidia,
+    const Option<RocmComponents>& rocm)
   : process(new DockerContainerizerProcess(
       flags,
       fetcher,
       logger,
       docker,
-      nvidia))
+      nvidia,
+      rocm))
 {
   spawn(process.get());
 }
@@ -240,13 +304,15 @@ DockerContainerizerProcess::DockerContainerizerProcess(
     Fetcher* _fetcher,
     const Owned<ContainerLogger>& _logger,
     Shared<Docker> _docker,
-    const Option<NvidiaComponents>& _nvidia)
+    const Option<NvidiaComponents>& _nvidia,
+    const Option<RocmComponents>& _rocm)
   : flags(_flags),
     fetcher(_fetcher),
     logger(_logger),
     docker(_docker),
     ioSwitchboard(nullptr),
-    nvidia(_nvidia)
+    nvidia(_nvidia),
+    rocm(_rocm)
 {
   Try<IOSwitchboard*> create = IOSwitchboard::create(flags, false);
   CHECK_SOME(create);
@@ -787,6 +853,70 @@ Future<Nothing> DockerContainerizerProcess::deallocateNvidiaGpus(
 
 
 Future<Nothing> DockerContainerizerProcess::_deallocateNvidiaGpus(
+    const ContainerID& containerId,
+    const set<Gpu>& deallocated)
+{
+  if (containers_.contains(containerId)) {
+    foreach (const Gpu& gpu, deallocated) {
+      containers_.at(containerId)->gpus.erase(gpu);
+    }
+  }
+
+  return Nothing();
+}
+
+
+Future<Nothing> DockerContainerizerProcess::allocateRocmGpus(
+    const ContainerID& containerId,
+    const size_t count)
+{
+  if (!rocm.isSome()) {
+    return Failure("Attempted to allocate GPUs"
+                   " without ROCm libraries available");
+  }
+
+  if (!containers_.contains(containerId)) {
+    return Failure("Container is already destroyed");
+  }
+
+  return rocm->allocator.allocate(count)
+    .then(defer(
+        self(),
+        &Self::_allocateRocmGpus,
+        containerId,
+        lambda::_1));
+}
+
+
+Future<Nothing> DockerContainerizerProcess::_allocateRocmGpus(
+    const ContainerID& containerId,
+    const set<Gpu>& allocated)
+{
+  if (!containers_.contains(containerId)) {
+    return rocm->allocator.deallocate(allocated);
+  }
+
+  foreach (const Gpu& gpu, allocated) {
+    containers_.at(containerId)->gpus.insert(gpu);
+  }
+
+  return Nothing();
+}
+
+
+Future<Nothing> DockerContainerizerProcess::deallocateRocmGpus(
+    const ContainerID& containerId)
+{
+  return rocm->allocator.deallocate(containers_.at(containerId)->gpus)
+    .then(defer(
+        self(),
+        &Self::_deallocateRocmGpus,
+        containerId,
+        containers_.at(containerId)->gpus));
+}
+
+
+Future<Nothing> DockerContainerizerProcess::_deallocateRocmGpus(
     const ContainerID& containerId,
     const set<Gpu>& deallocated)
 {
@@ -1564,6 +1694,17 @@ Future<Docker::Container> DockerContainerizerProcess::launchExecutorContainer(
     // is the case of launching `mesos-docker-executor` in a Docker container
     // with the Docker image `flags.docker_mesos_image`. In that case we already
     // set `flags.default_container_dns` in the method `dockerFlags()`.
+    Option<vector<Docker::Device>> devices = None();
+#ifdef __linux__
+    if (rocm.isSome() && !nvidia.isSome() && !container->gpus.empty()) {
+      Try<vector<Docker::Device>> rocmDevices_ = rocmDevices(container->gpus);
+      if (rocmDevices_.isError()) {
+        return Failure(rocmDevices_.error());
+      }
+      devices = rocmDevices_.get();
+    }
+#endif // __linux__
+
     Try<Docker::RunOptions> runOptions = Docker::RunOptions::create(
         container->container,
         container->command,
@@ -1577,7 +1718,7 @@ Future<Docker::Container> DockerContainerizerProcess::launchExecutorContainer(
         false,
 #endif
         container->environment,
-        None(), // No extra devices.
+        devices,
         flags.docker_mesos_image.isNone() ?
           flags.default_container_dns : None(),
         container->resourceLimits);
@@ -1712,7 +1853,9 @@ Future<pid_t> DockerContainerizerProcess::launchExecutorProcess(
       return Failure("The 'gpus' resource must be an unsigned integer");
     }
 
-    allocateGpus = allocateNvidiaGpus(containerId, gpus.get());
+    allocateGpus = rocm.isSome() && !nvidia.isSome()
+      ? allocateRocmGpus(containerId, gpus.get())
+      : allocateNvidiaGpus(containerId, gpus.get());
   }
 #endif // __linux__
 
@@ -3039,7 +3182,9 @@ void DockerContainerizerProcess::___destroy(
 #ifdef __linux__
   // Deallocate GPU resources before we destroy container.
   if (!containers_.at(containerId)->gpus.empty()) {
-    deallocateGpus = deallocateNvidiaGpus(containerId);
+    deallocateGpus = rocm.isSome() && !nvidia.isSome()
+      ? deallocateRocmGpus(containerId)
+      : deallocateNvidiaGpus(containerId);
   }
 #endif // __linux__
 

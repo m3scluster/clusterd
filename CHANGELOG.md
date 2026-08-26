@@ -14,6 +14,11 @@
        per-container device-cgroup isolation. ROCm user-space libraries
        are provided by the task image rather than injected from the host.
        Details: https://m3scluster.github.io/clusterd-docs/gpu-support.html
+- ADD: [containerizer, docker, gpu] ROCm GPU support for Docker containers.
+       Only tasks requesting `gpus` receive `/dev/kfd` and their allocated
+       `/dev/dri/renderD*` devices; hosts with GPUs do not map them
+       automatically into containers.
+       Details: https://m3scluster.github.io/clusterd-docs/gpu-support.html
 - ADD: [master, agent, webui] configurable CORS origin allowlist for browser
        access to master and agent HTTP endpoints.
        Details: https://m3scluster.github.io/clusterd-docs/cors.html

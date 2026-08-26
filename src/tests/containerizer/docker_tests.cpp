@@ -99,6 +99,63 @@ TEST(DockerExecTest, CommandArgumentsDoNotDuplicateExecutable)
 }
 
 
+TEST(DockerRunOptionsTest, GpuDevicesAreExplicit)
+{
+  ContainerInfo containerInfo;
+  containerInfo.set_type(ContainerInfo::DOCKER);
+  containerInfo.mutable_docker()->set_image("synthetic-image");
+
+  CommandInfo commandInfo;
+  commandInfo.set_value("sleep 1");
+
+  Resources noGpus = Resources::parse("gpus:0").get();
+  Try<Docker::RunOptions> withoutDevices = Docker::RunOptions::create(
+      containerInfo,
+      commandInfo,
+      "synthetic-container",
+      "/synthetic/sandbox",
+      "/synthetic/sandbox",
+      noGpus);
+
+  ASSERT_SOME(withoutDevices);
+  EXPECT_TRUE(withoutDevices->devices.empty());
+
+  Docker::Device render;
+  render.hostPath = Path("/dev/dri/renderD128");
+  render.containerPath = Path("/dev/dri/renderD128");
+  render.access.read = true;
+  render.access.write = true;
+  render.access.mknod = true;
+
+  Docker::Device kfd;
+  kfd.hostPath = Path("/dev/kfd");
+  kfd.containerPath = Path("/dev/kfd");
+  kfd.access.read = true;
+  kfd.access.write = true;
+  kfd.access.mknod = true;
+
+  vector<Docker::Device> devices = {kfd, render};
+  Resources oneGpu = Resources::parse("gpus:1").get();
+  Try<Docker::RunOptions> withDevices = Docker::RunOptions::create(
+      containerInfo,
+      commandInfo,
+      "synthetic-container",
+      "/synthetic/sandbox",
+      "/synthetic/sandbox",
+      oneGpu,
+      false,
+      None(),
+      devices);
+
+  ASSERT_SOME(withDevices);
+  ASSERT_EQ(devices.size(), withDevices->devices.size());
+  EXPECT_EQ("/dev/kfd", withDevices->devices.at(0).hostPath.string());
+  EXPECT_EQ(
+      "/dev/dri/renderD128",
+      withDevices->devices.at(1).containerPath.string());
+}
+
+
 #ifndef __WINDOWS__
 TEST(DockerCommandTest, LogsUsesConfiguredDockerExecutable)
 {
