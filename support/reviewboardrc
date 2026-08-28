@@ -1,5 +1,0 @@
-REVIEWBOARD_URL = "https://reviews.apache.org/"
-REPOSITORY_URL = "https://gitbox.apache.org/repos/asf/mesos.git"
-REPOSITORY = "mesos"
-GUESS_FIELDS = "yes"
-TARGET_GROUPS = "mesos"
