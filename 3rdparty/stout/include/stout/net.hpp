@@ -122,8 +122,8 @@ inline Try<Bytes> contentLength(const std::string& url)
     return Error(curl_easy_strerror(curlErrorCode));
   }
 
-  double result;
-  curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &result);
+  curl_off_t result;
+  curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &result);
 
   curl_easy_cleanup(curl);
 
