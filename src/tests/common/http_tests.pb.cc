@@ -4,213 +4,195 @@
 #include "http_tests.pb.h"
 
 #include <algorithm>
-
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/stubs/port.h>
-#include <google/protobuf/stubs/once.h>
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/wire_format_lite_inl.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/generated_message_reflection.h>
-#include <google/protobuf/reflection_ops.h>
-#include <google/protobuf/wire_format.h>
-// This is a temporary google only hack
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-#include "third_party/protobuf/version.h"
-#endif
+#include "google/protobuf/io/coded_stream.h"
+#include "google/protobuf/extension_set.h"
+#include "google/protobuf/wire_format_lite.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/generated_message_reflection.h"
+#include "google/protobuf/reflection_ops.h"
+#include "google/protobuf/wire_format.h"
+#include "google/protobuf/generated_message_tctable_impl.h"
 // @@protoc_insertion_point(includes)
+
+// Must be included last.
+#include "google/protobuf/port_def.inc"
+PROTOBUF_PRAGMA_INIT_SEG
+namespace _pb = ::google::protobuf;
+namespace _pbi = ::google::protobuf::internal;
+namespace _fl = ::google::protobuf::internal::field_layout;
 namespace mesos {
 namespace test {
-class TestSlaveMessage_SomeSlaveMapEntry_DoNotUseDefaultTypeInternal {
- public:
-  ::google::protobuf::internal::ExplicitlyConstructed<TestSlaveMessage_SomeSlaveMapEntry_DoNotUse>
-      _instance;
-} _TestSlaveMessage_SomeSlaveMapEntry_DoNotUse_default_instance_;
-class TestSlaveMessageDefaultTypeInternal {
- public:
-  ::google::protobuf::internal::ExplicitlyConstructed<TestSlaveMessage>
-      _instance;
-} _TestSlaveMessage_default_instance_;
-class ParentMessageDefaultTypeInternal {
- public:
-  ::google::protobuf::internal::ExplicitlyConstructed<ParentMessage>
-      _instance;
-} _ParentMessage_default_instance_;
+      template <typename>
+PROTOBUF_CONSTEXPR TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse(::_pbi::ConstantInitialized) {}
+struct TestSlaveMessage_SomeSlaveMapEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TestSlaveMessage_SomeSlaveMapEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TestSlaveMessage_SomeSlaveMapEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    TestSlaveMessage_SomeSlaveMapEntry_DoNotUse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TestSlaveMessage_SomeSlaveMapEntry_DoNotUseDefaultTypeInternal _TestSlaveMessage_SomeSlaveMapEntry_DoNotUse_default_instance_;
+        template <typename>
+PROTOBUF_CONSTEXPR TestSlaveMessage::TestSlaveMessage(::_pbi::ConstantInitialized)
+    : _impl_{
+      /*decltype(_impl_._has_bits_)*/ {},
+      /*decltype(_impl_._cached_size_)*/ {},
+      /*decltype(_impl_.some_slave_fields_)*/ {},
+      /* decltype(_impl_.some_slave_map_) */ {},
+      /*decltype(_impl_.some_slave_enums_)*/ {},
+      /*decltype(_impl_.some_slave_field_)*/ false,
+      /*decltype(_impl_.some_slave_enum_)*/ 0,
+    } {}
+struct TestSlaveMessageDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TestSlaveMessageDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TestSlaveMessageDefaultTypeInternal() {}
+  union {
+    TestSlaveMessage _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TestSlaveMessageDefaultTypeInternal _TestSlaveMessage_default_instance_;
+        template <typename>
+PROTOBUF_CONSTEXPR ParentMessage::ParentMessage(::_pbi::ConstantInitialized)
+    : _impl_{
+      /*decltype(_impl_._has_bits_)*/ {},
+      /*decltype(_impl_._cached_size_)*/ {},
+      /*decltype(_impl_.some_slave_messages_)*/ {},
+      /*decltype(_impl_.some_slave_message_)*/ nullptr,
+    } {}
+struct ParentMessageDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ParentMessageDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ParentMessageDefaultTypeInternal() {}
+  union {
+    ParentMessage _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ParentMessageDefaultTypeInternal _ParentMessage_default_instance_;
 }  // namespace test
 }  // namespace mesos
-namespace protobuf_http_5ftests_2eproto {
-void InitDefaultsTestSlaveMessage_SomeSlaveMapEntry_DoNotUseImpl() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
-#else
-  ::google::protobuf::internal::InitProtobufDefaults();
-#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  {
-    void* ptr = &::mesos::test::_TestSlaveMessage_SomeSlaveMapEntry_DoNotUse_default_instance_;
-    new (ptr) ::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse();
-  }
-  ::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::InitAsDefaultInstance();
-}
-
-void InitDefaultsTestSlaveMessage_SomeSlaveMapEntry_DoNotUse() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsTestSlaveMessage_SomeSlaveMapEntry_DoNotUseImpl);
-}
-
-void InitDefaultsTestSlaveMessageImpl() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
-#else
-  ::google::protobuf::internal::InitProtobufDefaults();
-#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  protobuf_http_5ftests_2eproto::InitDefaultsTestSlaveMessage_SomeSlaveMapEntry_DoNotUse();
-  {
-    void* ptr = &::mesos::test::_TestSlaveMessage_default_instance_;
-    new (ptr) ::mesos::test::TestSlaveMessage();
-    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::mesos::test::TestSlaveMessage::InitAsDefaultInstance();
-}
-
-void InitDefaultsTestSlaveMessage() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsTestSlaveMessageImpl);
-}
-
-void InitDefaultsParentMessageImpl() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
-#else
-  ::google::protobuf::internal::InitProtobufDefaults();
-#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  protobuf_http_5ftests_2eproto::InitDefaultsTestSlaveMessage();
-  {
-    void* ptr = &::mesos::test::_ParentMessage_default_instance_;
-    new (ptr) ::mesos::test::ParentMessage();
-    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::mesos::test::ParentMessage::InitAsDefaultInstance();
-}
-
-void InitDefaultsParentMessage() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsParentMessageImpl);
-}
-
-::google::protobuf::Metadata file_level_metadata[3];
-const ::google::protobuf::EnumDescriptor* file_level_enum_descriptors[1];
-
-const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, _has_bits_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, key_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, value_),
-  0,
-  1,
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _has_bits_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage, some_slave_field_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage, some_slave_fields_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage, some_slave_map_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage, some_slave_enum_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::TestSlaveMessage, some_slave_enums_),
-  0,
-  ~0u,
-  ~0u,
-  1,
-  ~0u,
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::ParentMessage, _has_bits_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::ParentMessage, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::ParentMessage, some_slave_message_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::mesos::test::ParentMessage, some_slave_messages_),
-  0,
-  ~0u,
-};
-static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, 7, sizeof(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse)},
-  { 9, 19, sizeof(::mesos::test::TestSlaveMessage)},
-  { 24, 31, sizeof(::mesos::test::ParentMessage)},
+static ::_pb::Metadata file_level_metadata_http_5ftests_2eproto[3];
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_http_5ftests_2eproto[1];
+static constexpr const ::_pb::ServiceDescriptor**
+    file_level_service_descriptors_http_5ftests_2eproto = nullptr;
+const ::uint32_t TableStruct_http_5ftests_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
+    protodesc_cold) = {
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, _has_bits_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, _internal_metadata_),
+    ~0u,  // no _extensions_
+    ~0u,  // no _oneof_case_
+    ~0u,  // no _weak_field_map_
+    ~0u,  // no _inlined_string_donated_
+    ~0u,  // no _split_
+    ~0u,  // no sizeof(Split)
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, key_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse, value_),
+    0,
+    1,
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _internal_metadata_),
+    ~0u,  // no _extensions_
+    ~0u,  // no _oneof_case_
+    ~0u,  // no _weak_field_map_
+    ~0u,  // no _inlined_string_donated_
+    ~0u,  // no _split_
+    ~0u,  // no sizeof(Split)
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _impl_.some_slave_field_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _impl_.some_slave_fields_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _impl_.some_slave_map_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _impl_.some_slave_enum_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::TestSlaveMessage, _impl_.some_slave_enums_),
+    0,
+    ~0u,
+    ~0u,
+    1,
+    ~0u,
+    PROTOBUF_FIELD_OFFSET(::mesos::test::ParentMessage, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::ParentMessage, _internal_metadata_),
+    ~0u,  // no _extensions_
+    ~0u,  // no _oneof_case_
+    ~0u,  // no _weak_field_map_
+    ~0u,  // no _inlined_string_donated_
+    ~0u,  // no _split_
+    ~0u,  // no sizeof(Split)
+    PROTOBUF_FIELD_OFFSET(::mesos::test::ParentMessage, _impl_.some_slave_message_),
+    PROTOBUF_FIELD_OFFSET(::mesos::test::ParentMessage, _impl_.some_slave_messages_),
+    0,
+    ~0u,
 };
 
-static ::google::protobuf::Message const * const file_default_instances[] = {
-  reinterpret_cast<const ::google::protobuf::Message*>(&::mesos::test::_TestSlaveMessage_SomeSlaveMapEntry_DoNotUse_default_instance_),
-  reinterpret_cast<const ::google::protobuf::Message*>(&::mesos::test::_TestSlaveMessage_default_instance_),
-  reinterpret_cast<const ::google::protobuf::Message*>(&::mesos::test::_ParentMessage_default_instance_),
+static const ::_pbi::MigrationSchema
+    schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
+        {0, 10, -1, sizeof(::mesos::test::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse)},
+        {12, 25, -1, sizeof(::mesos::test::TestSlaveMessage)},
+        {30, 40, -1, sizeof(::mesos::test::ParentMessage)},
 };
 
-void protobuf_AssignDescriptors() {
-  AddDescriptors();
-  ::google::protobuf::MessageFactory* factory = NULL;
-  AssignDescriptors(
-      "http_tests.proto", schemas, file_default_instances, TableStruct::offsets, factory,
-      file_level_metadata, file_level_enum_descriptors, NULL);
-}
+static const ::_pb::Message* const file_default_instances[] = {
+    &::mesos::test::_TestSlaveMessage_SomeSlaveMapEntry_DoNotUse_default_instance_._instance,
+    &::mesos::test::_TestSlaveMessage_default_instance_._instance,
+    &::mesos::test::_ParentMessage_default_instance_._instance,
+};
+const char descriptor_table_protodef_http_5ftests_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
+    "\n\020http_tests.proto\022\nmesos.test\"\316\002\n\020TestS"
+    "laveMessage\022\030\n\020some_slave_field\030\001 \001(\010\022\031\n"
+    "\021some_slave_fields\030\002 \003(\010\022F\n\016some_slave_m"
+    "ap\030\003 \003(\0132..mesos.test.TestSlaveMessage.S"
+    "omeSlaveMapEntry\0227\n\017some_slave_enum\030\004 \001("
+    "\0162\036.mesos.test.TestSlaveMessage.E\0228\n\020som"
+    "e_slave_enums\030\005 \003(\0162\036.mesos.test.TestSla"
+    "veMessage.E\0323\n\021SomeSlaveMapEntry\022\013\n\003key\030"
+    "\001 \001(\010\022\r\n\005value\030\002 \001(\010:\0028\001\"\025\n\001E\022\020\n\014A_SLAVE"
+    "_ENUM\020\000\"\204\001\n\rParentMessage\0228\n\022some_slave_"
+    "message\030\001 \001(\0132\034.mesos.test.TestSlaveMess"
+    "age\0229\n\023some_slave_messages\030\002 \003(\0132\034.mesos"
+    ".test.TestSlaveMessage"
+};
+static ::absl::once_flag descriptor_table_http_5ftests_2eproto_once;
+const ::_pbi::DescriptorTable descriptor_table_http_5ftests_2eproto = {
+    false,
+    false,
+    502,
+    descriptor_table_protodef_http_5ftests_2eproto,
+    "http_tests.proto",
+    &descriptor_table_http_5ftests_2eproto_once,
+    nullptr,
+    0,
+    3,
+    schemas,
+    file_default_instances,
+    TableStruct_http_5ftests_2eproto::offsets,
+    file_level_metadata_http_5ftests_2eproto,
+    file_level_enum_descriptors_http_5ftests_2eproto,
+    file_level_service_descriptors_http_5ftests_2eproto,
+};
 
-void protobuf_AssignDescriptorsOnce() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &protobuf_AssignDescriptors);
+// This function exists to be marked as weak.
+// It can significantly speed up compilation by breaking up LLVM's SCC
+// in the .pb.cc translation units. Large translation units see a
+// reduction of more than 35% of walltime for optimized builds. Without
+// the weak attribute all the messages in the file, including all the
+// vtables and everything they use become part of the same SCC through
+// a cycle like:
+// GetMetadata -> descriptor table -> default instances ->
+//   vtables -> GetMetadata
+// By adding a weak function here we break the connection from the
+// individual vtables back into the descriptor table.
+PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_http_5ftests_2eproto_getter() {
+  return &descriptor_table_http_5ftests_2eproto;
 }
-
-void protobuf_RegisterTypes(const ::std::string&) GOOGLE_PROTOBUF_ATTRIBUTE_COLD;
-void protobuf_RegisterTypes(const ::std::string&) {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 3);
-}
-
-void AddDescriptorsImpl() {
-  InitDefaults();
-  static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\020http_tests.proto\022\nmesos.test\"\316\002\n\020TestS"
-      "laveMessage\022\030\n\020some_slave_field\030\001 \001(\010\022\031\n"
-      "\021some_slave_fields\030\002 \003(\010\022F\n\016some_slave_m"
-      "ap\030\003 \003(\0132..mesos.test.TestSlaveMessage.S"
-      "omeSlaveMapEntry\0227\n\017some_slave_enum\030\004 \001("
-      "\0162\036.mesos.test.TestSlaveMessage.E\0228\n\020som"
-      "e_slave_enums\030\005 \003(\0162\036.mesos.test.TestSla"
-      "veMessage.E\0323\n\021SomeSlaveMapEntry\022\013\n\003key\030"
-      "\001 \001(\010\022\r\n\005value\030\002 \001(\010:\0028\001\"\025\n\001E\022\020\n\014A_SLAVE"
-      "_ENUM\020\000\"\204\001\n\rParentMessage\0228\n\022some_slave_"
-      "message\030\001 \001(\0132\034.mesos.test.TestSlaveMess"
-      "age\0229\n\023some_slave_messages\030\002 \003(\0132\034.mesos"
-      ".test.TestSlaveMessage"
-  };
-  ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 502);
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
-    "http_tests.proto", &protobuf_RegisterTypes);
-}
-
-void AddDescriptors() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &AddDescriptorsImpl);
-}
-// Force AddDescriptors() to be called at dynamic initialization time.
-struct StaticDescriptorInitializer {
-  StaticDescriptorInitializer() {
-    AddDescriptors();
-  }
-} static_descriptor_initializer;
-}  // namespace protobuf_http_5ftests_2eproto
+// Force running AddDescriptors() at dynamic initialization time.
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY2
+static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_http_5ftests_2eproto(&descriptor_table_http_5ftests_2eproto);
 namespace mesos {
 namespace test {
 const ::google::protobuf::EnumDescriptor* TestSlaveMessage_E_descriptor() {
-  protobuf_http_5ftests_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_http_5ftests_2eproto::file_level_enum_descriptors[0];
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_http_5ftests_2eproto);
+  return file_level_enum_descriptors_http_5ftests_2eproto[0];
 }
 bool TestSlaveMessage_E_IsValid(int value) {
   switch (value) {
@@ -220,512 +202,326 @@ bool TestSlaveMessage_E_IsValid(int value) {
       return false;
   }
 }
+#if (__cplusplus < 201703) && \
+  (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const TestSlaveMessage_E TestSlaveMessage::A_SLAVE_ENUM;
-const TestSlaveMessage_E TestSlaveMessage::E_MIN;
-const TestSlaveMessage_E TestSlaveMessage::E_MAX;
-const int TestSlaveMessage::E_ARRAYSIZE;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+constexpr TestSlaveMessage_E TestSlaveMessage::A_SLAVE_ENUM;
+constexpr TestSlaveMessage_E TestSlaveMessage::E_MIN;
+constexpr TestSlaveMessage_E TestSlaveMessage::E_MAX;
+constexpr int TestSlaveMessage::E_ARRAYSIZE;
 
+#endif  // (__cplusplus < 201703) &&
+        // (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 // ===================================================================
 
 TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse() {}
-TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse(::google::protobuf::Arena* arena) : SuperType(arena) {}
+TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::TestSlaveMessage_SomeSlaveMapEntry_DoNotUse(::google::protobuf::Arena* arena)
+    : SuperType(arena) {}
 void TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::MergeFrom(const TestSlaveMessage_SomeSlaveMapEntry_DoNotUse& other) {
   MergeFromInternal(other);
 }
 ::google::protobuf::Metadata TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::GetMetadata() const {
-  ::protobuf_http_5ftests_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_http_5ftests_2eproto::file_level_metadata[0];
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_http_5ftests_2eproto_getter, &descriptor_table_http_5ftests_2eproto_once,
+      file_level_metadata_http_5ftests_2eproto[0]);
 }
-void TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::MergeFrom(
-    const ::google::protobuf::Message& other) {
-  ::google::protobuf::Message::MergeFrom(other);
-}
-
-
 // ===================================================================
 
-void TestSlaveMessage::InitAsDefaultInstance() {
-}
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int TestSlaveMessage::kSomeSlaveFieldFieldNumber;
-const int TestSlaveMessage::kSomeSlaveFieldsFieldNumber;
-const int TestSlaveMessage::kSomeSlaveMapFieldNumber;
-const int TestSlaveMessage::kSomeSlaveEnumFieldNumber;
-const int TestSlaveMessage::kSomeSlaveEnumsFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
-
-TestSlaveMessage::TestSlaveMessage()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    ::protobuf_http_5ftests_2eproto::InitDefaultsTestSlaveMessage();
+class TestSlaveMessage::_Internal {
+ public:
+  using HasBits = decltype(std::declval<TestSlaveMessage>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+    8 * PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_._has_bits_);
+  static void set_has_some_slave_field(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
   }
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:mesos.test.TestSlaveMessage)
+  static void set_has_some_slave_enum(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+TestSlaveMessage::TestSlaveMessage(::google::protobuf::Arena* arena)
+    : ::google::protobuf::Message(arena) {
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:mesos.test.TestSlaveMessage)
 }
-TestSlaveMessage::TestSlaveMessage(const TestSlaveMessage& from)
-  : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _has_bits_(from._has_bits_),
-      _cached_size_(0),
-      some_slave_fields_(from.some_slave_fields_),
-      some_slave_enums_(from.some_slave_enums_) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  some_slave_map_.MergeFrom(from.some_slave_map_);
-  ::memcpy(&some_slave_field_, &from.some_slave_field_,
-    static_cast<size_t>(reinterpret_cast<char*>(&some_slave_enum_) -
-    reinterpret_cast<char*>(&some_slave_field_)) + sizeof(some_slave_enum_));
+TestSlaveMessage::TestSlaveMessage(const TestSlaveMessage& from) : ::google::protobuf::Message() {
+  TestSlaveMessage* const _this = this;
+  (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_._has_bits_){from._impl_._has_bits_},
+      /*decltype(_impl_._cached_size_)*/ {},
+      decltype(_impl_.some_slave_fields_){from._impl_.some_slave_fields_},
+      /* decltype(_impl_.some_slave_map_) */ {},
+      decltype(_impl_.some_slave_enums_){from._internal_some_slave_enums()},
+      decltype(_impl_.some_slave_field_){},
+      decltype(_impl_.some_slave_enum_){},
+  };
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  _this->_impl_.some_slave_map_.MergeFrom(from._impl_.some_slave_map_);
+  ::memcpy(&_impl_.some_slave_field_, &from._impl_.some_slave_field_,
+    static_cast<::size_t>(reinterpret_cast<char*>(&_impl_.some_slave_enum_) -
+    reinterpret_cast<char*>(&_impl_.some_slave_field_)) + sizeof(_impl_.some_slave_enum_));
+
   // @@protoc_insertion_point(copy_constructor:mesos.test.TestSlaveMessage)
 }
-
-void TestSlaveMessage::SharedCtor() {
-  _cached_size_ = 0;
-  ::memset(&some_slave_field_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&some_slave_enum_) -
-      reinterpret_cast<char*>(&some_slave_field_)) + sizeof(some_slave_enum_));
+inline void TestSlaveMessage::SharedCtor(::_pb::Arena* arena) {
+  (void)arena;
+  new (&_impl_) Impl_{
+      decltype(_impl_._has_bits_){},
+      /*decltype(_impl_._cached_size_)*/ {},
+      decltype(_impl_.some_slave_fields_){arena},
+      /* decltype(_impl_.some_slave_map_) */ {::google::protobuf::internal::ArenaInitialized(), arena},
+      decltype(_impl_.some_slave_enums_){arena},
+      decltype(_impl_.some_slave_field_){false},
+      decltype(_impl_.some_slave_enum_){0},
+  };
 }
-
 TestSlaveMessage::~TestSlaveMessage() {
   // @@protoc_insertion_point(destructor:mesos.test.TestSlaveMessage)
+  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   SharedDtor();
 }
-
-void TestSlaveMessage::SharedDtor() {
+inline void TestSlaveMessage::SharedDtor() {
+  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.some_slave_fields_.~RepeatedField();
+  _impl_.some_slave_map_.~MapField();
+  _internal_mutable_some_slave_enums()->~RepeatedField();
 }
-
 void TestSlaveMessage::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* TestSlaveMessage::descriptor() {
-  ::protobuf_http_5ftests_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_http_5ftests_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
+  _impl_._cached_size_.Set(size);
 }
 
-const TestSlaveMessage& TestSlaveMessage::default_instance() {
-  ::protobuf_http_5ftests_2eproto::InitDefaultsTestSlaveMessage();
-  return *internal_default_instance();
-}
-
-TestSlaveMessage* TestSlaveMessage::New(::google::protobuf::Arena* arena) const {
-  TestSlaveMessage* n = new TestSlaveMessage;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void TestSlaveMessage::Clear() {
+PROTOBUF_NOINLINE void TestSlaveMessage::Clear() {
 // @@protoc_insertion_point(message_clear_start:mesos.test.TestSlaveMessage)
-  ::google::protobuf::uint32 cached_has_bits = 0;
+  ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  some_slave_fields_.Clear();
-  some_slave_map_.Clear();
-  some_slave_enums_.Clear();
-  cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 3u) {
-    ::memset(&some_slave_field_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&some_slave_enum_) -
-        reinterpret_cast<char*>(&some_slave_field_)) + sizeof(some_slave_enum_));
+  _internal_mutable_some_slave_fields()->Clear();
+  _impl_.some_slave_map_.Clear();
+  _internal_mutable_some_slave_enums()->Clear();
+  cached_has_bits = _impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    ::memset(&_impl_.some_slave_field_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.some_slave_enum_) -
+        reinterpret_cast<char*>(&_impl_.some_slave_field_)) + sizeof(_impl_.some_slave_enum_));
   }
-  _has_bits_.Clear();
-  _internal_metadata_.Clear();
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
-bool TestSlaveMessage::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:mesos.test.TestSlaveMessage)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional bool some_slave_field = 1;
-      case 1: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(8u /* 8 & 0xFF */)) {
-          set_has_some_slave_field();
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &some_slave_field_)));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // repeated bool some_slave_fields = 2;
-      case 2: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(16u /* 16 & 0xFF */)) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 1, 16u, input, this->mutable_some_slave_fields())));
-        } else if (
-            static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitiveNoInline<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, this->mutable_some_slave_fields())));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // map<bool, bool> some_slave_map = 3;
-      case 3: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(26u /* 26 & 0xFF */)) {
-          TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::Parser< ::google::protobuf::internal::MapField<
-              TestSlaveMessage_SomeSlaveMapEntry_DoNotUse,
-              bool, bool,
-              ::google::protobuf::internal::WireFormatLite::TYPE_BOOL,
-              ::google::protobuf::internal::WireFormatLite::TYPE_BOOL,
-              0 >,
-            ::google::protobuf::Map< bool, bool > > parser(&some_slave_map_);
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, &parser));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // optional .mesos.test.TestSlaveMessage.E some_slave_enum = 4;
-      case 4: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(32u /* 32 & 0xFF */)) {
-          int value;
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
-                 input, &value)));
-          if (::mesos::test::TestSlaveMessage_E_IsValid(value)) {
-            set_some_slave_enum(static_cast< ::mesos::test::TestSlaveMessage_E >(value));
-          } else {
-            mutable_unknown_fields()->AddVarint(
-                4, static_cast< ::google::protobuf::uint64>(value));
-          }
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // repeated .mesos.test.TestSlaveMessage.E some_slave_enums = 5;
-      case 5: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(40u /* 40 & 0xFF */)) {
-          int value;
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
-                 input, &value)));
-          if (::mesos::test::TestSlaveMessage_E_IsValid(value)) {
-            add_some_slave_enums(static_cast< ::mesos::test::TestSlaveMessage_E >(value));
-          } else {
-            mutable_unknown_fields()->AddVarint(
-                5, static_cast< ::google::protobuf::uint64>(value));
-          }
-        } else if (
-            static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(42u /* 42 & 0xFF */)) {
-          DO_((::google::protobuf::internal::WireFormat::ReadPackedEnumPreserveUnknowns(
-                 input,
-                 5,
-                 ::mesos::test::TestSlaveMessage_E_IsValid,
-                 mutable_unknown_fields(),
-                 this->mutable_some_slave_enums())));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, _internal_metadata_.mutable_unknown_fields()));
-        break;
-      }
-    }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:mesos.test.TestSlaveMessage)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:mesos.test.TestSlaveMessage)
-  return false;
-#undef DO_
+const char* TestSlaveMessage::_InternalParse(
+    const char* ptr, ::_pbi::ParseContext* ctx) {
+  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+  return ptr;
 }
 
-void TestSlaveMessage::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:mesos.test.TestSlaveMessage)
-  ::google::protobuf::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
 
-  cached_has_bits = _has_bits_[0];
-  // optional bool some_slave_field = 1;
-  if (cached_has_bits & 0x00000001u) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(1, this->some_slave_field(), output);
-  }
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 3, 0, 2> TestSlaveMessage::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    3,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    &_TestSlaveMessage_default_instance_._instance,
+    ::_pbi::TcParser::GenericFallback,  // fallback
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // optional bool some_slave_field = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(TestSlaveMessage, _impl_.some_slave_field_), 0>(),
+     {8, 0, 0, PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_field_)}},
+    // repeated bool some_slave_fields = 2;
+    {::_pbi::TcParser::FastV8R1,
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_fields_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    // optional .mesos.test.TestSlaveMessage.E some_slave_enum = 4;
+    {::_pbi::TcParser::FastEr0S1,
+     {32, 1, 0, PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_enum_)}},
+    // repeated .mesos.test.TestSlaveMessage.E some_slave_enums = 5;
+    {::_pbi::TcParser::FastEr0R1,
+     {40, 63, 0, PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_enums_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // optional bool some_slave_field = 1;
+    {PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_field_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // repeated bool some_slave_fields = 2;
+    {PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_fields_), -1, 0,
+    (0 | ::_fl::kFcRepeated | ::_fl::kBool)},
+    // map<bool, bool> some_slave_map = 3;
+    {PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_map_), -1, 0,
+    (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    // optional .mesos.test.TestSlaveMessage.E some_slave_enum = 4;
+    {PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_enum_), _Internal::kHasBitsOffset + 1, 1,
+    (0 | ::_fl::kFcOptional | ::_fl::kEnumRange)},
+    // repeated .mesos.test.TestSlaveMessage.E some_slave_enums = 5;
+    {PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_enums_), -1, 2,
+    (0 | ::_fl::kFcRepeated | ::_fl::kEnumRange)},
+  }}, {{
+    {::_pbi::TcParser::GetMapAuxInfo<decltype(TestSlaveMessage()._impl_.some_slave_map_)>(0, 1, 0)},
+    {0, 1},
+    {0, 1},
+  }}, {{
+  }},
+};
 
-  // repeated bool some_slave_fields = 2;
-  for (int i = 0, n = this->some_slave_fields_size(); i < n; i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(
-      2, this->some_slave_fields(i), output);
-  }
-
-  // map<bool, bool> some_slave_map = 3;
-  if (!this->some_slave_map().empty()) {
-    typedef ::google::protobuf::Map< bool, bool >::const_pointer
-        ConstPtr;
-    typedef ::google::protobuf::internal::SortItem< bool, ConstPtr > SortItem;
-    typedef ::google::protobuf::internal::CompareByFirstField<SortItem> Less;
-
-    if (output->IsSerializationDeterministic() &&
-        this->some_slave_map().size() > 1) {
-      ::google::protobuf::scoped_array<SortItem> items(
-          new SortItem[this->some_slave_map().size()]);
-      typedef ::google::protobuf::Map< bool, bool >::size_type size_type;
-      size_type n = 0;
-      for (::google::protobuf::Map< bool, bool >::const_iterator
-          it = this->some_slave_map().begin();
-          it != this->some_slave_map().end(); ++it, ++n) {
-        items[static_cast<ptrdiff_t>(n)] = SortItem(&*it);
-      }
-      ::std::sort(&items[0], &items[static_cast<ptrdiff_t>(n)], Less());
-      ::google::protobuf::scoped_ptr<TestSlaveMessage_SomeSlaveMapEntry_DoNotUse> entry;
-      for (size_type i = 0; i < n; i++) {
-        entry.reset(some_slave_map_.NewEntryWrapper(
-            items[static_cast<ptrdiff_t>(i)].second->first, items[static_cast<ptrdiff_t>(i)].second->second));
-        ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-            3, *entry, output);
-      }
-    } else {
-      ::google::protobuf::scoped_ptr<TestSlaveMessage_SomeSlaveMapEntry_DoNotUse> entry;
-      for (::google::protobuf::Map< bool, bool >::const_iterator
-          it = this->some_slave_map().begin();
-          it != this->some_slave_map().end(); ++it) {
-        entry.reset(some_slave_map_.NewEntryWrapper(
-            it->first, it->second));
-        ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-            3, *entry, output);
-      }
-    }
-  }
-
-  // optional .mesos.test.TestSlaveMessage.E some_slave_enum = 4;
-  if (cached_has_bits & 0x00000002u) {
-    ::google::protobuf::internal::WireFormatLite::WriteEnum(
-      4, this->some_slave_enum(), output);
-  }
-
-  // repeated .mesos.test.TestSlaveMessage.E some_slave_enums = 5;
-  for (int i = 0, n = this->some_slave_enums_size(); i < n; i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteEnum(
-      5, this->some_slave_enums(i), output);
-  }
-
-  if (_internal_metadata_.have_unknown_fields()) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        _internal_metadata_.unknown_fields(), output);
-  }
-  // @@protoc_insertion_point(serialize_end:mesos.test.TestSlaveMessage)
-}
-
-::google::protobuf::uint8* TestSlaveMessage::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+::uint8_t* TestSlaveMessage::_InternalSerialize(
+    ::uint8_t* target,
+    ::google::protobuf::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:mesos.test.TestSlaveMessage)
-  ::google::protobuf::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
 
-  cached_has_bits = _has_bits_[0];
+  cached_has_bits = _impl_._has_bits_[0];
   // optional bool some_slave_field = 1;
   if (cached_has_bits & 0x00000001u) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(1, this->some_slave_field(), target);
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(
+        1, this->_internal_some_slave_field(), target);
   }
 
   // repeated bool some_slave_fields = 2;
-  target = ::google::protobuf::internal::WireFormatLite::
-    WriteBoolToArray(2, this->some_slave_fields_, target);
+  for (int i = 0, n = this->_internal_some_slave_fields_size(); i < n; ++i) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(
+        2, this->_internal_some_slave_fields().Get(i), target);
+  }
 
   // map<bool, bool> some_slave_map = 3;
-  if (!this->some_slave_map().empty()) {
-    typedef ::google::protobuf::Map< bool, bool >::const_pointer
-        ConstPtr;
-    typedef ::google::protobuf::internal::SortItem< bool, ConstPtr > SortItem;
-    typedef ::google::protobuf::internal::CompareByFirstField<SortItem> Less;
+  if (!_internal_some_slave_map().empty()) {
+    using MapType = ::google::protobuf::Map<bool, bool>;
+    using WireHelper = TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::Funcs;
+    const auto& field = _internal_some_slave_map();
 
-    if (deterministic &&
-        this->some_slave_map().size() > 1) {
-      ::google::protobuf::scoped_array<SortItem> items(
-          new SortItem[this->some_slave_map().size()]);
-      typedef ::google::protobuf::Map< bool, bool >::size_type size_type;
-      size_type n = 0;
-      for (::google::protobuf::Map< bool, bool >::const_iterator
-          it = this->some_slave_map().begin();
-          it != this->some_slave_map().end(); ++it, ++n) {
-        items[static_cast<ptrdiff_t>(n)] = SortItem(&*it);
-      }
-      ::std::sort(&items[0], &items[static_cast<ptrdiff_t>(n)], Less());
-      ::google::protobuf::scoped_ptr<TestSlaveMessage_SomeSlaveMapEntry_DoNotUse> entry;
-      for (size_type i = 0; i < n; i++) {
-        entry.reset(some_slave_map_.NewEntryWrapper(
-            items[static_cast<ptrdiff_t>(i)].second->first, items[static_cast<ptrdiff_t>(i)].second->second));
-        target = ::google::protobuf::internal::WireFormatLite::
-                   InternalWriteMessageNoVirtualToArray(
-                       3, *entry, deterministic, target);
-;
+    if (stream->IsSerializationDeterministic() && field.size() > 1) {
+      for (const auto& entry : ::google::protobuf::internal::MapSorterFlat<MapType>(field)) {
+        target = WireHelper::InternalSerialize(
+            3, entry.first, entry.second, target, stream);
       }
     } else {
-      ::google::protobuf::scoped_ptr<TestSlaveMessage_SomeSlaveMapEntry_DoNotUse> entry;
-      for (::google::protobuf::Map< bool, bool >::const_iterator
-          it = this->some_slave_map().begin();
-          it != this->some_slave_map().end(); ++it) {
-        entry.reset(some_slave_map_.NewEntryWrapper(
-            it->first, it->second));
-        target = ::google::protobuf::internal::WireFormatLite::
-                   InternalWriteMessageNoVirtualToArray(
-                       3, *entry, deterministic, target);
-;
+      for (const auto& entry : field) {
+        target = WireHelper::InternalSerialize(
+            3, entry.first, entry.second, target, stream);
       }
     }
   }
 
   // optional .mesos.test.TestSlaveMessage.E some_slave_enum = 4;
   if (cached_has_bits & 0x00000002u) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
-      4, this->some_slave_enum(), target);
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+        4, this->_internal_some_slave_enum(), target);
   }
 
   // repeated .mesos.test.TestSlaveMessage.E some_slave_enums = 5;
-  target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
-    5, this->some_slave_enums_, target);
+  for (int i = 0, n = this->_internal_some_slave_enums_size(); i < n; ++i) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+        5, static_cast<::mesos::test::TestSlaveMessage_E>(this->_internal_some_slave_enums().Get(i)),
+        target);
+  }
 
-  if (_internal_metadata_.have_unknown_fields()) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        _internal_metadata_.unknown_fields(), target);
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:mesos.test.TestSlaveMessage)
   return target;
 }
 
-size_t TestSlaveMessage::ByteSizeLong() const {
+::size_t TestSlaveMessage::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mesos.test.TestSlaveMessage)
-  size_t total_size = 0;
+  ::size_t total_size = 0;
 
-  if (_internal_metadata_.have_unknown_fields()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        _internal_metadata_.unknown_fields());
-  }
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
   // repeated bool some_slave_fields = 2;
   {
-    unsigned int count = static_cast<unsigned int>(this->some_slave_fields_size());
-    size_t data_size = 1UL * count;
-    total_size += 1 *
-                  ::google::protobuf::internal::FromIntSize(this->some_slave_fields_size());
-    total_size += data_size;
+    std::size_t data_size = std::size_t{1} *
+        ::_pbi::FromIntSize(this->_internal_some_slave_fields_size())
+    ;
+    std::size_t tag_size = std::size_t{1} *
+        ::_pbi::FromIntSize(this->_internal_some_slave_fields_size());
+    ;
+    total_size += tag_size + data_size;
   }
-
   // map<bool, bool> some_slave_map = 3;
-  total_size += 1 *
-      ::google::protobuf::internal::FromIntSize(this->some_slave_map_size());
-  {
-    ::google::protobuf::scoped_ptr<TestSlaveMessage_SomeSlaveMapEntry_DoNotUse> entry;
-    for (::google::protobuf::Map< bool, bool >::const_iterator
-        it = this->some_slave_map().begin();
-        it != this->some_slave_map().end(); ++it) {
-      entry.reset(some_slave_map_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
-    }
+  total_size += 1 * ::google::protobuf::internal::FromIntSize(_internal_some_slave_map_size());
+  for (const auto& entry : _internal_some_slave_map()) {
+    total_size += TestSlaveMessage_SomeSlaveMapEntry_DoNotUse::Funcs::ByteSizeLong(entry.first, entry.second);
   }
-
   // repeated .mesos.test.TestSlaveMessage.E some_slave_enums = 5;
   {
-    size_t data_size = 0;
-    unsigned int count = static_cast<unsigned int>(this->some_slave_enums_size());for (unsigned int i = 0; i < count; i++) {
-      data_size += ::google::protobuf::internal::WireFormatLite::EnumSize(
-        this->some_slave_enums(static_cast<int>(i)));
-    }
-    total_size += (1UL * count) + data_size;
-  }
+    std::size_t data_size = 0;
+    auto count = static_cast<std::size_t>(this->_internal_some_slave_enums_size());
 
-  if (_has_bits_[0 / 32] & 3u) {
+    for (std::size_t i = 0; i < count; ++i) {
+      data_size += ::_pbi::WireFormatLite::EnumSize(
+          this->_internal_some_slave_enums().Get(static_cast<int>(i)));
+    }
+    total_size += data_size;
+    total_size += std::size_t{1} * count;
+  }
+  cached_has_bits = _impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
     // optional bool some_slave_field = 1;
-    if (has_some_slave_field()) {
-      total_size += 1 + 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 2;
     }
 
     // optional .mesos.test.TestSlaveMessage.E some_slave_enum = 4;
-    if (has_some_slave_enum()) {
+    if (cached_has_bits & 0x00000002u) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::EnumSize(this->some_slave_enum());
+                    ::_pbi::WireFormatLite::EnumSize(this->_internal_some_slave_enum());
     }
 
   }
-  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void TestSlaveMessage::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:mesos.test.TestSlaveMessage)
-  GOOGLE_DCHECK_NE(&from, this);
-  const TestSlaveMessage* source =
-      ::google::protobuf::internal::DynamicCastToGenerated<const TestSlaveMessage>(
-          &from);
-  if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:mesos.test.TestSlaveMessage)
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:mesos.test.TestSlaveMessage)
-    MergeFrom(*source);
-  }
-}
+const ::google::protobuf::Message::ClassData TestSlaveMessage::_class_data_ = {
+    ::google::protobuf::Message::CopyWithSourceCheck,
+    TestSlaveMessage::MergeImpl
+};
+const ::google::protobuf::Message::ClassData*TestSlaveMessage::GetClassData() const { return &_class_data_; }
 
-void TestSlaveMessage::MergeFrom(const TestSlaveMessage& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:mesos.test.TestSlaveMessage)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::google::protobuf::uint32 cached_has_bits = 0;
+
+void TestSlaveMessage::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
+  auto* const _this = static_cast<TestSlaveMessage*>(&to_msg);
+  auto& from = static_cast<const TestSlaveMessage&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:mesos.test.TestSlaveMessage)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  some_slave_fields_.MergeFrom(from.some_slave_fields_);
-  some_slave_map_.MergeFrom(from.some_slave_map_);
-  some_slave_enums_.MergeFrom(from.some_slave_enums_);
-  cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 3u) {
+  _this->_internal_mutable_some_slave_fields()->MergeFrom(from._internal_some_slave_fields());
+  _this->_impl_.some_slave_map_.MergeFrom(from._impl_.some_slave_map_);
+  _this->_internal_mutable_some_slave_enums()->MergeFrom(from._internal_some_slave_enums());
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
     if (cached_has_bits & 0x00000001u) {
-      some_slave_field_ = from.some_slave_field_;
+      _this->_impl_.some_slave_field_ = from._impl_.some_slave_field_;
     }
     if (cached_has_bits & 0x00000002u) {
-      some_slave_enum_ = from.some_slave_enum_;
+      _this->_impl_.some_slave_enum_ = from._impl_.some_slave_enum_;
     }
-    _has_bits_[0] |= cached_has_bits;
+    _this->_impl_._has_bits_[0] |= cached_has_bits;
   }
-}
-
-void TestSlaveMessage::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:mesos.test.TestSlaveMessage)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void TestSlaveMessage::CopyFrom(const TestSlaveMessage& from) {
@@ -735,297 +531,229 @@ void TestSlaveMessage::CopyFrom(const TestSlaveMessage& from) {
   MergeFrom(from);
 }
 
-bool TestSlaveMessage::IsInitialized() const {
+PROTOBUF_NOINLINE bool TestSlaveMessage::IsInitialized() const {
   return true;
 }
 
-void TestSlaveMessage::Swap(TestSlaveMessage* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
 void TestSlaveMessage::InternalSwap(TestSlaveMessage* other) {
   using std::swap;
-  some_slave_fields_.InternalSwap(&other->some_slave_fields_);
-  some_slave_map_.Swap(&other->some_slave_map_);
-  some_slave_enums_.InternalSwap(&other->some_slave_enums_);
-  swap(some_slave_field_, other->some_slave_field_);
-  swap(some_slave_enum_, other->some_slave_enum_);
-  swap(_has_bits_[0], other->_has_bits_[0]);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(_cached_size_, other->_cached_size_);
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.some_slave_fields_.InternalSwap(&other->_impl_.some_slave_fields_);
+  _impl_.some_slave_map_.InternalSwap(&other->_impl_.some_slave_map_);
+  _impl_.some_slave_enums_.InternalSwap(&other->_impl_.some_slave_enums_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_enum_)
+      + sizeof(TestSlaveMessage::_impl_.some_slave_enum_)
+      - PROTOBUF_FIELD_OFFSET(TestSlaveMessage, _impl_.some_slave_field_)>(
+          reinterpret_cast<char*>(&_impl_.some_slave_field_),
+          reinterpret_cast<char*>(&other->_impl_.some_slave_field_));
 }
 
 ::google::protobuf::Metadata TestSlaveMessage::GetMetadata() const {
-  protobuf_http_5ftests_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_http_5ftests_2eproto::file_level_metadata[kIndexInFileMessages];
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_http_5ftests_2eproto_getter, &descriptor_table_http_5ftests_2eproto_once,
+      file_level_metadata_http_5ftests_2eproto[1]);
 }
-
-
 // ===================================================================
 
-void ParentMessage::InitAsDefaultInstance() {
-  ::mesos::test::_ParentMessage_default_instance_._instance.get_mutable()->some_slave_message_ = const_cast< ::mesos::test::TestSlaveMessage*>(
-      ::mesos::test::TestSlaveMessage::internal_default_instance());
-}
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int ParentMessage::kSomeSlaveMessageFieldNumber;
-const int ParentMessage::kSomeSlaveMessagesFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+class ParentMessage::_Internal {
+ public:
+  using HasBits = decltype(std::declval<ParentMessage>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+    8 * PROTOBUF_FIELD_OFFSET(ParentMessage, _impl_._has_bits_);
+  static const ::mesos::test::TestSlaveMessage& some_slave_message(const ParentMessage* msg);
+  static void set_has_some_slave_message(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
 
-ParentMessage::ParentMessage()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    ::protobuf_http_5ftests_2eproto::InitDefaultsParentMessage();
-  }
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:mesos.test.ParentMessage)
+const ::mesos::test::TestSlaveMessage& ParentMessage::_Internal::some_slave_message(const ParentMessage* msg) {
+  return *msg->_impl_.some_slave_message_;
 }
-ParentMessage::ParentMessage(const ParentMessage& from)
-  : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _has_bits_(from._has_bits_),
-      _cached_size_(0),
-      some_slave_messages_(from.some_slave_messages_) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  if (from.has_some_slave_message()) {
-    some_slave_message_ = new ::mesos::test::TestSlaveMessage(*from.some_slave_message_);
-  } else {
-    some_slave_message_ = NULL;
+ParentMessage::ParentMessage(::google::protobuf::Arena* arena)
+    : ::google::protobuf::Message(arena) {
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:mesos.test.ParentMessage)
+}
+ParentMessage::ParentMessage(const ParentMessage& from) : ::google::protobuf::Message() {
+  ParentMessage* const _this = this;
+  (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_._has_bits_){from._impl_._has_bits_},
+      /*decltype(_impl_._cached_size_)*/ {},
+      decltype(_impl_.some_slave_messages_){from._impl_.some_slave_messages_},
+      decltype(_impl_.some_slave_message_){nullptr},
+  };
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    _this->_impl_.some_slave_message_ = new ::mesos::test::TestSlaveMessage(*from._impl_.some_slave_message_);
   }
+
   // @@protoc_insertion_point(copy_constructor:mesos.test.ParentMessage)
 }
-
-void ParentMessage::SharedCtor() {
-  _cached_size_ = 0;
-  some_slave_message_ = NULL;
+inline void ParentMessage::SharedCtor(::_pb::Arena* arena) {
+  (void)arena;
+  new (&_impl_) Impl_{
+      decltype(_impl_._has_bits_){},
+      /*decltype(_impl_._cached_size_)*/ {},
+      decltype(_impl_.some_slave_messages_){arena},
+      decltype(_impl_.some_slave_message_){nullptr},
+  };
 }
-
 ParentMessage::~ParentMessage() {
   // @@protoc_insertion_point(destructor:mesos.test.ParentMessage)
+  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   SharedDtor();
 }
-
-void ParentMessage::SharedDtor() {
-  if (this != internal_default_instance()) delete some_slave_message_;
+inline void ParentMessage::SharedDtor() {
+  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.some_slave_messages_.~RepeatedPtrField();
+  if (this != internal_default_instance()) delete _impl_.some_slave_message_;
 }
-
 void ParentMessage::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* ParentMessage::descriptor() {
-  ::protobuf_http_5ftests_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_http_5ftests_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
+  _impl_._cached_size_.Set(size);
 }
 
-const ParentMessage& ParentMessage::default_instance() {
-  ::protobuf_http_5ftests_2eproto::InitDefaultsParentMessage();
-  return *internal_default_instance();
-}
-
-ParentMessage* ParentMessage::New(::google::protobuf::Arena* arena) const {
-  ParentMessage* n = new ParentMessage;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void ParentMessage::Clear() {
+PROTOBUF_NOINLINE void ParentMessage::Clear() {
 // @@protoc_insertion_point(message_clear_start:mesos.test.ParentMessage)
-  ::google::protobuf::uint32 cached_has_bits = 0;
+  ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  some_slave_messages_.Clear();
-  cached_has_bits = _has_bits_[0];
+  _internal_mutable_some_slave_messages()->Clear();
+  cached_has_bits = _impl_._has_bits_[0];
   if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(some_slave_message_ != NULL);
-    some_slave_message_->Clear();
+    ABSL_DCHECK(_impl_.some_slave_message_ != nullptr);
+    _impl_.some_slave_message_->Clear();
   }
-  _has_bits_.Clear();
-  _internal_metadata_.Clear();
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
-bool ParentMessage::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:mesos.test.ParentMessage)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional .mesos.test.TestSlaveMessage some_slave_message = 1;
-      case 1: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(10u /* 10 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
-               input, mutable_some_slave_message()));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // repeated .mesos.test.TestSlaveMessage some_slave_messages = 2;
-      case 2: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(input, add_some_slave_messages()));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, _internal_metadata_.mutable_unknown_fields()));
-        break;
-      }
-    }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:mesos.test.ParentMessage)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:mesos.test.ParentMessage)
-  return false;
-#undef DO_
+const char* ParentMessage::_InternalParse(
+    const char* ptr, ::_pbi::ParseContext* ctx) {
+  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+  return ptr;
 }
 
-void ParentMessage::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:mesos.test.ParentMessage)
-  ::google::protobuf::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
 
-  cached_has_bits = _has_bits_[0];
-  // optional .mesos.test.TestSlaveMessage some_slave_message = 1;
-  if (cached_has_bits & 0x00000001u) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      1, *this->some_slave_message_, output);
-  }
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 2, 0, 2> ParentMessage::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ParentMessage, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    &_ParentMessage_default_instance_._instance,
+    ::_pbi::TcParser::GenericFallback,  // fallback
+  }, {{
+    // repeated .mesos.test.TestSlaveMessage some_slave_messages = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 63, 1, PROTOBUF_FIELD_OFFSET(ParentMessage, _impl_.some_slave_messages_)}},
+    // optional .mesos.test.TestSlaveMessage some_slave_message = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(ParentMessage, _impl_.some_slave_message_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // optional .mesos.test.TestSlaveMessage some_slave_message = 1;
+    {PROTOBUF_FIELD_OFFSET(ParentMessage, _impl_.some_slave_message_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .mesos.test.TestSlaveMessage some_slave_messages = 2;
+    {PROTOBUF_FIELD_OFFSET(ParentMessage, _impl_.some_slave_messages_), -1, 1,
+    (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }}, {{
+    {::_pbi::TcParser::GetTable<::mesos::test::TestSlaveMessage>()},
+    {::_pbi::TcParser::GetTable<::mesos::test::TestSlaveMessage>()},
+  }}, {{
+  }},
+};
 
-  // repeated .mesos.test.TestSlaveMessage some_slave_messages = 2;
-  for (unsigned int i = 0,
-      n = static_cast<unsigned int>(this->some_slave_messages_size()); i < n; i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      2, this->some_slave_messages(static_cast<int>(i)), output);
-  }
-
-  if (_internal_metadata_.have_unknown_fields()) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        _internal_metadata_.unknown_fields(), output);
-  }
-  // @@protoc_insertion_point(serialize_end:mesos.test.ParentMessage)
-}
-
-::google::protobuf::uint8* ParentMessage::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+::uint8_t* ParentMessage::_InternalSerialize(
+    ::uint8_t* target,
+    ::google::protobuf::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:mesos.test.ParentMessage)
-  ::google::protobuf::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
 
-  cached_has_bits = _has_bits_[0];
+  cached_has_bits = _impl_._has_bits_[0];
   // optional .mesos.test.TestSlaveMessage some_slave_message = 1;
   if (cached_has_bits & 0x00000001u) {
     target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageToArray(
-        1, *this->some_slave_message_, deterministic, target);
+      InternalWriteMessage(1, _Internal::some_slave_message(this),
+        _Internal::some_slave_message(this).GetCachedSize(), target, stream);
   }
 
   // repeated .mesos.test.TestSlaveMessage some_slave_messages = 2;
-  for (unsigned int i = 0,
-      n = static_cast<unsigned int>(this->some_slave_messages_size()); i < n; i++) {
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_some_slave_messages_size()); i < n; i++) {
+    const auto& repfield = this->_internal_some_slave_messages().Get(i);
     target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageToArray(
-        2, this->some_slave_messages(static_cast<int>(i)), deterministic, target);
+        InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  if (_internal_metadata_.have_unknown_fields()) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        _internal_metadata_.unknown_fields(), target);
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:mesos.test.ParentMessage)
   return target;
 }
 
-size_t ParentMessage::ByteSizeLong() const {
+::size_t ParentMessage::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:mesos.test.ParentMessage)
-  size_t total_size = 0;
+  ::size_t total_size = 0;
 
-  if (_internal_metadata_.have_unknown_fields()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        _internal_metadata_.unknown_fields());
-  }
-  // repeated .mesos.test.TestSlaveMessage some_slave_messages = 2;
-  {
-    unsigned int count = static_cast<unsigned int>(this->some_slave_messages_size());
-    total_size += 1UL * count;
-    for (unsigned int i = 0; i < count; i++) {
-      total_size +=
-        ::google::protobuf::internal::WireFormatLite::MessageSize(
-          this->some_slave_messages(static_cast<int>(i)));
-    }
-  }
-
-  // optional .mesos.test.TestSlaveMessage some_slave_message = 1;
-  if (has_some_slave_message()) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSize(
-        *this->some_slave_message_);
-  }
-
-  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void ParentMessage::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:mesos.test.ParentMessage)
-  GOOGLE_DCHECK_NE(&from, this);
-  const ParentMessage* source =
-      ::google::protobuf::internal::DynamicCastToGenerated<const ParentMessage>(
-          &from);
-  if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:mesos.test.ParentMessage)
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:mesos.test.ParentMessage)
-    MergeFrom(*source);
-  }
-}
-
-void ParentMessage::MergeFrom(const ParentMessage& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:mesos.test.ParentMessage)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::google::protobuf::uint32 cached_has_bits = 0;
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  some_slave_messages_.MergeFrom(from.some_slave_messages_);
-  if (from.has_some_slave_message()) {
-    mutable_some_slave_message()->::mesos::test::TestSlaveMessage::MergeFrom(from.some_slave_message());
+  // repeated .mesos.test.TestSlaveMessage some_slave_messages = 2;
+  total_size += 1UL * this->_internal_some_slave_messages_size();
+  for (const auto& msg : this->_internal_some_slave_messages()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
   }
+  // optional .mesos.test.TestSlaveMessage some_slave_message = 1;
+  cached_has_bits = _impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::MessageSize(
+        *_impl_.some_slave_message_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void ParentMessage::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:mesos.test.ParentMessage)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+const ::google::protobuf::Message::ClassData ParentMessage::_class_data_ = {
+    ::google::protobuf::Message::CopyWithSourceCheck,
+    ParentMessage::MergeImpl
+};
+const ::google::protobuf::Message::ClassData*ParentMessage::GetClassData() const { return &_class_data_; }
+
+
+void ParentMessage::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
+  auto* const _this = static_cast<ParentMessage*>(&to_msg);
+  auto& from = static_cast<const ParentMessage&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:mesos.test.ParentMessage)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_internal_mutable_some_slave_messages()->MergeFrom(from._internal_some_slave_messages());
+  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    _this->_internal_mutable_some_slave_message()->::mesos::test::TestSlaveMessage::MergeFrom(
+        from._internal_some_slave_message());
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void ParentMessage::CopyFrom(const ParentMessage& from) {
@@ -1035,31 +763,29 @@ void ParentMessage::CopyFrom(const ParentMessage& from) {
   MergeFrom(from);
 }
 
-bool ParentMessage::IsInitialized() const {
+PROTOBUF_NOINLINE bool ParentMessage::IsInitialized() const {
   return true;
 }
 
-void ParentMessage::Swap(ParentMessage* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
 void ParentMessage::InternalSwap(ParentMessage* other) {
   using std::swap;
-  some_slave_messages_.InternalSwap(&other->some_slave_messages_);
-  swap(some_slave_message_, other->some_slave_message_);
-  swap(_has_bits_[0], other->_has_bits_[0]);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(_cached_size_, other->_cached_size_);
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.some_slave_messages_.InternalSwap(&other->_impl_.some_slave_messages_);
+  swap(_impl_.some_slave_message_, other->_impl_.some_slave_message_);
 }
 
 ::google::protobuf::Metadata ParentMessage::GetMetadata() const {
-  protobuf_http_5ftests_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_http_5ftests_2eproto::file_level_metadata[kIndexInFileMessages];
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_http_5ftests_2eproto_getter, &descriptor_table_http_5ftests_2eproto_once,
+      file_level_metadata_http_5ftests_2eproto[2]);
 }
-
-
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace test
 }  // namespace mesos
-
+namespace google {
+namespace protobuf {
+}  // namespace protobuf
+}  // namespace google
 // @@protoc_insertion_point(global_scope)
+#include "google/protobuf/port_undef.inc"

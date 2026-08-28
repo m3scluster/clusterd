@@ -6,7 +6,7 @@ Stout is a header-only C++ library. Simply add the `include` folder to your incl
 >
 >  - Boost
 >  - Google's glog (this dependency will be removed in the future)
->  - Google's protobuf (version 3.3.x - 3.5.x is required to run tests)
+>  - Google's protobuf (3.24.4 for the bundled gRPC integration)
 >  - Google's gmock/gtest
 
 There are a handful of data structures provided within the library (including some collections), as well as some namespaced and miscellaneous utilities. Also included are abstractions for [command line flags](#flags).

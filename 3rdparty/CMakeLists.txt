@@ -24,7 +24,9 @@ endif ()
 
 
 # TODO(andschwa): Move each URL to the dependency itself.
+set(ABSEIL_URL          ${FETCH_URL}/abseil-cpp-${ABSEIL_VERSION}.tar.gz)
 set(BZIP2_URL           ${FETCH_URL}/bzip2-${BZIP2_VERSION}.tar.gz)
+set(CARES_URL           ${FETCH_URL}/c-ares-${CARES_VERSION}.tar.gz)
 set(CONCURRENTQUEUE_URL ${FETCH_URL}/concurrentqueue-${CONCURRENTQUEUE_VERSION}.tar.gz)
 set(CSI_V0_URL          ${FETCH_URL}/csi-${CSI_V0_VERSION}.tar.gz)
 set(CSI_V1_URL          ${FETCH_URL}/csi-${CSI_V1_VERSION}.tar.gz)
@@ -48,7 +50,7 @@ set(GRPC_URL            ${FETCH_URL}/downloads/grpc-${GRPC_VERSION}.tar.gz)
 set(GLOG_URL            https://github.com/AVENTER-UG/glog/archive/refs/tags/v${GLOG_VERSION}.tar.gz)
 set(LIBEVENT_URL        ${FETCH_URL}/downloads/libevent-${LIBEVENT_VERSION}-stable.tar.gz)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # NOTE: libevent doesn't come rebundled, so this URL is always the same. But,
 # it's only downloaded if `ENABLE_LIBEVENT` is set.
@@ -93,9 +95,17 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(External)
 include(PatchCommand)
 
+# Keep bundled third-party libraries independent from the linkage choice for
+# Mesos libraries.  In particular, executables must not require the bundled
+# protobuf/gRPC runtime libraries on the target server.
+option(
+  MESOS_BUNDLED_BUILD_SHARED_LIBS
+  "Build bundled third-party libraries as shared libraries"
+  OFF)
+
 # Variables for current specified linkage.
 # NOTE: Not all third-party dependencies will respect this.
-if (BUILD_SHARED_LIBS)
+if (MESOS_BUNDLED_BUILD_SHARED_LIBS)
   set(LIBRARY_LINKAGE SHARED)
   set(LIBRARY_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
 else ()
@@ -136,7 +146,7 @@ list(APPEND CMAKE_FORWARD_ARGS
   -G${CMAKE_GENERATOR}
   -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE}
-  -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS})
+  -DBUILD_SHARED_LIBS=${MESOS_BUNDLED_BUILD_SHARED_LIBS})
 
 # CMake 4 removes compatibility with policy versions older than 3.5, while
 # some of the bundled dependencies still declare an older minimum version.
@@ -196,12 +206,14 @@ endfunction()
 # https://cmake.org/pipermail/cmake/2015-April/060234.html
 function(GET_BYPRODUCTS TARGET)
   string(TOUPPER ${TARGET} NAME)
+  get_target_property(BYPRODUCTS ${TARGET} IMPORTED_LOCATION)
   if (CMAKE_GENERATOR MATCHES "Ninja")
-    get_target_property(BYPRODUCTS ${TARGET} IMPORTED_LOCATION)
     set(${NAME}_BYPRODUCTS ${BYPRODUCTS} PARENT_SCOPE)
   else ()
-    # Make this function a no-op when not using Ninja.
-    set(${NAME}_BYPRODUCTS "" PARENT_SCOPE)
+    # Make generators also need an explicit byproduct rule when an imported
+    # library is produced by ExternalProject_Add.  Without this, the imported
+    # library path becomes an unsatisfied prerequisite during the link step.
+    set(${NAME}_BYPRODUCTS ${BYPRODUCTS} PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -566,9 +578,66 @@ install(
   DIRECTORY ${RE2_INSTALL_DIR}/lib/
   DESTINATION ${MESOS_INSTALL_LIBRARIES})
 
+# Abseil: C++ utility library required by modern Protocol Buffers and gRPC.
+# https://abseil.io/
+###########################################################################
+EXTERNAL(abseil ${ABSEIL_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
+set(ABSEIL_INSTALL_DIR ${ABSEIL_ROOT}-install)
+set(ABSEIL_CMAKE_ARGS
+  ${CMAKE_CXX_FORWARD_ARGS}
+  -DABSL_BUILD_TESTING=OFF
+  -DABSL_ENABLE_INSTALL=ON
+  -DABSL_PROPAGATE_CXX_STD=ON
+  -DBUILD_SHARED_LIBS=OFF
+  -DCMAKE_INSTALL_PREFIX=${ABSEIL_INSTALL_DIR})
+
+ExternalProject_Add(
+  ${ABSEIL_TARGET}
+  PREFIX            ${ABSEIL_CMAKE_ROOT}
+  CMAKE_ARGS        ${ABSEIL_CMAKE_ARGS}
+  INSTALL_DIR       ${ABSEIL_INSTALL_DIR}
+  URL               ${ABSEIL_URL}
+  URL_HASH          ${ABSEIL_HASH})
+
+file(GLOB ABSL_STATIC_LIBRARIES ${ABSEIL_INSTALL_DIR}/lib/libabsl_*.a)
+set(ABSL_LINK_LIBRARIES
+  -Wl,--start-group
+  ${ABSL_STATIC_LIBRARIES}
+  -Wl,--end-group)
+
+install(
+  DIRECTORY ${ABSEIL_INSTALL_DIR}/lib/
+  DESTINATION ${MESOS_INSTALL_LIBRARIES})
+
+# c-ares: asynchronous DNS resolver required by gRPC 1.58.
+# https://c-ares.org/
+##############################################################
+EXTERNAL(cares ${CARES_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
+set(CARES_INSTALL_DIR ${CARES_ROOT}-install)
+set(CARES_CMAKE_ARGS
+  ${CMAKE_C_FORWARD_ARGS}
+  -DCARES_BUILD_TESTS=OFF
+  -DCARES_BUILD_TOOLS=OFF
+  -DCARES_SHARED=OFF
+  -DCARES_STATIC=ON
+  -DBUILD_SHARED_LIBS=OFF
+  -DCMAKE_INSTALL_PREFIX=${CARES_INSTALL_DIR})
+
+ExternalProject_Add(
+  ${CARES_TARGET}
+  PREFIX            ${CARES_CMAKE_ROOT}
+  CMAKE_ARGS        ${CARES_CMAKE_ARGS}
+  INSTALL_DIR       ${CARES_INSTALL_DIR}
+  URL               ${CARES_URL}
+  URL_HASH          ${CARES_HASH})
+
+install(
+  DIRECTORY ${CARES_INSTALL_DIR}/lib/
+  DESTINATION ${MESOS_INSTALL_LIBRARIES})
+
 # PicoJSON: JSON parser / serializer.
 # https://github.com/kazuho/picojson
-#####################################
+#############################################
 EXTERNAL(picojson ${PICOJSON_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
 add_library(picojson INTERFACE)
 add_dependencies(picojson ${PICOJSON_TARGET})
@@ -1477,12 +1546,18 @@ add_library(libprotoc ${LIBRARY_LINKAGE} IMPORTED GLOBAL)
 add_dependencies(protobuf ${PROTOBUF_TARGET})
 add_executable(protoc IMPORTED GLOBAL)
 add_dependencies(protoc ${PROTOBUF_TARGET})
+target_link_libraries(protobuf INTERFACE ${ABSL_LINK_LIBRARIES})
 
 set_target_properties(
   protobuf PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${PROTOBUF_ROOT}/src)
+  INTERFACE_INCLUDE_DIRECTORIES "${PROTOBUF_ROOT}/src;${ABSEIL_INSTALL_DIR}/include")
+
+set(PROTOBUF_INSTALL_DIR ${PROTOBUF_ROOT}-install)
 
 set(PROTOBUF_CMAKE_FORWARD_ARGS ${CMAKE_CXX_FORWARD_ARGS}
+  -Dprotobuf_ABSL_PROVIDER=package
+  -DCMAKE_PREFIX_PATH=${ABSEIL_INSTALL_DIR}
+  -DCMAKE_INSTALL_PREFIX=${PROTOBUF_INSTALL_DIR}
   -Dprotobuf_BUILD_TESTS=OFF)
 
 if (WIN32)
@@ -1544,11 +1619,39 @@ ExternalProject_Add(
   PREFIX            ${PROTOBUF_CMAKE_ROOT}
   PATCH_COMMAND     ${PROTOBUF_PATCH_CMD}
   BUILD_BYPRODUCTS  ${PROTOBUF_BYPRODUCTS}
-  SOURCE_SUBDIR     cmake
+  DEPENDS           ${ABSEIL_TARGET}
   CMAKE_ARGS        ${PROTOBUF_CMAKE_FORWARD_ARGS}
-  INSTALL_COMMAND   ${CMAKE_NOOP}
+  INSTALL_DIR       ${PROTOBUF_INSTALL_DIR}
   URL               ${PROTOBUF_URL}
   URL_HASH          ${PROTOBUF_HASH})
+
+if (NOT WIN32 AND NOT MESOS_BUNDLED_BUILD_SHARED_LIBS)
+  add_library(libprotobuf_utf8_range_static STATIC IMPORTED)
+  add_library(libprotobuf_utf8_validity_static STATIC IMPORTED)
+  add_dependencies(libprotobuf_utf8_range_static ${PROTOBUF_TARGET})
+  add_dependencies(libprotobuf_utf8_validity_static ${PROTOBUF_TARGET})
+  set_target_properties(libprotobuf_utf8_range_static PROPERTIES
+    IMPORTED_LOCATION ${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_range.a)
+  set_target_properties(libprotobuf_utf8_validity_static PROPERTIES
+    IMPORTED_LOCATION ${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_validity.a)
+
+  set(PROTOBUF_STATIC_OUTPUTS
+    ${PROTOBUF_ROOT}-build/libprotobuf${PROTOBUF_SUFFIX}${LIBRARY_SUFFIX}
+    ${PROTOBUF_ROOT}-build/libprotoc${PROTOBUF_SUFFIX}${LIBRARY_SUFFIX}
+    ${PROTOBUF_ROOT}-build/protoc
+    ${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_range.a
+    ${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_validity.a)
+
+  add_custom_command(
+    OUTPUT ${PROTOBUF_STATIC_OUTPUTS}
+    COMMAND ${CMAKE_COMMAND} --build ${PROTOBUF_ROOT}-build
+      --target libprotobuf libprotoc protoc utf8_range utf8_validity
+    DEPENDS ${PROTOBUF_TARGET}
+    VERBATIM)
+
+  add_custom_target(mesos-bundled-protobuf-static
+    DEPENDS ${PROTOBUF_STATIC_OUTPUTS})
+endif ()
 
 install(FILES $<TARGET_FILE:protobuf> DESTINATION ${3RDPARTY_LIBS_INSTALL_DIR})
 install(FILES $<TARGET_FILE:libprotoc> DESTINATION ${3RDPARTY_LIBS_INSTALL_DIR})
@@ -1564,6 +1667,11 @@ endif ()
 # gRPC: Google's high performance, open-source universal RPC framework.
 # https://grpc.io/
 #######################################################################
+if (ENABLE_SSL)
+  find_package(OpenSSL 1.1 REQUIRED)
+endif ()
+find_package(ZLIB REQUIRED)
+
 EXTERNAL(grpc ${GRPC_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(libgpr ${LIBRARY_LINKAGE} IMPORTED)
@@ -1577,8 +1685,69 @@ add_dependencies(libaddress_sorting ${GRPC_TARGET})
 add_library(libgrpc_plugin_support ${LIBRARY_LINKAGE} IMPORTED)
 add_dependencies(libgrpc_plugin_support ${GRPC_TARGET})
 
+if (NOT WIN32 AND NOT MESOS_BUNDLED_BUILD_SHARED_LIBS)
+  add_library(libaddress_sorting_static STATIC IMPORTED)
+  add_library(libupb_static STATIC IMPORTED)
+  add_library(libupb_collections_static STATIC IMPORTED)
+  add_library(libupb_json_static STATIC IMPORTED)
+  add_library(libupb_textformat_static STATIC IMPORTED)
+  add_library(libutf8_range_static STATIC IMPORTED)
+  add_library(libcares_static STATIC IMPORTED)
+  add_dependencies(libaddress_sorting_static ${GRPC_TARGET})
+  add_dependencies(libupb_static ${GRPC_TARGET})
+  add_dependencies(libupb_collections_static ${GRPC_TARGET})
+  add_dependencies(libupb_json_static ${GRPC_TARGET})
+  add_dependencies(libupb_textformat_static ${GRPC_TARGET})
+  add_dependencies(libutf8_range_static ${GRPC_TARGET})
+  add_dependencies(libcares_static ${CARES_TARGET})
+  set_target_properties(libaddress_sorting_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libaddress_sorting.a)
+  set_target_properties(libupb_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb.a)
+  set_target_properties(libupb_collections_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_collections_lib.a)
+  set_target_properties(libupb_json_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_json_lib.a)
+  set_target_properties(libupb_textformat_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_textformat_lib.a)
+  set_target_properties(libutf8_range_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libutf8_range_lib.a)
+  set_target_properties(libcares_static PROPERTIES
+    IMPORTED_LOCATION ${CARES_INSTALL_DIR}/lib/libcares.a)
+endif ()
+
 add_library(grpc INTERFACE)
-target_link_libraries(grpc INTERFACE libgrpc++ libgrpc libgpr)
+target_link_libraries(grpc INTERFACE
+  libgrpc++
+  libgrpc
+  libgpr
+  ${ABSL_LINK_LIBRARIES})
+
+if (TARGET libaddress_sorting_static)
+  target_link_libraries(grpc INTERFACE
+    libaddress_sorting_static
+    libupb_static
+    libupb_collections_static
+    libupb_json_static
+    libupb_textformat_static
+    libutf8_range_static
+    libcares_static)
+  target_link_libraries(grpc INTERFACE
+    libprotobuf_utf8_range_static
+    libprotobuf_utf8_validity_static)
+endif ()
+
+if (ENABLE_SSL)
+  target_link_libraries(grpc INTERFACE
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ${OPENSSL_SSL_LIBRARY}
+    ${OPENSSL_CRYPTO_LIBRARY})
+endif ()
+
+target_link_libraries(grpc INTERFACE
+  ZLIB::ZLIB
+  ${ZLIB_LIBRARY})
 
 # TODO(chhsiao): Move grpc so these don't have to be GLOBAL.
 add_executable(grpc_cpp_plugin IMPORTED GLOBAL)
@@ -1587,9 +1756,15 @@ add_dependencies(grpc_cpp_plugin ${GRPC_TARGET})
 set(GRPC_CMAKE_ARGS
   ${CMAKE_C_FORWARD_ARGS}
   ${CMAKE_CXX_FORWARD_ARGS}
-  -DCMAKE_PREFIX_PATH=${PROTOBUF_ROOT}-build
+  -DCMAKE_PREFIX_PATH=${PROTOBUF_INSTALL_DIR}
+  -Dabsl_DIR=${ABSEIL_INSTALL_DIR}/lib/cmake/absl
+  -Dc-ares_DIR=${CARES_INSTALL_DIR}/lib/cmake/c-ares
+  -Dre2_DIR=${RE2_INSTALL_DIR}/lib/cmake/re2
+  -DgRPC_ABSL_PROVIDER=package
+  -DgRPC_CARES_PROVIDER=package
   -DgRPC_PROTOBUF_PROVIDER=package
   -DgRPC_PROTOBUF_PACKAGE_TYPE=CONFIG
+  -DgRPC_RE2_PROVIDER=package
   -DgRPC_ZLIB_PROVIDER=package)
 
 if (ENABLE_SSL)
@@ -1696,7 +1871,7 @@ GET_BYPRODUCTS(grpc_cpp_plugin)
 
 ExternalProject_Add(
   ${GRPC_TARGET}
-  DEPENDS          protobuf protoc zlib
+  DEPENDS          protobuf protoc zlib ${ABSEIL_TARGET} ${CARES_TARGET} ${RE2_TARGET}
   PREFIX           ${GRPC_CMAKE_ROOT}
   PATCH_COMMAND    ${GRPC_PATCH_CMD}
   BUILD_BYPRODUCTS ${LIBGPR_BYPRODUCTS};${LIBGRPC_BYPRODUCTS};${LIBGRPC++_BYPRODUCTS};${GRPC_CPP_PLUGIN_BYPRODUCTS}

@@ -1,5 +1,9 @@
 ## Master
 
+- CHANGE: [build, grpc] upgrade gRPC to 1.58.0 and Protobuf to 3.24.4.
+          Bundle Abseil 20230802.0 and c-ares 1.22.1 as CMake package
+          dependencies; C++17 is now required for this dependency chain.
+- FIX: `CURLINFO_CONTENT_LENGTH_DOWNLOAD` is deprecated #18
 - ADD: [master, agent, metrics] live host utilization gauges for CPU, memory,
        disk, GPU, and normalized load. Metrics are exposed as
        `master/*_utilization` and `slave/*_utilization` percentages without

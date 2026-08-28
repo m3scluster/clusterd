@@ -77,7 +77,7 @@ inline Try<Nothing> write(int_fd fd, const google::protobuf::Message& message)
   }
 
   // First write the size of the protobuf.
-  uint32_t size = message.ByteSize();
+  uint32_t size = static_cast<uint32_t>(message.ByteSizeLong());
   std::string bytes((char*) &size, sizeof(size));
 
   Try<Nothing> result = os::write(fd, bytes);

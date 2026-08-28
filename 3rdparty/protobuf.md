@@ -7,15 +7,10 @@ https://github.com/google/protobuf
 ## How To Bundle:
 
 ```
-curl -L -O https://github.com/google/protobuf/archive/<version>.tar.gz
-tar -xzf <version>.tar.gz
-cd <version>
-./autogen.sh
-cd ..
-tar -czf <version>.tar.gz <version>
+curl -L -O https://github.com/protocolbuffers/protobuf/archive/refs/tags/v<version>.tar.gz
 ```
 
 ## Bundled Version
 
-We bundle 3.5.0 in order to take advantage of C++ move support and
-additional optimizations.
+We bundle 3.24.4 for compatibility with gRPC 1.58.0. It uses Abseil through
+the CMake package interface.

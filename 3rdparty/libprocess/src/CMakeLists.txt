@@ -106,6 +106,14 @@ endif ()
 
 add_library(process ${PROCESS_SRC})
 
+# Static bundled libraries are imported files produced by ExternalProject_Add.
+# Keep their build targets explicit because Make does not propagate the
+# dependency through an imported target's transitive link interface.
+add_dependencies(process ${PROTOBUF_TARGET} ${GRPC_TARGET})
+if (TARGET mesos-bundled-protobuf-static)
+  add_dependencies(process mesos-bundled-protobuf-static)
+endif ()
+
 target_link_libraries(
   process PUBLIC
   stout

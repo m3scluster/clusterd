@@ -298,8 +298,7 @@ TEST_P(SSLTestStringParameter, VerifyBadCA)
       {"LIBPROCESS_SSL_HOSTNAME_VALIDATION_SCHEME", GetParam()}});
   ASSERT_SOME(server);
 
-  Try<std::string> hostname = net::getHostname(process::address().ip);
-  ASSERT_SOME(hostname);
+  const std::string hostname = "localhost";
 
   Try<Address> address = server->address();
   ASSERT_SOME(address);
@@ -310,7 +309,7 @@ TEST_P(SSLTestStringParameter, VerifyBadCA)
       {"LIBPROCESS_SSL_CERT_FILE", certificate_path().string()},
       {"LIBPROCESS_SSL_VERIFY_SERVER_CERT", "true"},
       {"LIBPROCESS_SSL_HOSTNAME_VALIDATION_SCHEME", GetParam()}},
-      *hostname,
+      hostname,
       address->ip,
       address->port,
       true);
@@ -341,8 +340,7 @@ TEST_P(SSLTestStringParameter, VerifyCertificate)
       {"LIBPROCESS_SSL_HOSTNAME_VALIDATION_SCHEME", GetParam()}});
   ASSERT_SOME(server);
 
-  Try<std::string> hostname = net::getHostname(process::address().ip);
-  ASSERT_SOME(hostname);
+  const std::string hostname = "localhost";
 
   Try<Address> address = server->address();
   ASSERT_SOME(address);
@@ -354,7 +352,7 @@ TEST_P(SSLTestStringParameter, VerifyCertificate)
       {"LIBPROCESS_SSL_CA_FILE", certificate_path().string()},
       {"LIBPROCESS_SSL_VERIFY_SERVER_CERT", "true"},
       {"LIBPROCESS_SSL_HOSTNAME_VALIDATION_SCHEME", GetParam()}},
-      *hostname,
+      hostname,
       address->ip,
       address->port,
       true);
@@ -939,9 +937,10 @@ TEST_P(SSLVerifyIPAddTest, BasicSameProcess)
   Try<Socket> client = Socket::create(SocketImpl::Kind::SSL);
   ASSERT_SOME(client);
 
-  // We need to explicitly bind to the address advertised by libprocess so the
-  // certificate we create in this test fixture can be verified.
-  ASSERT_SOME(server->bind(Address(net::IP(process::address().ip), 0)));
+  // Use loopback so the legacy hostname validation resolves to localhost.
+  Try<net::IP> loopback = net::IP::parse("127.0.0.1", AF_INET);
+  ASSERT_SOME(loopback);
+  ASSERT_SOME(server->bind(Address(loopback.get(), 0)));
   ASSERT_SOME(server->listen(BACKLOG));
 
   Try<Address> address = server->address();

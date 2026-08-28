@@ -19,7 +19,7 @@
 using std::string;
 
 #ifdef __linux__
-static const string valid_library_path = "libdl.so";
+static const string valid_library_path = "libdl.so.2";
 #elif defined(__FreeBSD__)
 static const string valid_library_path = "libc.so.7";
 #elif defined(__WINDOWS__)

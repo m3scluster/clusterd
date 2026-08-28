@@ -187,13 +187,12 @@ protected:
       cleanup("Could not generate private key: " + private_key.error());
     }
 
-    // Figure out the hostname that libprocess is advertising.
-    // Set the hostname of the certificate to this hostname so that
-    // hostname verification of the certificate will pass.
-    Try<std::string> hostname = net::getHostname(process::address().ip);
-    if (hostname.isError()) {
-      cleanup("Could not determine hostname of libprocess: " +
-              hostname.error());
+    // Use localhost for deterministic hostname verification in tests.
+    const std::string hostname = "localhost";
+    Try<net::IP> loopback = net::IP::parse("127.0.0.1", AF_INET);
+    if (loopback.isError()) {
+      cleanup("Could not determine test loopback address: " +
+              loopback.error());
     }
 
     // Generate an authorized certificate.
@@ -203,8 +202,8 @@ protected:
         None(),
         1,
         365,
-        hostname.get(),
-        net::IP(process::address().ip));
+        hostname,
+        loopback.get());
 
     if (certificate.isError()) {
       cleanup("Could not generate certificate: " + certificate.error());
@@ -312,11 +311,11 @@ protected:
 
     process::network::inet::Socket server = create.get();
 
-    // We need to explicitly bind to the address advertised by libprocess so the
-    // certificate we create in this test fixture can be verified.
+    // Use loopback so the legacy hostname validation resolves to localhost.
     Try<process::network::inet::Address> bind =
       server.bind(
-          process::network::inet::Address(net::IP(process::address().ip), 0));
+          process::network::inet::Address(
+              net::IP::parse("127.0.0.1", AF_INET).get(), 0));
 
     if (bind.isError()) {
       return Error(bind.error());

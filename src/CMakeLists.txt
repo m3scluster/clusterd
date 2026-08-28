@@ -22,7 +22,7 @@ set(PUBLIC_PROTOBUF_SRC "")
 set(INTERNAL_PROTOBUF_SRC "")
 set(JAVA_PROTOBUF_SRC "")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Build the protobuf structs.
@@ -108,15 +108,13 @@ endif ()
 
 # BUILD PROTOBUFS.
 ##################
-# This must always be built as a shared library because of the following issue:
-# https://github.com/google/protobuf/issues/1941
-#
-# Unfortunately, this is not supported on Windows. But because modules are not
-# yet supported either, for now we can build it statically.
-if (WIN32)
-  set(MESOS_PROTOBUFS_LINKAGE STATIC)
-else ()
+# Keep the generated protobuf library static with the bundled dependency
+# configuration. This prevents installed Mesos executables from requiring the
+# bundled protobuf runtime at startup.
+if (MESOS_BUNDLED_BUILD_SHARED_LIBS)
   set(MESOS_PROTOBUFS_LINKAGE SHARED)
+else ()
+  set(MESOS_PROTOBUFS_LINKAGE STATIC)
 endif ()
 
 add_library(

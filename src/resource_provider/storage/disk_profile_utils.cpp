@@ -16,6 +16,8 @@
 
 #include "resource_provider/storage/disk_profile_utils.hpp"
 
+#include <absl/status/status.h>
+
 #include <google/protobuf/util/json_util.h>
 
 #include <stout/bytes.hpp>
@@ -39,7 +41,7 @@ Try<DiskProfileMapping> parseDiskProfileMapping(
   google::protobuf::util::JsonParseOptions options;
   options.ignore_unknown_fields = true;
 
-  google::protobuf::util::Status status =
+  absl::Status status =
     google::protobuf::util::JsonStringToMessage(data, &output, options);
 
   if (!status.ok()) {

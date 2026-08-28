@@ -194,7 +194,7 @@ TYPED_TEST(CSIUtilsTest, DevolveAndEvolve)
   foreach (const string& example, examples) {
     // NOTE: We use Google's JSON utility functions for proto3.
     TypeParam versioned;
-    ASSERT_EQ(util::Status::OK, util::JsonStringToMessage(example, &versioned));
+    ASSERT_TRUE(util::JsonStringToMessage(example, &versioned).ok());
     EXPECT_EQ(versioned, devolveAndEvolve(versioned)) << example;
   }
 }

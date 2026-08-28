@@ -20,6 +20,8 @@
 #include <ostream>
 #include <type_traits>
 
+#include <absl/status/status.h>
+
 // ONLY USEFUL AFTER RUNNING PROTOC.
 #include <csi/v1/csi.pb.h>
 
@@ -90,11 +92,11 @@ std::ostream& operator<<(std::ostream& stream, const Message& message)
 {
   // NOTE: We use Google's JSON utility functions for proto3.
   std::string output;
-  google::protobuf::util::Status status =
+  absl::Status status =
     google::protobuf::util::MessageToJsonString(message, &output);
 
   CHECK(status.ok())
-    << "Could not convert messages to string: " << status.error_message();
+    << "Could not convert messages to string: " << status.message();
 
   return stream << output;
 }
