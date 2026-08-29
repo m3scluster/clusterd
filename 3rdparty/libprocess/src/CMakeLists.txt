@@ -121,6 +121,7 @@ target_link_libraries(
 
 target_link_libraries(
   process PRIVATE
+  mesos-protobuf-headers
   $<$<BOOL:${ENABLE_SSL}>:OpenSSL::SSL>
   $<$<BOOL:${ENABLE_SSL}>:OpenSSL::Crypto>)
 

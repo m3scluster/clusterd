@@ -28,7 +28,6 @@ target_link_libraries(
   libarchive
   libcurl
   picojson
-  protobuf
   rapidjson
   Threads::Threads
   zlib

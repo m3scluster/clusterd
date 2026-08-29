@@ -33,6 +33,14 @@
 #include <stout/net.hpp>
 #include <stout/stringify.hpp>
 
+// The public libprocess JWT API still uses RSA* for ABI compatibility. Keep
+// the OpenSSL 1.x low-level calls isolated until that API can be migrated to
+// EVP_PKEY without breaking consumers.
+#if defined(__GNUC__) && OPENSSL_VERSION_NUMBER >= 0x30000000L
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 // TODO(jmlvanre): Add higher level abstractions for key and
 // certificate generation.
 
@@ -66,30 +74,49 @@ Try<EVP_PKEY*> generate_private_rsa_key(int bits, unsigned long _exponent)
     return Error("Failed to set exponent: BN_set_word");
   }
 
-  // Allocate the in-memory structure for the key pair.
-  RSA* rsa = RSA_new();
-  if (rsa == nullptr) {
+  // Generate the RSA key pair using EVP interface
+  EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+  if (ctx == nullptr) {
     BN_free(exponent);
     EVP_PKEY_free(private_key);
-    return Error("Failed to allocate RSA: RSA_new");
+    return Error("Failed to create PKEY context: EVP_PKEY_CTX_new_id");
   }
-
-  // Generate the RSA key pair.
-  if (RSA_generate_key_ex(rsa, bits, exponent, nullptr) != 1) {
-    RSA_free(rsa);
+  
+  if (EVP_PKEY_keygen_init(ctx) <= 0) {
     BN_free(exponent);
     EVP_PKEY_free(private_key);
-    return Error(ERR_error_string(ERR_get_error(), nullptr));
+    EVP_PKEY_CTX_free(ctx);
+    return Error("Failed to initialize key generation: EVP_PKEY_keygen_init");
   }
-
-  // We no longer need the exponent, so let's free it.
+  
+  // Set key parameters
+  if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, bits) <= 0) {
+    BN_free(exponent);
+    EVP_PKEY_free(private_key);
+    EVP_PKEY_CTX_free(ctx);
+    return Error("Failed to set key bits: EVP_PKEY_CTX_set_rsa_keygen_bits");
+  }
+  
+  if (EVP_PKEY_CTX_set_rsa_keygen_pubexp(ctx, exponent) <= 0) {
+    BN_free(exponent);
+    EVP_PKEY_free(private_key);
+    EVP_PKEY_CTX_free(ctx);
+    return Error("Failed to set public exponent: EVP_PKEY_CTX_set_rsa_keygen_pubexp");
+  }
+  
+  EVP_PKEY* rsa_key = nullptr;
+  if (EVP_PKEY_keygen(ctx, &rsa_key) <= 0) {
+    BN_free(exponent);
+    EVP_PKEY_free(private_key);
+    EVP_PKEY_CTX_free(ctx);
+    return Error("Failed to generate RSA key: EVP_PKEY_keygen");
+  }
+  
+  EVP_PKEY_CTX_free(ctx);
   BN_free(exponent);
-
-  // Associate the RSA key with the private key. If this association
-  // is successful, then the RSA key will be freed when the private
-  // key is freed.
-  if (EVP_PKEY_assign_RSA(private_key, rsa) != 1) {
-    RSA_free(rsa);
+  
+  // Associate the generated key with the private key.
+  if (EVP_PKEY_assign_RSA(private_key, rsa_key) != 1) {
     EVP_PKEY_free(private_key);
     return Error("Failed to assign RSA key: EVP_PKEY_assign_RSA");
   }
@@ -475,6 +502,10 @@ Try<Nothing> verify_rsa_sha256(
   return Nothing();
 }
 
-} // namespace openssl {
-} // namespace network {
-} // namespace process {
+} // namespace openssl
+} // namespace network
+} // namespace process
+
+#if defined(__GNUC__) && OPENSSL_VERSION_NUMBER >= 0x30000000L
+#pragma GCC diagnostic pop
+#endif

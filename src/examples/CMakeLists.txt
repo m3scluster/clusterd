@@ -116,6 +116,6 @@ if (NOT WIN32)
   if (LINUX)
     # NOTE: We explicitly add `grpc` here since the test CSI plugin uses the
     # server-side gRPC library, which might not be linked in mesos.
-    target_link_libraries(test-csi-plugin PRIVATE mesos grpc)
+    target_link_libraries(test-csi-plugin PRIVATE mesos grpc protobuf)
   endif ()
 endif ()

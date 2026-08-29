@@ -655,6 +655,14 @@ target_link_libraries(mesos PRIVATE
   mesos-grpc-static-link
   -Wl,--end-group)
 
+target_link_libraries(mesos PUBLIC mesos-protobuf-headers)
+
+if (NOT MESOS_BUNDLED_BUILD_SHARED_LIBS AND NOT WIN32)
+  # Export the statically embedded Protobuf/gRPC symbols so executables that
+  # link against libmesos do not embed a second runtime copy.
+  target_link_options(mesos PRIVATE -Wl,-E)
+endif ()
+
 if (NOT WIN32)
   target_link_libraries(mesos PUBLIC leveldb)
   target_link_libraries(mesos PUBLIC re2)
