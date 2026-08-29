@@ -653,6 +653,9 @@ add_dependencies(mesos mesos-protobufs)
 target_link_libraries(mesos PRIVATE
   mesos-protobufs
   mesos-grpc-static-link)
+target_link_libraries(mesos INTERFACE
+  mesos-protobufs
+  mesos-protobuf-static-link)
 
 target_link_libraries(mesos PUBLIC mesos-protobuf-headers)
 

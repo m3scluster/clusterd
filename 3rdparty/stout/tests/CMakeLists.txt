@@ -105,7 +105,7 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/protobuf_tests.proto)
 
 add_executable(stout-tests EXCLUDE_FROM_ALL ${STOUT_TESTS_SRC})
-target_link_libraries(stout-tests PRIVATE stout googletest)
+target_link_libraries(stout-tests PRIVATE stout googletest protobuf)
 target_include_directories(stout-tests PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # ADD TEST TARGET (runs when you do, e.g., `make check`).

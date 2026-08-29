@@ -16,5 +16,5 @@
 
 # Compile the example to make sure it remains valid.
 add_executable(example EXCLUDE_FROM_ALL example.cpp)
-target_link_libraries(example process)
+target_link_libraries(example process mesos-grpc-static-link re2)
 add_dependencies(libprocess-tests example)

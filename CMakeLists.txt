@@ -100,17 +100,19 @@ set(OS_DISTRIBUTION "${DISTRO}${VERSION}")
 
 # Package dependencies
 ######################
+# Use /usr as the default installation prefix, while preserving an explicitly
+# configured CMAKE_INSTALL_PREFIX from the command line or cache.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
+endif()
+
 if(OS_DISTRIBUTION STREQUAL "debian11")
-  set(CMAKE_INSTALL_PREFIX "/usr")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,protobuf-compiler,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
 elseif(OS_DISTRIBUTION STREQUAL "debian12")
-  set(CMAKE_INSTALL_PREFIX "/usr")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,protobuf-compiler,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
 elseif(OS_DISTRIBUTION STREQUAL "ubuntu2204")
-  set(CMAKE_INSTALL_PREFIX "/usr")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libcurl4-nss-dev,libsvn-dev,protobuf-compiler,libevent-openssl-2.1-7,libevent-pthreads-2.1-7")
 elseif(OS_DISTRIBUTION STREQUAL "ubuntu2404")
-  set(CMAKE_INSTALL_PREFIX "/usr")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libapr1,libsvn-dev,libevent-openssl-2.1-7t64,libevent-pthreads-2.1-7t64")
 endif()
 

@@ -1557,7 +1557,10 @@ add_library(libprotoc ${LIBRARY_LINKAGE} IMPORTED GLOBAL)
 add_dependencies(protobuf ${PROTOBUF_TARGET})
 add_executable(protoc IMPORTED GLOBAL)
 add_dependencies(protoc ${PROTOBUF_TARGET})
-target_link_libraries(protobuf INTERFACE ${ABSL_LINK_LIBRARIES})
+target_link_libraries(protobuf INTERFACE
+  ${ABSL_LINK_LIBRARIES}
+  ${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_range.a
+  ${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_validity.a)
 
 set_target_properties(
   protobuf PROPERTIES
@@ -1945,10 +1948,15 @@ ExternalProject_Add(
   URL_HASH         ${GRPC_HASH})
 
 if (TARGET libaddress_sorting_static)
+  add_library(mesos-protobuf-static-link INTERFACE IMPORTED GLOBAL)
+  set_target_properties(mesos-protobuf-static-link PROPERTIES
+    INTERFACE_LINK_LIBRARIES
+    "-Wl,--start-group;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_range.a;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_validity.a;${PROTOBUF_ROOT}-build/libprotobuf.a;${PROTOBUF_ROOT}-build/libupb.a;-Wl,--whole-archive;${ABSL_STATIC_LIBRARIES};-Wl,--no-whole-archive;-Wl,--end-group")
+
   add_library(mesos-grpc-static-link INTERFACE IMPORTED GLOBAL)
   set_target_properties(mesos-grpc-static-link PROPERTIES
     INTERFACE_LINK_LIBRARIES
-    "-Wl,--start-group;${GRPC_ROOT}-build/libgrpc++.a;-Wl,--whole-archive;${GRPC_ROOT}-build/libgrpc.a;-Wl,--no-whole-archive;${GRPC_ROOT}-build/libgpr.a;${GRPC_ROOT}-build/libaddress_sorting.a;${GRPC_ROOT}-build/libupb_base_lib.a;${GRPC_ROOT}-build/libupb_descriptor_lib.a;${GRPC_ROOT}-build/libupb_hash_lib.a;${GRPC_ROOT}-build/libupb_json_lib.a;${GRPC_ROOT}-build/libupb_lex_lib.a;${GRPC_ROOT}-build/libupb_mem_lib.a;${GRPC_ROOT}-build/libupb_message_lib.a;${GRPC_ROOT}-build/libupb_mini_descriptor_lib.a;${GRPC_ROOT}-build/libupb_mini_table_lib.a;${GRPC_ROOT}-build/libupb_reflection_lib.a;${GRPC_ROOT}-build/libupb_textformat_lib.a;${GRPC_ROOT}-build/libupb_wire_lib.a;${GRPC_ROOT}-build/libutf8_range_lib.a;${CARES_INSTALL_DIR}/lib/libcares.a;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_range.a;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_validity.a;${PROTOBUF_ROOT}-build/libprotobuf.a;${PROTOBUF_ROOT}-build/libupb.a;${ABSL_STATIC_LIBRARIES};-Wl,--end-group;${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY};${ZLIB_LIBRARY}")
+    "-Wl,--start-group;${GRPC_ROOT}-build/libgrpc++.a;-Wl,--whole-archive;${GRPC_ROOT}-build/libgrpc.a;-Wl,--no-whole-archive;${GRPC_ROOT}-build/libgpr.a;${GRPC_ROOT}-build/libaddress_sorting.a;${GRPC_ROOT}-build/libupb_base_lib.a;${GRPC_ROOT}-build/libupb_descriptor_lib.a;${GRPC_ROOT}-build/libupb_hash_lib.a;${GRPC_ROOT}-build/libupb_json_lib.a;${GRPC_ROOT}-build/libupb_lex_lib.a;${GRPC_ROOT}-build/libupb_mem_lib.a;${GRPC_ROOT}-build/libupb_message_lib.a;${GRPC_ROOT}-build/libupb_mini_descriptor_lib.a;${GRPC_ROOT}-build/libupb_mini_table_lib.a;${GRPC_ROOT}-build/libupb_reflection_lib.a;${GRPC_ROOT}-build/libupb_textformat_lib.a;${GRPC_ROOT}-build/libupb_wire_lib.a;${GRPC_ROOT}-build/libutf8_range_lib.a;${CARES_INSTALL_DIR}/lib/libcares.a;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_range.a;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_validity.a;${PROTOBUF_ROOT}-build/libprotobuf.a;${PROTOBUF_ROOT}-build/libupb.a;$<TARGET_FILE:re2>;-Wl,--whole-archive;${ABSL_STATIC_LIBRARIES};-Wl,--no-whole-archive;-Wl,--end-group;${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY};${ZLIB_LIBRARY}")
 endif ()
 
 add_library(mesos-protobuf-headers INTERFACE IMPORTED GLOBAL)

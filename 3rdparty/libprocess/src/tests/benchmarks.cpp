@@ -634,7 +634,7 @@ public:
     size_t count;
 
     for (count = 0; watch.elapsed() < Seconds(1); count++) {
-      MessageEvent event(self(), self(), message.GetTypeName(),
+      MessageEvent event(self(), self(), string(message.GetTypeName()),
           data.c_str(), data.length());
       consume(std::move(event));
     }

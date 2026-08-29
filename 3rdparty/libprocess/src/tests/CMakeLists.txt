@@ -79,7 +79,7 @@ if (ENABLE_SSL)
 endif ()
 
 add_library(process-interface INTERFACE)
-target_link_libraries(process-interface INTERFACE process googletest)
+target_link_libraries(process-interface INTERFACE process googletest protobuf mesos-grpc-static-link re2)
 target_include_directories(process-interface INTERFACE ..)
 
 add_executable(libprocess-tests EXCLUDE_FROM_ALL ${PROCESS_TESTS_SRC})
