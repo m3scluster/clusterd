@@ -610,7 +610,8 @@ ExternalProject_Add(
   URL               ${ABSEIL_URL}
   URL_HASH          ${ABSEIL_HASH})
 
-file(GLOB ABSL_STATIC_LIBRARIES ${ABSEIL_INSTALL_DIR}/lib/libabsl_*.a)
+file(GLOB ABSL_STATIC_LIBRARIES CONFIGURE_DEPENDS
+  ${ABSEIL_INSTALL_DIR}/lib/libabsl_*.a)
 set(ABSL_LINK_LIBRARIES
   -Wl,--start-group
   ${ABSL_STATIC_LIBRARIES}
