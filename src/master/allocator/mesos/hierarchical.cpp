@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <set>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1990,7 +1991,8 @@ void HierarchicalAllocatorProcess::__generateOffers()
   // Randomize the order in which slaves' resources are allocated.
   //
   // TODO(vinod): Implement a smarter sorting algorithm.
-  std::random_shuffle(slaveIds.begin(), slaveIds.end());
+  static std::mt19937 generator(std::random_device{}());
+  std::shuffle(slaveIds.begin(), slaveIds.end(), generator);
 
   // To enforce quota, we keep track of consumed quota for roles with a
   // non-default quota.
@@ -2390,7 +2392,8 @@ void HierarchicalAllocatorProcess::__generateOffers()
   // We randomize the agents here to "spread out" the effect of the first
   // stage, which tends to allocate from the front of the agent list more
   // so than the back.
-  std::random_shuffle(slaveIds.begin(), slaveIds.end());
+  static std::mt19937 generator(std::random_device{}());
+  std::shuffle(slaveIds.begin(), slaveIds.end(), generator);
 
   foreach (const SlaveID& slaveId, slaveIds) {
     Slave& slave = *CHECK_NOTNONE(getSlave(slaveId));

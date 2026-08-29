@@ -650,7 +650,7 @@ target_link_libraries(
   $<$<AND:$<PLATFORM_ID:Linux>,$<BOOL:${ENABLE_NVML}>>:nvml>)
 
 add_dependencies(mesos mesos-protobufs)
-target_link_libraries(mesos INTERFACE
+target_link_libraries(mesos PRIVATE
   mesos-protobufs
   mesos-grpc-static-link)
 

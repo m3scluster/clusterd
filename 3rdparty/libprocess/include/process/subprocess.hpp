@@ -16,6 +16,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <process/future.hpp>
@@ -129,10 +130,10 @@ public:
         const std::vector<Subprocess::ChildHook>& child_hooks,
         const std::vector<int_fd>& whitelist_fds);
 
-    IO(const lambda::function<Try<InputFileDescriptors>()>& _input,
-       const lambda::function<Try<OutputFileDescriptors>()>& _output)
-      : input(_input),
-        output(_output) {}
+    IO(lambda::function<Try<InputFileDescriptors>()> _input,
+       lambda::function<Try<OutputFileDescriptors>()> _output)
+      : input(std::move(_input)),
+        output(std::move(_output)) {}
 
     /**
      * Prepares a set of file descriptors for stdin of a subprocess.

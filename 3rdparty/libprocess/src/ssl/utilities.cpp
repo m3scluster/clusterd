@@ -36,10 +36,7 @@
 // The public libprocess JWT API still uses RSA* for ABI compatibility. Keep
 // the OpenSSL 1.x low-level calls isolated until that API can be migrated to
 // EVP_PKEY without breaking consumers.
-#if defined(__GNUC__) && OPENSSL_VERSION_NUMBER >= 0x30000000L
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+
 
 // TODO(jmlvanre): Add higher level abstractions for key and
 // certificate generation.
