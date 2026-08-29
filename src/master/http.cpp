@@ -1632,13 +1632,13 @@ Future<Response> Master::Http::getMetrics(
 
             field = v1::master::Response::kTypeFieldNumber;
             writer->field(
-                descriptor->FindFieldByNumber(field)->name(),
+                std::string(descriptor->FindFieldByNumber(field)->name()),
                 v1::master::Response::Type_Name(
                     v1::master::Response::GET_METRICS));
 
             field = v1::master::Response::kGetMetricsFieldNumber;
             writer->field(
-                descriptor->FindFieldByNumber(field)->name(),
+                std::string(descriptor->FindFieldByNumber(field)->name()),
                 jsonifyGetMetrics<mesos::v1::master::Response::GetMetrics>(
                     metrics));
           });

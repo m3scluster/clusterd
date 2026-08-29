@@ -117,8 +117,10 @@ endif ()
 target_link_libraries(
   process PUBLIC
   stout
-  http_parser
-  grpc
+  http_parser)
+
+target_link_libraries(
+  process PRIVATE
   $<$<BOOL:${ENABLE_SSL}>:OpenSSL::SSL>
   $<$<BOOL:${ENABLE_SSL}>:OpenSSL::Crypto>)
 
@@ -146,7 +148,9 @@ target_compile_definitions(
   $<$<BOOL:${ENABLE_LAST_IN_FIRST_OUT_FIXED_SIZE_SEMAPHORE}>:LAST_IN_FIRST_OUT_FIXED_SIZE_SEMAPHORE>
   $<$<PLATFORM_ID:Linux>:LIBPROCESS_ALLOW_JEMALLOC>)
 
-target_include_directories(process PUBLIC ../include)
+target_include_directories(process PUBLIC
+  ../include
+  ${GRPC_ROOT}/include)
 target_include_directories(process PRIVATE .)
 
 install(

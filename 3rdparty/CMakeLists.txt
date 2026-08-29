@@ -103,6 +103,15 @@ option(
   "Build bundled third-party libraries as shared libraries"
   OFF)
 
+if (NOT MESOS_BUNDLED_BUILD_SHARED_LIBS AND NOT WIN32)
+  # gRPC 1.83 uses UPB linker sections for its statically linked descriptors.
+  # Keep their __start/__stop symbols alive when function/data section GC is
+  # enabled by the main build.
+  set(CMAKE_EXE_LINKER_FLAGS
+    "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,nostart-stop-gc"
+    CACHE STRING "Executable linker flags" FORCE)
+endif ()
+
 # Variables for current specified linkage.
 # NOTE: Not all third-party dependencies will respect this.
 if (MESOS_BUNDLED_BUILD_SHARED_LIBS)
@@ -511,9 +520,11 @@ set(
   RE2_CMAKE_ARGS
   ${CMAKE_CXX_FORWARD_ARGS}
   -DBUILD_TESTING=OFF
-  -DCMAKE_INSTALL_BINDIR=${RE2_INSTALL_DIR}/bin
-  -DCMAKE_INSTALL_INCLUDEDIR=${RE2_INSTALL_DIR}/include
-  -DCMAKE_INSTALL_LIBDIR=${RE2_INSTALL_DIR}/lib
+  -DBUILD_SHARED_LIBS=${MESOS_BUNDLED_BUILD_SHARED_LIBS}
+  -DCMAKE_INSTALL_PREFIX=${RE2_INSTALL_DIR}
+  -DCMAKE_INSTALL_BINDIR=bin
+  -DCMAKE_INSTALL_INCLUDEDIR=include
+  -DCMAKE_INSTALL_LIBDIR=lib
 )
 
 if (WIN32)
@@ -1550,7 +1561,8 @@ target_link_libraries(protobuf INTERFACE ${ABSL_LINK_LIBRARIES})
 
 set_target_properties(
   protobuf PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "${PROTOBUF_ROOT}/src;${ABSEIL_INSTALL_DIR}/include")
+  INTERFACE_INCLUDE_DIRECTORIES
+  "${PROTOBUF_ROOT}/src;${PROTOBUF_ROOT}/third_party/utf8_range;${ABSEIL_INSTALL_DIR}/include")
 
 set(PROTOBUF_INSTALL_DIR ${PROTOBUF_ROOT}-install)
 
@@ -1687,29 +1699,60 @@ add_dependencies(libgrpc_plugin_support ${GRPC_TARGET})
 
 if (NOT WIN32 AND NOT MESOS_BUNDLED_BUILD_SHARED_LIBS)
   add_library(libaddress_sorting_static STATIC IMPORTED)
-  add_library(libupb_static STATIC IMPORTED)
-  add_library(libupb_collections_static STATIC IMPORTED)
+  add_library(libupb_base_static STATIC IMPORTED)
+  add_library(libupb_descriptor_static STATIC IMPORTED)
+  add_library(libupb_hash_static STATIC IMPORTED)
   add_library(libupb_json_static STATIC IMPORTED)
+  add_library(libupb_lex_static STATIC IMPORTED)
+  add_library(libupb_mem_static STATIC IMPORTED)
+  add_library(libupb_message_static STATIC IMPORTED)
+  add_library(libupb_mini_descriptor_static STATIC IMPORTED)
+  add_library(libupb_mini_table_static STATIC IMPORTED)
+  add_library(libupb_reflection_static STATIC IMPORTED)
   add_library(libupb_textformat_static STATIC IMPORTED)
+  add_library(libupb_wire_static STATIC IMPORTED)
   add_library(libutf8_range_static STATIC IMPORTED)
   add_library(libcares_static STATIC IMPORTED)
   add_dependencies(libaddress_sorting_static ${GRPC_TARGET})
-  add_dependencies(libupb_static ${GRPC_TARGET})
-  add_dependencies(libupb_collections_static ${GRPC_TARGET})
+  add_dependencies(libupb_base_static ${GRPC_TARGET})
+  add_dependencies(libupb_descriptor_static ${GRPC_TARGET})
+  add_dependencies(libupb_hash_static ${GRPC_TARGET})
   add_dependencies(libupb_json_static ${GRPC_TARGET})
+  add_dependencies(libupb_lex_static ${GRPC_TARGET})
+  add_dependencies(libupb_mem_static ${GRPC_TARGET})
+  add_dependencies(libupb_message_static ${GRPC_TARGET})
+  add_dependencies(libupb_mini_descriptor_static ${GRPC_TARGET})
+  add_dependencies(libupb_mini_table_static ${GRPC_TARGET})
+  add_dependencies(libupb_reflection_static ${GRPC_TARGET})
   add_dependencies(libupb_textformat_static ${GRPC_TARGET})
   add_dependencies(libutf8_range_static ${GRPC_TARGET})
   add_dependencies(libcares_static ${CARES_TARGET})
   set_target_properties(libaddress_sorting_static PROPERTIES
     IMPORTED_LOCATION ${GRPC_ROOT}-build/libaddress_sorting.a)
-  set_target_properties(libupb_static PROPERTIES
-    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb.a)
-  set_target_properties(libupb_collections_static PROPERTIES
-    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_collections_lib.a)
+  set_target_properties(libupb_base_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_base_lib.a)
+  set_target_properties(libupb_descriptor_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_descriptor_lib.a)
+  set_target_properties(libupb_hash_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_hash_lib.a)
   set_target_properties(libupb_json_static PROPERTIES
     IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_json_lib.a)
+  set_target_properties(libupb_lex_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_lex_lib.a)
+  set_target_properties(libupb_mem_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_mem_lib.a)
+  set_target_properties(libupb_message_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_message_lib.a)
+  set_target_properties(libupb_mini_descriptor_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_mini_descriptor_lib.a)
+  set_target_properties(libupb_mini_table_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_mini_table_lib.a)
+  set_target_properties(libupb_reflection_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_reflection_lib.a)
   set_target_properties(libupb_textformat_static PROPERTIES
     IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_textformat_lib.a)
+  set_target_properties(libupb_wire_static PROPERTIES
+    IMPORTED_LOCATION ${GRPC_ROOT}-build/libupb_wire_lib.a)
   set_target_properties(libutf8_range_static PROPERTIES
     IMPORTED_LOCATION ${GRPC_ROOT}-build/libutf8_range_lib.a)
   set_target_properties(libcares_static PROPERTIES
@@ -1717,21 +1760,25 @@ if (NOT WIN32 AND NOT MESOS_BUNDLED_BUILD_SHARED_LIBS)
 endif ()
 
 add_library(grpc INTERFACE)
-target_link_libraries(grpc INTERFACE
-  libgrpc++
-  libgrpc
-  libgpr
-  ${ABSL_LINK_LIBRARIES})
+if (TARGET libaddress_sorting_static)
+  target_link_libraries(grpc INTERFACE
+    libgrpc++
+    -Wl,--whole-archive
+    ${GRPC_ROOT}-build/libgrpc.a
+    -Wl,--no-whole-archive
+    libgpr
+    ${ABSL_LINK_LIBRARIES})
+else ()
+  target_link_libraries(grpc INTERFACE
+    libgrpc++
+    libgrpc
+    libgpr
+    ${ABSL_LINK_LIBRARIES})
+endif ()
 
 if (TARGET libaddress_sorting_static)
   target_link_libraries(grpc INTERFACE
-    libaddress_sorting_static
-    libupb_static
-    libupb_collections_static
-    libupb_json_static
-    libupb_textformat_static
-    libutf8_range_static
-    libcares_static)
+    "$<LINK_GROUP:RESCAN,libaddress_sorting_static,libupb_base_static,libupb_descriptor_static,libupb_hash_static,libupb_json_static,libupb_lex_static,libupb_mem_static,libupb_message_static,libupb_mini_descriptor_static,libupb_mini_table_static,libupb_reflection_static,libupb_textformat_static,libupb_wire_static,libutf8_range_static,libcares_static>")
   target_link_libraries(grpc INTERFACE
     libprotobuf_utf8_range_static
     libprotobuf_utf8_validity_static)
@@ -1880,6 +1927,11 @@ ExternalProject_Add(
   INSTALL_COMMAND  ${CMAKE_NOOP}
   URL              ${GRPC_URL}
   URL_HASH         ${GRPC_HASH})
+
+add_library(mesos-protobuf-headers INTERFACE IMPORTED GLOBAL)
+set_target_properties(mesos-protobuf-headers PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES
+  "${PROTOBUF_ROOT}/src;${PROTOBUF_ROOT}/third_party/utf8_range;${ABSEIL_INSTALL_DIR}/include;${GRPC_ROOT}/include")
 
 install(
   FILES $<TARGET_FILE:libgpr> $<TARGET_FILE:libgrpc> $<TARGET_FILE:libgrpc++> $<TARGET_FILE:libaddress_sorting> $<TARGET_FILE:libgrpc_plugin_support>

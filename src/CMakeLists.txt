@@ -122,14 +122,14 @@ add_library(
   ${PUBLIC_PROTOBUF_SRC}
   ${INTERNAL_PROTOBUF_SRC})
 
-target_link_libraries(mesos-protobufs PUBLIC
-  protobuf
-  grpc)
+add_dependencies(mesos-protobufs protobuf grpc)
+target_link_libraries(mesos-protobufs PRIVATE mesos-protobuf-headers)
 
 target_include_directories(
   mesos-protobufs
   PUBLIC
-  ${MESOS_PROTOBUF_HEADER_INCLUDE_DIRS})
+  ${MESOS_PROTOBUF_HEADER_INCLUDE_DIRS}
+  mesos-protobuf-headers)
 
 
 # BUILD JAVA ARTIFACTS.
@@ -649,6 +649,8 @@ target_link_libraries(
   zookeeper
   mesos-protobufs
   $<$<AND:$<PLATFORM_ID:Linux>,$<BOOL:${ENABLE_NVML}>>:nvml>)
+
+target_link_libraries(mesos PRIVATE grpc)
 
 if (NOT WIN32)
   target_link_libraries(mesos PUBLIC leveldb)

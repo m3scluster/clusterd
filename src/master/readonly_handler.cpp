@@ -1301,7 +1301,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetAgents(
 
     field = v1::master::Response::GetAgents::kAgentsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
       foreachvalue (const Slave* slave, master->slaves.registered) {
         // TODO(bmahler): Consider not constructing the temporary
@@ -1319,7 +1319,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetAgents(
 
     field = v1::master::Response::GetAgents::kRecoveredAgentsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
       foreachvalue (const SlaveInfo& slaveInfo, master->slaves.recovered) {
         // TODO(bmahler): Consider not constructing the temporary
@@ -1452,13 +1452,13 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
 
         field = v1::master::Response::kTypeFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             v1::master::Response::Type_Name(
                 v1::master::Response::GET_AGENTS));
 
         field = v1::master::Response::kGetAgentsFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             jsonifyGetAgents(approvers));
       });
 
@@ -1501,7 +1501,7 @@ function<void(JSON::ObjectWriter*)>
 
     field = v1::master::Response::GetFrameworks::kFrameworksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
       foreachvalue (const Framework* framework,
                     master->frameworks.registered) {
@@ -1518,7 +1518,7 @@ function<void(JSON::ObjectWriter*)>
     field =
       v1::master::Response::GetFrameworks::kCompletedFrameworksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
       foreachvalue (const Owned<Framework>& framework,
                     master->frameworks.completed) {
@@ -1639,13 +1639,13 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
 
         field = v1::master::Response::kTypeFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             v1::master::Response::Type_Name(
                 v1::master::Response::GET_FRAMEWORKS));
 
         field = v1::master::Response::kGetFrameworksFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             jsonifyGetFrameworks(approvers));
       });
 
@@ -1701,7 +1701,7 @@ function<void(JSON::ObjectWriter*)>
 
     field = v1::master::Response::GetExecutors::kExecutorsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
       foreach (const Framework* framework, frameworks) {
         foreachpair (const SlaveID& slaveId,
@@ -1728,13 +1728,13 @@ function<void(JSON::ObjectWriter*)>
               field = v1::master::Response::GetExecutors::Executor
                 ::kExecutorInfoFieldNumber;
               writer->field(
-                  descriptor->FindFieldByNumber(field)->name(),
+                  std::string(descriptor->FindFieldByNumber(field)->name()),
                   asV1Protobuf(executorInfo));
 
               field = v1::master::Response::GetExecutors::Executor
                 ::kAgentIdFieldNumber;
               writer->field(
-                  descriptor->FindFieldByNumber(field)->name(),
+                  std::string(descriptor->FindFieldByNumber(field)->name()),
                   asV1Protobuf(slaveId));
             });
           }
@@ -1887,13 +1887,13 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
 
         field = v1::master::Response::kTypeFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             v1::master::Response::Type_Name(
                 v1::master::Response::GET_EXECUTORS));
 
         field = v1::master::Response::kGetExecutorsFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             jsonifyGetExecutors(approvers));
       });
 
@@ -1952,7 +1952,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetTasks(
     // Active tasks.
     field = v1::master::Response::GetTasks::kTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreach (const Framework* framework, frameworks) {
             foreachvalue (const Task* task, framework->tasks) {
@@ -1969,7 +1969,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetTasks(
     // Unreachable tasks.
     field = v1::master::Response::GetTasks::kUnreachableTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreach (const Framework* framework, frameworks) {
             foreachvalue (const Owned<Task>& task,
@@ -1987,7 +1987,7 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetTasks(
     // Completed tasks.
     field = v1::master::Response::GetTasks::kCompletedTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreach (const Framework* framework, frameworks) {
             foreach (const Owned<Task>& task, framework->completedTasks) {
@@ -2139,13 +2139,13 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
 
         field = v1::master::Response::kTypeFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             v1::master::Response::Type_Name(
                 v1::master::Response::GET_TASKS));
 
         field = v1::master::Response::kGetTasksFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             jsonifyGetTasks(approvers));
       });
 
@@ -2304,22 +2304,22 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifyGetState(
 
     field = v1::master::Response::GetState::kGetTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetTasks(approvers));
 
     field = v1::master::Response::GetState::kGetExecutorsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetExecutors(approvers));
 
     field = v1::master::Response::GetState::kGetFrameworksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetFrameworks(approvers));
 
     field = v1::master::Response::GetState::kGetAgentsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetAgents(approvers));
   };
 }
@@ -2418,13 +2418,13 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
 
         field = v1::master::Response::kTypeFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             v1::master::Response::Type_Name(
                 v1::master::Response::GET_STATE));
 
         field = v1::master::Response::kGetStateFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             jsonifyGetState(approvers));
       });
 
@@ -2503,13 +2503,13 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
 
         field = v1::master::Event::kTypeFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             v1::master::Event::Type_Name(
                 v1::master::Event::SUBSCRIBED));
 
         field = v1::master::Event::kSubscribedFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             jsonifySubscribe(approvers));
       });
 
@@ -2557,12 +2557,12 @@ function<void(JSON::ObjectWriter*)> Master::ReadOnlyHandler::jsonifySubscribe(
 
     field = v1::master::Event::Subscribed::kGetStateFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetState(approvers));
 
     field = v1::master::Event::Subscribed::kHeartbeatIntervalSecondsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         DEFAULT_HEARTBEAT_INTERVAL.secs());
   };
 }

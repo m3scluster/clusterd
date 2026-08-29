@@ -421,7 +421,7 @@ Metrics::Metrics(const Master& master)
     }
 
     std::string prefix =
-      "master/operations/" + strings::lower(descriptor->name()) + "/";
+      "master/operations/" + strings::lower(std::string(descriptor->name())) + "/";
 
     operation_type_states.emplace(type, prefix);
   }
@@ -776,7 +776,7 @@ FrameworkMetrics::FrameworkMetrics(
     }
 
     Counter counter = Counter(
-        metricPrefix + "calls/" + strings::lower(descriptor->name()));
+        metricPrefix + "calls/" + strings::lower(std::string(descriptor->name())));
 
     call_types.put(type, counter);
     addMetric(counter);
@@ -798,7 +798,7 @@ FrameworkMetrics::FrameworkMetrics(
     }
 
     Counter counter = Counter(
-        metricPrefix + "events/" + strings::lower(descriptor->name()));
+        metricPrefix + "events/" + strings::lower(std::string(descriptor->name())));
 
     event_types.put(type, counter);
     addMetric(counter);
@@ -814,7 +814,7 @@ FrameworkMetrics::FrameworkMetrics(
     if (protobuf::isTerminalState(state)) {
       Counter counter = Counter(
           metricPrefix + "tasks/terminal/" +
-          strings::lower(descriptor->name()));
+          strings::lower(std::string(descriptor->name())));
 
       terminal_task_states.put(state, counter);
       addMetric(counter);
@@ -844,7 +844,7 @@ FrameworkMetrics::FrameworkMetrics(
     }
 
     Counter counter = Counter(
-        metricPrefix + "operations/" + strings::lower(descriptor->name()));
+        metricPrefix + "operations/" + strings::lower(std::string(descriptor->name())));
 
     operation_types.put(type, counter);
     addMetric(counter);

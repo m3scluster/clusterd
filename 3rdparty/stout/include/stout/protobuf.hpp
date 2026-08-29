@@ -220,7 +220,9 @@ Try<T> deserialize(const std::string& value)
       value.data(),
       static_cast<int>(value.size()));
   if (!t.ParseFromZeroCopyStream(&stream)) {
-    return Error("Failed to deserialize " + t.GetDescriptor()->full_name());
+    return Error(
+        "Failed to deserialize " +
+        std::string(t.GetDescriptor()->full_name()));
   }
   return t;
 }
@@ -233,7 +235,9 @@ Try<std::string> serialize(const T& t)
 
   std::string value;
   if (!t.SerializeToString(&value)) {
-    return Error("Failed to serialize " + t.GetDescriptor()->full_name());
+    return Error(
+        "Failed to serialize " +
+        std::string(t.GetDescriptor()->full_name()));
   }
   return value;
 }
@@ -483,7 +487,7 @@ struct Parser : boost::static_visitor<Try<Nothing>>
         break;
       default:
         return Error("Not expecting a JSON object for field '" +
-                     field->name() + "'");
+                     std::string(field->name()) + "'");
     }
     return Nothing();
   }
@@ -502,7 +506,7 @@ struct Parser : boost::static_visitor<Try<Nothing>>
         Try<std::string> decode = base64::decode(string.value);
         if (decode.isError()) {
           return Error("Failed to base64 decode bytes field"
-                       " '" + field->name() + "': " + decode.error());
+                       " '" + std::string(field->name()) + "': " + decode.error());
         }
 
         if (field->is_repeated()) {
@@ -552,7 +556,7 @@ struct Parser : boost::static_visitor<Try<Nothing>>
           if (number.isError()) {
             return Error(
                 "Failed to parse '" + string.value + "' as a JSON number "
-                "for field '" + field->name() + "': " + number.error());
+                "for field '" + std::string(field->name()) + "': " + number.error());
           }
 
           return operator()(number.get());
@@ -572,7 +576,7 @@ struct Parser : boost::static_visitor<Try<Nothing>>
         if (number.isError()) {
           return Error(
               "Failed to parse '" + string.value + "' as a JSON number "
-              "for field '" + field->name() + "': " + number.error());
+              "for field '" + std::string(field->name()) + "': " + number.error());
         }
 
         return operator()(number.get());
@@ -582,14 +586,14 @@ struct Parser : boost::static_visitor<Try<Nothing>>
         if (boolean.isError()) {
           return Error(
               "Failed to parse '" + string.value + "' as a JSON boolean "
-              "for field '" + field->name() + "': " + boolean.error());
+              "for field '" + std::string(field->name()) + "': " + boolean.error());
         }
 
         return operator()(boolean.get());
       }
       default:
         return Error("Not expecting a JSON string for field '" +
-                     field->name() + "'");
+                     std::string(field->name()) + "'");
     }
     return Nothing();
   }
@@ -647,7 +651,7 @@ struct Parser : boost::static_visitor<Try<Nothing>>
         break;
       default:
         return Error("Not expecting a JSON number for field '" +
-                     field->name() + "'");
+                     std::string(field->name()) + "'");
     }
     return Nothing();
   }
@@ -656,7 +660,7 @@ struct Parser : boost::static_visitor<Try<Nothing>>
   {
     if (!field->is_repeated()) {
       return Error("Not expecting a JSON array for field '" +
-                   field->name() + "'");
+                   std::string(field->name()) + "'");
     }
 
     foreach (const JSON::Value& value, array.values) {
@@ -683,7 +687,7 @@ struct Parser : boost::static_visitor<Try<Nothing>>
         break;
       default:
         return Error("Not expecting a JSON boolean for field '" +
-                     field->name() + "'");
+                     std::string(field->name()) + "'");
     }
     return Nothing();
   }
@@ -864,7 +868,7 @@ inline void json(ObjectWriter* writer, const Protobuf& protobuf)
   foreach (const FieldDescriptor* field, fields) {
     if (field->is_repeated() && !field->is_map()) {
       writer->field(
-          field->name(),
+          std::string(field->name()),
           [&field, &reflection, &message](JSON::ArrayWriter* writer) {
             int fieldSize = reflection->FieldSize(message, field);
             for (int i = 0; i < fieldSize; ++i) {
@@ -903,7 +907,8 @@ inline void json(ObjectWriter* writer, const Protobuf& protobuf)
                   break;
                 case FieldDescriptor::CPPTYPE_ENUM:
                   writer->element(
-                      reflection->GetRepeatedEnum(message, field, i)->name());
+                      std::string(
+                        reflection->GetRepeatedEnum(message, field, i)->name()));
                   break;
                 case FieldDescriptor::CPPTYPE_STRING:
                   const std::string& s = reflection->GetRepeatedStringReference(
@@ -951,7 +956,8 @@ inline void json(ObjectWriter* writer, const Protobuf& protobuf)
             break;
           case FieldDescriptor::CPPTYPE_ENUM:
             writer->field(
-                fieldName, reflection->GetEnum(message, field)->name());
+                fieldName,
+                std::string(reflection->GetEnum(message, field)->name()));
             break;
           case FieldDescriptor::CPPTYPE_STRING:
             const std::string& s =
@@ -966,11 +972,11 @@ inline void json(ObjectWriter* writer, const Protobuf& protobuf)
       };
 
       if (!field->is_repeated()) { // Singular field.
-        writeField(field->name(), reflection, message, field);
+        writeField(std::string(field->name()), reflection, message, field);
       } else { // Map field.
         CHECK(field->is_map());
         writer->field(
-            field->name(),
+            std::string(field->name()),
             [&field, &reflection, &message, &writeField](
                 JSON::ObjectWriter* writer) {
               foreach (
@@ -1107,7 +1113,8 @@ inline Object protobuf(const google::protobuf::Message& message)
       case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
         return protobuf(reflection->GetMessage(message, field));
       case google::protobuf::FieldDescriptor::TYPE_ENUM:
-        return JSON::String(reflection->GetEnum(message, field)->name());
+        return JSON::String(
+            std::string(reflection->GetEnum(message, field)->name()));
       case google::protobuf::FieldDescriptor::TYPE_GROUP:
         // Deprecated! We abort here instead of using a Try as return value,
         // because we expect this code path to never be taken.
@@ -1176,7 +1183,7 @@ inline Object protobuf(const google::protobuf::Message& message)
 
         map.values[name] = value_for_field(entry, value_field);
       }
-      object.values[field->name()] = map;
+      object.values[std::string(field->name())] = map;
     } else if (field->is_repeated()) {
       JSON::Array array;
       int fieldSize = reflection->FieldSize(message, field);
@@ -1234,7 +1241,8 @@ inline Object protobuf(const google::protobuf::Message& message)
             break;
           case google::protobuf::FieldDescriptor::TYPE_ENUM:
             array.values.push_back(JSON::String(
-                reflection->GetRepeatedEnum(message, field, i)->name()));
+                std::string(
+                  reflection->GetRepeatedEnum(message, field, i)->name())));
             break;
           case google::protobuf::FieldDescriptor::TYPE_GROUP:
             // Deprecated! We abort here instead of using a Try as return value,
@@ -1243,9 +1251,9 @@ inline Object protobuf(const google::protobuf::Message& message)
                   stringify(field->type()));
         }
       }
-      object.values[field->name()] = array;
+      object.values[std::string(field->name())] = array;
     } else {
-      object.values[field->name()] = value_for_field(message, field);
+      object.values[std::string(field->name())] = value_for_field(message, field);
     }
   }
 

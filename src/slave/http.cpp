@@ -1123,13 +1123,13 @@ Future<Response> Http::getMetrics(
 
             field = v1::agent::Response::kTypeFieldNumber;
             writer->field(
-                descriptor->FindFieldByNumber(field)->name(),
+                std::string(descriptor->FindFieldByNumber(field)->name()),
                 v1::agent::Response::Type_Name(
                     v1::agent::Response::GET_METRICS));
 
             field = v1::agent::Response::kGetMetricsFieldNumber;
             writer->field(
-                descriptor->FindFieldByNumber(field)->name(),
+                std::string(descriptor->FindFieldByNumber(field)->name()),
                 jsonifyGetMetrics<v1::agent::Response::GetMetrics>(metrics));
           });
 
@@ -1623,13 +1623,13 @@ Future<Response> Http::getFrameworks(
 
                 field = v1::agent::Response::kTypeFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     v1::agent::Response::Type_Name(
                         v1::agent::Response::GET_FRAMEWORKS));
 
                 field = v1::agent::Response::kGetFrameworksFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     jsonifyGetFrameworks(approvers));
               });
 
@@ -1672,7 +1672,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetFrameworks(
         ::kFrameworkInfoFieldNumber;
 
       writer->field(
-          descriptor->FindFieldByNumber(field)->name(),
+          std::string(descriptor->FindFieldByNumber(field)->name()),
           asV1Protobuf(f));
     };
   };
@@ -1686,7 +1686,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetFrameworks(
 
     field = v1::agent::Response::GetFrameworks::kFrameworksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreachvalue (const Framework* f, slave->frameworks) {
             if (approvers->approved<VIEW_FRAMEWORK>(f->info)) {
@@ -1697,7 +1697,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetFrameworks(
 
     field = v1::agent::Response::GetFrameworks::kCompletedFrameworksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreachvalue (const Owned<Framework>& f, slave->completedFrameworks) {
             if (approvers->approved<VIEW_FRAMEWORK>(f->info)) {
@@ -1838,13 +1838,13 @@ Future<Response> Http::getExecutors(
 
                 field = v1::agent::Response::kTypeFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     v1::agent::Response::Type_Name(
                         v1::agent::Response::GET_EXECUTORS));
 
                 field = v1::agent::Response::kGetExecutorsFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     jsonifyGetExecutors(approvers));
               });
 
@@ -1890,7 +1890,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetExecutors(
         field = v1::agent::Response::GetExecutors::Executor
           ::kExecutorInfoFieldNumber;
         writer->field(
-            descriptor->FindFieldByNumber(field)->name(),
+            std::string(descriptor->FindFieldByNumber(field)->name()),
             asV1Protobuf(e));
       };
     };
@@ -1910,7 +1910,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetExecutors(
 
     field = v1::agent::Response::GetExecutors::kExecutorsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreach (const Framework* f, frameworks) {
             foreachvalue (const Executor* e, f->executors) {
@@ -1923,7 +1923,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetExecutors(
 
     field = v1::agent::Response::GetExecutors::kCompletedExecutorsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreach (const Framework* f, frameworks) {
             foreach (const Owned<Executor>& e, f->completedExecutors) {
@@ -2131,13 +2131,13 @@ Future<Response> Http::getTasks(
 
                 field = v1::agent::Response::kTypeFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     v1::agent::Response::Type_Name(
                         v1::agent::Response::GET_TASKS));
 
                 field = v1::agent::Response::kGetTasksFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     jsonifyGetTasks(approvers));
               });
 
@@ -2207,7 +2207,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetTasks(
     // Pending tasks.
     field = v1::agent::Response::GetTasks::kPendingTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreach (const Framework* framework, frameworks) {
             typedef hashmap<TaskID, TaskInfo> TaskMap;
@@ -2231,7 +2231,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetTasks(
     // Queued tasks.
     field = v1::agent::Response::GetTasks::kQueuedTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreachpair (const Executor* executor,
                        const Framework* framework,
@@ -2254,7 +2254,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetTasks(
     // Launched tasks.
     field = v1::agent::Response::GetTasks::kLaunchedTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreachpair (const Executor* executor,
                        const Framework* framework,
@@ -2270,7 +2270,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetTasks(
     // Terminated tasks.
     field = v1::agent::Response::GetTasks::kTerminatedTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreachpair (const Executor* executor,
                        const Framework* framework,
@@ -2286,7 +2286,7 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetTasks(
     // Completed tasks.
     field = v1::agent::Response::GetTasks::kCompletedTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreachpair (const Executor* executor,
                        const Framework* framework,
@@ -2557,13 +2557,13 @@ Future<Response> Http::getState(
 
                 field = v1::agent::Response::kTypeFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     v1::agent::Response::Type_Name(
                         v1::agent::Response::GET_STATE));
 
                 field = v1::agent::Response::kGetStateFieldNumber;
                 writer->field(
-                    descriptor->FindFieldByNumber(field)->name(),
+                    std::string(descriptor->FindFieldByNumber(field)->name()),
                     jsonifyGetState(approvers));
               });
 
@@ -2597,17 +2597,17 @@ function<void(JSON::ObjectWriter*)> Http::jsonifyGetState(
 
     field = v1::agent::Response::GetState::kGetTasksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetTasks(approvers));
 
     field = v1::agent::Response::GetState::kGetExecutorsFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetExecutors(approvers));
 
     field = v1::agent::Response::GetState::kGetFrameworksFieldNumber;
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         jsonifyGetFrameworks(approvers));
   };
 }

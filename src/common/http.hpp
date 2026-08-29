@@ -245,7 +245,7 @@ std::function<void(JSON::ObjectWriter*)> jsonifyGetMetrics(
     int field = T::kMetricsFieldNumber;
 
     writer->field(
-        descriptor->FindFieldByNumber(field)->name(),
+        std::string(descriptor->FindFieldByNumber(field)->name()),
         [&](JSON::ArrayWriter* writer) {
           foreachpair (const std::string& key, double value, metrics) {
             writer->element([&](JSON::ObjectWriter* writer) {
@@ -256,11 +256,11 @@ std::function<void(JSON::ObjectWriter*)> jsonifyGetMetrics(
 
               field = v1::Metric::kNameFieldNumber;
               writer->field(
-                  descriptor->FindFieldByNumber(field)->name(), key);
+                  std::string(descriptor->FindFieldByNumber(field)->name()), key);
 
               field = v1::Metric::kValueFieldNumber;
               writer->field(
-                  descriptor->FindFieldByNumber(field)->name(), value);
+                  std::string(descriptor->FindFieldByNumber(field)->name()), value);
             });
           }
         });
