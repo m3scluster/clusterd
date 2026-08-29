@@ -221,18 +221,18 @@ message Response {
     // DEPRECATED.
     //
     // See 'ReconcileOperations' below.
-    RECONCILE_OPERATIONS = 1 [deprecated = true];
+    RECONCILE_OPERATIONS = 1 [deprecated = false];
   }
 
   // DEPRECATED.
   message ReconcileOperations {
-    repeated OperationStatus operation_statuses = 1 [deprecated = true];
+    repeated OperationStatus operation_statuses = 1 [deprecated = false];
   }
 
   optional Type type = 1;
 
   // DEPRECATED.
-  optional ReconcileOperations reconcile_operations = 2 [deprecated = true];
+  optional ReconcileOperations reconcile_operations = 2 [deprecated = false];
 }
 
 

@@ -149,7 +149,7 @@ message QuotaStatus {
   // side `configs`. Note, however `infos` will contain less information
   // comparing to `configs` (e.g. info does not contain information
   // regarding quota limits).
-  repeated QuotaInfo infos = 1 [deprecated = true];
+  repeated QuotaInfo infos = 1 [deprecated = false];
 
   // Returns all non-default quotas. Those omitted from this
   // list have the default of: no guarantee and no limit.

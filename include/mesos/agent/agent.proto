@@ -75,10 +75,10 @@ message Call {
     // Calls for managing nested containers underneath an executor's container.
     // Some of these calls are deprecated in favor of the calls
     // for both standalone or nested containers further below.
-    LAUNCH_NESTED_CONTAINER = 14 [deprecated = true];
-    WAIT_NESTED_CONTAINER = 15 [deprecated = true];
-    KILL_NESTED_CONTAINER = 16 [deprecated = true];
-    REMOVE_NESTED_CONTAINER = 21 [deprecated = true];
+    LAUNCH_NESTED_CONTAINER = 14 [deprecated = false];
+    WAIT_NESTED_CONTAINER = 15 [deprecated = false];
+    KILL_NESTED_CONTAINER = 16 [deprecated = false];
+    REMOVE_NESTED_CONTAINER = 21 [deprecated = false];
 
     // See 'LaunchNestedContainerSession' below.
     LAUNCH_NESTED_CONTAINER_SESSION = 17;
@@ -428,12 +428,12 @@ message Call {
   optional GetContainers get_containers = 20;
 
   optional LaunchNestedContainer launch_nested_container = 6
-    [deprecated = true];
+    [deprecated = false];
 
-  optional WaitNestedContainer wait_nested_container = 7 [deprecated = true];
-  optional KillNestedContainer kill_nested_container = 8 [deprecated = true];
+  optional WaitNestedContainer wait_nested_container = 7 [deprecated = false];
+  optional KillNestedContainer kill_nested_container = 8 [deprecated = false];
   optional RemoveNestedContainer remove_nested_container = 12
-    [deprecated = true];
+    [deprecated = false];
 
   optional LaunchNestedContainerSession launch_nested_container_session = 9;
   optional AttachContainerInput attach_container_input = 10;
@@ -485,7 +485,7 @@ message Response {
     GET_AGENT = 14;                // See 'GetAgent' below.
     GET_RESOURCE_PROVIDERS = 16;   // See 'GetResourceProviders' below.
 
-    WAIT_NESTED_CONTAINER = 13 [deprecated = true];
+    WAIT_NESTED_CONTAINER = 13 [deprecated = false];
     WAIT_CONTAINER = 15;           // See 'WaitContainer' below.
     READ_LOG = 18;
   }

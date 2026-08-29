@@ -1778,7 +1778,23 @@ endif ()
 
 if (TARGET libaddress_sorting_static)
   target_link_libraries(grpc INTERFACE
-    "$<LINK_GROUP:RESCAN,libaddress_sorting_static,libupb_base_static,libupb_descriptor_static,libupb_hash_static,libupb_json_static,libupb_lex_static,libupb_mem_static,libupb_message_static,libupb_mini_descriptor_static,libupb_mini_table_static,libupb_reflection_static,libupb_textformat_static,libupb_wire_static,libutf8_range_static,libcares_static>")
+    -Wl,--start-group
+    libaddress_sorting_static
+    libupb_base_static
+    libupb_descriptor_static
+    libupb_hash_static
+    libupb_json_static
+    libupb_lex_static
+    libupb_mem_static
+    libupb_message_static
+    libupb_mini_descriptor_static
+    libupb_mini_table_static
+    libupb_reflection_static
+    libupb_textformat_static
+    libupb_wire_static
+    libutf8_range_static
+    libcares_static
+    -Wl,--end-group)
   target_link_libraries(grpc INTERFACE
     libprotobuf_utf8_range_static
     libprotobuf_utf8_validity_static)

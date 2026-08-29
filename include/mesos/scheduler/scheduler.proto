@@ -223,7 +223,7 @@ message Response {
     // DEPRECATED.
     //
     // See 'ReconcileOperations' below.
-    RECONCILE_OPERATIONS = 1 [deprecated = true];
+    RECONCILE_OPERATIONS = 1 [deprecated = false];
   }
 
   // DEPRECATED.

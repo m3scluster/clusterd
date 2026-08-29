@@ -166,7 +166,7 @@ message Registry {
   // quotas get updated or removed.
   //
   // TODO(mzhu): Remove `quotas` in Mesos 2.0 (MESOS-9866).
-  repeated Quota quotas = 5 [deprecated = true];
+  repeated Quota quotas = 5 [deprecated = false];
   repeated quota.QuotaConfig quota_configs = 11;
 
   // A list of recorded weights in the cluster, a newly elected master shall

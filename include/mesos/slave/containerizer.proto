@@ -260,7 +260,7 @@ message ContainerFileOperation {
 message ContainerLaunchInfo {
   // The additional preparation commands to execute before
   // executing the command.
-  repeated CommandInfo pre_exec_commands = 1 [deprecated=true];
+  repeated CommandInfo pre_exec_commands = 1 [deprecated=false];
 
   // The environment set for the container.
   optional Environment environment = 2;

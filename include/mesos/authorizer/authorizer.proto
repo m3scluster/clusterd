@@ -50,7 +50,7 @@ message Object {
   optional Task task = 3;
   optional TaskInfo task_info = 4;
   optional ExecutorInfo executor_info = 5;
-  optional quota.QuotaInfo quota_info = 6 [deprecated = true];
+  optional quota.QuotaInfo quota_info = 6 [deprecated = false];
   optional WeightInfo weight_info = 7;
   optional Resource resource = 8;
   optional CommandInfo command_info = 9;
@@ -144,7 +144,7 @@ enum Action {
   // NOTE: We cannot reuse this action for the `UPDATE_QUOTA` API call,
   // because the associated `QuotaConfig` message contains more information
   // than `QuotaInfo`.
-  UPDATE_QUOTA = 12 [deprecated = true];
+  UPDATE_QUOTA = 12 [deprecated = false];
 
   // `UPDATE_QUOTA_WITH_CONFIG` will have an object
   // with a `value` field set to the role name.

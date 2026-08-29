@@ -103,8 +103,8 @@ message Call {
     // of `UPDATE_QUOTA`. To reset a role's quota back to the default
     // (no guarantees and no limits), simply update the role's quota
     // with empty guarantees and limits.
-    SET_QUOTA = 29 [deprecated = true];
-    REMOVE_QUOTA = 30 [deprecated = true];
+    SET_QUOTA = 29 [deprecated = false];
+    REMOVE_QUOTA = 30 [deprecated = false];
 
     TEARDOWN = 31;       // See 'Teardown' below.
 
@@ -350,8 +350,8 @@ message Call {
   optional MarkAgentGone mark_agent_gone = 17;
   optional ReadLog read_log = 24;
 
-  optional SetQuota set_quota = 14 [deprecated = true];
-  optional RemoveQuota remove_quota = 15 [deprecated = true];
+  optional SetQuota set_quota = 14 [deprecated = false];
+  optional RemoveQuota remove_quota = 15 [deprecated = false];
 }
 
 
@@ -530,7 +530,7 @@ message Response {
     // `recovered` field set to true.
     //
     // TODO(neilc): Remove this field in Mesos 2.0.
-    repeated FrameworkInfo recovered_frameworks = 3 [deprecated=true];
+    repeated FrameworkInfo recovered_frameworks = 3 [deprecated=false];
   }
 
   // Lists information about all the executors known to the master at the
@@ -548,7 +548,7 @@ message Response {
     // empty.
     //
     // TODO(neilc): Remove this field in Mesos 2.0.
-    repeated Executor orphan_executors = 2 [deprecated=true];
+    repeated Executor orphan_executors = 2 [deprecated=false];
   }
 
   // Lists information about all operations known to the master at the
@@ -563,7 +563,7 @@ message Response {
   message GetTasks {
     // Tasks that are enqueued on the master waiting (e.g., authorizing)
     // to be launched.
-    repeated Task pending_tasks = 1 [deprecated=true];
+    repeated Task pending_tasks = 1 [deprecated=false];
 
     // Tasks that have been forwarded to the agent for launch. This
     // includes tasks that are staging or running; it also includes
@@ -587,7 +587,7 @@ message Response {
     // empty.
     //
     // TODO(neilc): Remove this field in Mesos 2.0.
-    repeated Task orphan_tasks = 4 [deprecated=true];
+    repeated Task orphan_tasks = 4 [deprecated=false];
   }
 
   // Provides information about every role that is on the role whitelist (if
