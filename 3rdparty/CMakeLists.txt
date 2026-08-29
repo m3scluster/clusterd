@@ -1778,7 +1778,7 @@ endif ()
 
 if (TARGET libaddress_sorting_static)
   target_link_libraries(grpc INTERFACE
-    -Wl,--start-group
+    -Wl,--whole-archive
     libaddress_sorting_static
     libupb_base_static
     libupb_descriptor_static
@@ -1794,7 +1794,7 @@ if (TARGET libaddress_sorting_static)
     libupb_wire_static
     libutf8_range_static
     libcares_static
-    -Wl,--end-group)
+    -Wl,--no-whole-archive)
   target_link_libraries(grpc INTERFACE
     libprotobuf_utf8_range_static
     libprotobuf_utf8_validity_static)
@@ -1943,6 +1943,13 @@ ExternalProject_Add(
   INSTALL_COMMAND  ${CMAKE_NOOP}
   URL              ${GRPC_URL}
   URL_HASH         ${GRPC_HASH})
+
+if (TARGET libaddress_sorting_static)
+  add_library(mesos-grpc-static-link INTERFACE IMPORTED GLOBAL)
+  set_target_properties(mesos-grpc-static-link PROPERTIES
+    INTERFACE_LINK_LIBRARIES
+    "-Wl,--start-group;${GRPC_ROOT}-build/libgrpc++.a;-Wl,--whole-archive;${GRPC_ROOT}-build/libgrpc.a;-Wl,--no-whole-archive;${GRPC_ROOT}-build/libgpr.a;${GRPC_ROOT}-build/libaddress_sorting.a;${GRPC_ROOT}-build/libupb_base_lib.a;${GRPC_ROOT}-build/libupb_descriptor_lib.a;${GRPC_ROOT}-build/libupb_hash_lib.a;${GRPC_ROOT}-build/libupb_json_lib.a;${GRPC_ROOT}-build/libupb_lex_lib.a;${GRPC_ROOT}-build/libupb_mem_lib.a;${GRPC_ROOT}-build/libupb_message_lib.a;${GRPC_ROOT}-build/libupb_mini_descriptor_lib.a;${GRPC_ROOT}-build/libupb_mini_table_lib.a;${GRPC_ROOT}-build/libupb_reflection_lib.a;${GRPC_ROOT}-build/libupb_textformat_lib.a;${GRPC_ROOT}-build/libupb_wire_lib.a;${GRPC_ROOT}-build/libutf8_range_lib.a;${CARES_INSTALL_DIR}/lib/libcares.a;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_range.a;${PROTOBUF_ROOT}-build/third_party/utf8_range/libutf8_validity.a;${PROTOBUF_ROOT}-build/libprotobuf.a;${PROTOBUF_ROOT}-build/libupb.a;${ABSL_STATIC_LIBRARIES};-Wl,--end-group;${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY};${ZLIB_LIBRARY}")
+endif ()
 
 add_library(mesos-protobuf-headers INTERFACE IMPORTED GLOBAL)
 set_target_properties(mesos-protobuf-headers PROPERTIES

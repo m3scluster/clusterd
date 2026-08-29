@@ -23,6 +23,11 @@ else ()
 endif ()
 
 project(aventer-mesos)
+
+if (POLICY CMP0079)
+  cmake_policy(SET CMP0079 NEW)
+endif ()
+
 set(MESOS_MAJOR_VERSION 1)
 set(MESOS_MINOR_VERSION 12)
 set(MESOS_PATCH_VERSION 0)

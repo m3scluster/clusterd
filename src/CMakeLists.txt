@@ -647,10 +647,13 @@ target_link_libraries(
   process
   sasl2
   zookeeper
-  mesos-protobufs
   $<$<AND:$<PLATFORM_ID:Linux>,$<BOOL:${ENABLE_NVML}>>:nvml>)
 
-target_link_libraries(mesos PRIVATE grpc)
+target_link_libraries(mesos PRIVATE
+  -Wl,--start-group
+  mesos-protobufs
+  mesos-grpc-static-link
+  -Wl,--end-group)
 
 if (NOT WIN32)
   target_link_libraries(mesos PUBLIC leveldb)
