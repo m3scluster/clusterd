@@ -125,6 +125,8 @@ target_link_libraries(
   $<$<BOOL:${ENABLE_SSL}>:OpenSSL::SSL>
   $<$<BOOL:${ENABLE_SSL}>:OpenSSL::Crypto>)
 
+target_link_libraries(process INTERFACE mesos-grpc-static-link)
+
   # We need openssl and pthreads if we have ENABLE_LIBEVENT
   # Otherwise libprocess will not link properly and we get undefined reference
 if (ENABLE_LIBEVENT)

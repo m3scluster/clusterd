@@ -649,11 +649,10 @@ target_link_libraries(
   zookeeper
   $<$<AND:$<PLATFORM_ID:Linux>,$<BOOL:${ENABLE_NVML}>>:nvml>)
 
-target_link_libraries(mesos PRIVATE
-  -Wl,--start-group
+add_dependencies(mesos mesos-protobufs)
+target_link_libraries(mesos INTERFACE
   mesos-protobufs
-  mesos-grpc-static-link
-  -Wl,--end-group)
+  mesos-grpc-static-link)
 
 target_link_libraries(mesos PUBLIC mesos-protobuf-headers)
 
