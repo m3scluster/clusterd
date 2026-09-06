@@ -4062,3 +4062,84 @@ message DrainInfo {
   // The configuration used to drain the agent.
   required DrainConfig config = 2;
 }
+
+
+// Additive CSI 1.13 data model. These messages are intentionally standalone:
+// existing Mesos protobuf messages and their wire contracts are unchanged.
+message CSI1_13VolumeHealth {
+  required string volume_id = 1;
+  optional bool abnormal = 2 [default = false];
+  optional string message = 3;
+}
+
+
+message CSI1_13StorageHealth {
+  optional string node_id = 1;
+  optional bool abnormal = 2 [default = false];
+  optional string message = 3;
+}
+
+
+message CSI1_13VolumeGroupSnapshot {
+  required string group_snapshot_id = 1;
+  optional string creation_time = 2;
+  repeated string volume_snapshot_ids = 3;
+  optional string status = 4;
+}
+
+
+message CSI1_13VolumeModifyRequest {
+  required string volume_id = 1;
+  map<string, string> parameters = 2;
+}
+
+
+message CSI1_13VolumeModifyResponse {
+  required string volume_id = 1;
+  map<string, string> volume_context = 2;
+}
+
+
+message CSI1_13ListVolumeHealthRequest {
+  optional string starting_token = 1;
+  optional int32 max_entries = 2;
+}
+
+
+message CSI1_13ListVolumeHealthResponse {
+  repeated CSI1_13VolumeHealth entries = 1;
+  optional string next_token = 2;
+}
+
+
+message CSI1_13GetVolumeHealthRequest {
+  required string volume_id = 1;
+}
+
+
+message CSI1_13GetVolumeHealthResponse {
+  required CSI1_13VolumeHealth health = 1;
+}
+
+
+message CSI1_13GetStorageHealthResponse {
+  required CSI1_13StorageHealth health = 1;
+}
+
+
+message CSI1_13GetVolumeResponse {
+  required string volume_id = 1;
+  optional string name = 2;
+  optional uint64 capacity_bytes = 3;
+  map<string, string> volume_context = 4;
+}
+
+
+message CSI1_13VolumeGroupSnapshotRequest {
+  required string group_snapshot_id = 1;
+}
+
+
+message CSI1_13VolumeGroupSnapshotResponse {
+  required CSI1_13VolumeGroupSnapshot snapshot = 1;
+}

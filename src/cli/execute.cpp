@@ -42,6 +42,8 @@
 #include "common/parse.hpp"
 #include "common/protobuf_utils.hpp"
 
+#include "execute.hpp"
+
 #include "hdfs/hdfs.hpp"
 
 #include "internal/devolve.hpp"
@@ -298,7 +300,7 @@ public:
     add(&Flags::role,
         "role",
         "Role to use when registering.",
-        "*");
+        "mesos-execute");
 
     add(&Flags::kill_after,
         "kill_after",
@@ -501,6 +503,10 @@ protected:
 
       Resources requiredResources;
 
+      const string frameworkRole = frameworkInfo.roles_size() > 0
+        ? frameworkInfo.roles(0)
+        : frameworkInfo.role();
+
       CHECK_NE(task.isSome(), taskGroup.isSome())
         << "Either task or task group should be set but not both";
 
@@ -522,7 +528,7 @@ protected:
 
           // Takes resources first from the specified role, then from '*'.
           Option<Resources> resources = [&]() {
-            if (frameworkInfo.role() == "*") {
+            if (frameworkRole == "*") {
               return offered.find(Resources(_task.resources()));
             } else {
               Resource::ReservationInfo reservation;
@@ -543,7 +549,7 @@ protected:
 
             // Takes resources first from the specified role, then from '*'.
             Option<Resources> resources = [&]() {
-              if (frameworkInfo.role() == "*") {
+              if (frameworkRole == "*") {
                 return offered.find(Resources(_task.resources()));
               } else {
                 Resource::ReservationInfo reservation;
@@ -634,11 +640,6 @@ protected:
 
         mesos->send(call);
 
-        call.Clear();
-        call.set_type(Call::SUPPRESS);
-        call.mutable_framework_id()->CopyFrom(frameworkInfo.id());
-
-        mesos->send(call);
       }
     }
   }
@@ -1132,7 +1133,7 @@ int main(int argc, char** argv)
   FrameworkInfo frameworkInfo;
   frameworkInfo.set_user(user.get());
   frameworkInfo.set_name("mesos-execute instance");
-  frameworkInfo.set_role(flags.role);
+  mesos::internal::cli::setFrameworkRole(&frameworkInfo, flags.role);
   frameworkInfo.set_checkpoint(flags.checkpoint);
   foreach (const FrameworkInfo::Capability::Type& capability,
            frameworkCapabilities) {
