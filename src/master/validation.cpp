@@ -228,6 +228,69 @@ Option<Error> validate(const mesos::master::Call& call)
 
       return None();
 
+    case mesos::master::Call::GET_VOLUME_HEALTH:
+      if (!call.has_get_volume_health()) {
+        return Error("Expecting 'get_volume_health' to be present");
+      }
+      if (call.get_volume_health().slave_id().value().empty()) {
+        return Error("Expecting 'slave_id.value' to be present");
+      }
+      if (call.get_volume_health().volume_id().empty()) {
+        return Error("Expecting 'volume_id' to be non-empty");
+      }
+      return None();
+
+    case mesos::master::Call::MODIFY_VOLUME:
+      if (!call.has_modify_volume()) {
+        return Error("Expecting 'modify_volume' to be present");
+      }
+      if (call.modify_volume().slave_id().value().empty()) {
+        return Error("Expecting 'slave_id.value' to be present");
+      }
+      if (call.modify_volume().volume_id().empty()) {
+        return Error("Expecting 'volume_id' to be non-empty");
+      }
+      return None();
+
+    case mesos::master::Call::CREATE_VOLUME_GROUP_SNAPSHOT:
+      if (!call.has_create_volume_group_snapshot()) {
+        return Error("Expecting 'create_volume_group_snapshot' to be present");
+      }
+      if (call.create_volume_group_snapshot().slave_id().value().empty()) {
+        return Error("Expecting 'slave_id.value' to be present");
+      }
+      if (call.create_volume_group_snapshot().group_snapshot_id().empty()) {
+        return Error("Expecting 'group_snapshot_id' to be non-empty");
+      }
+      if (call.create_volume_group_snapshot().volume_ids_size() == 0) {
+        return Error("Expecting at least one 'volume_ids' entry");
+      }
+      return None();
+
+    case mesos::master::Call::DELETE_VOLUME_GROUP_SNAPSHOT:
+      if (!call.has_delete_volume_group_snapshot()) {
+        return Error("Expecting 'delete_volume_group_snapshot' to be present");
+      }
+      if (call.delete_volume_group_snapshot().slave_id().value().empty()) {
+        return Error("Expecting 'slave_id.value' to be present");
+      }
+      if (call.delete_volume_group_snapshot().group_snapshot_id().empty()) {
+        return Error("Expecting 'group_snapshot_id' to be non-empty");
+      }
+      return None();
+
+    case mesos::master::Call::GET_VOLUME_GROUP_SNAPSHOT:
+      if (!call.has_get_volume_group_snapshot()) {
+        return Error("Expecting 'get_volume_group_snapshot' to be present");
+      }
+      if (call.get_volume_group_snapshot().slave_id().value().empty()) {
+        return Error("Expecting 'slave_id.value' to be present");
+      }
+      if (call.get_volume_group_snapshot().group_snapshot_id().empty()) {
+        return Error("Expecting 'group_snapshot_id' to be non-empty");
+      }
+      return None();
+
     case mesos::master::Call::GET_MAINTENANCE_STATUS:
       return None();
 

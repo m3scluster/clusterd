@@ -17,6 +17,8 @@
 #ifndef __CSI_V1_CLIENT_HPP__
 #define __CSI_V1_CLIENT_HPP__
 
+#include <vector>
+
 #include <mesos/csi/v1.hpp>
 
 #include <process/future.hpp>
@@ -30,6 +32,10 @@ namespace v1 {
 
 template <typename Response>
 using RPCResult = Try<Response, process::grpc::StatusError>;
+
+template <typename Response>
+using StreamingRPCResult =
+  Try<std::vector<Response>, process::grpc::StatusError>;
 
 
 class Client
@@ -71,6 +77,12 @@ public:
   process::Future<RPCResult<ControllerGetCapabilitiesResponse>>
   controllerGetCapabilities(ControllerGetCapabilitiesRequest request);
 
+  process::Future<RPCResult<ControllerListVolumeHealthResponse>>
+  controllerListVolumeHealth(ControllerListVolumeHealthRequest request);
+
+  process::Future<RPCResult<ControllerGetVolumeHealthResponse>>
+  controllerGetVolumeHealth(ControllerGetVolumeHealthRequest request);
+
   process::Future<RPCResult<CreateSnapshotResponse>>
   createSnapshot(CreateSnapshotRequest request);
 
@@ -80,8 +92,35 @@ public:
   process::Future<RPCResult<ListSnapshotsResponse>>
   listSnapshots(ListSnapshotsRequest request);
 
+  process::Future<RPCResult<GetSnapshotResponse>>
+  getSnapshot(GetSnapshotRequest request);
+
+  process::Future<StreamingRPCResult<GetMetadataAllocatedResponse>>
+  getMetadataAllocated(GetMetadataAllocatedRequest request);
+
+  process::Future<StreamingRPCResult<GetMetadataDeltaResponse>>
+  getMetadataDelta(GetMetadataDeltaRequest request);
+
   process::Future<RPCResult<ControllerExpandVolumeResponse>>
   controllerExpandVolume(ControllerExpandVolumeRequest request);
+
+  process::Future<RPCResult<ControllerGetVolumeResponse>>
+  controllerGetVolume(ControllerGetVolumeRequest request);
+
+  process::Future<RPCResult<ControllerModifyVolumeResponse>>
+  controllerModifyVolume(ControllerModifyVolumeRequest request);
+
+  process::Future<RPCResult<GroupControllerGetCapabilitiesResponse>>
+  groupControllerGetCapabilities(GroupControllerGetCapabilitiesRequest request);
+
+  process::Future<RPCResult<CreateVolumeGroupSnapshotResponse>>
+  createVolumeGroupSnapshot(CreateVolumeGroupSnapshotRequest request);
+
+  process::Future<RPCResult<DeleteVolumeGroupSnapshotResponse>>
+  deleteVolumeGroupSnapshot(DeleteVolumeGroupSnapshotRequest request);
+
+  process::Future<RPCResult<GetVolumeGroupSnapshotResponse>>
+  getVolumeGroupSnapshot(GetVolumeGroupSnapshotRequest request);
 
   process::Future<RPCResult<NodeStageVolumeResponse>>
   nodeStageVolume(NodeStageVolumeRequest request);
@@ -97,6 +136,12 @@ public:
 
   process::Future<RPCResult<NodeGetVolumeStatsResponse>>
   nodeGetVolumeStats(NodeGetVolumeStatsRequest request);
+
+  process::Future<RPCResult<NodeGetVolumeHealthResponse>>
+  nodeGetVolumeHealth(NodeGetVolumeHealthRequest request);
+
+  process::Future<RPCResult<NodeGetStorageHealthResponse>>
+  nodeGetStorageHealth(NodeGetStorageHealthRequest request);
 
   process::Future<RPCResult<NodeExpandVolumeResponse>>
   nodeExpandVolume(NodeExpandVolumeRequest request);

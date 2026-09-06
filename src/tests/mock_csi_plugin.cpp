@@ -262,6 +262,14 @@ MockCSIPlugin::MockCSIPlugin()
       _, _, A<csi::v1::CreateSnapshotResponse*>()))
     .WillRepeatedly(Return(Status::OK));
 
+  EXPECT_CALL(*this, ControllerListVolumeHealth(
+      _, _, A<csi::v1::ControllerListVolumeHealthResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, ControllerGetVolumeHealth(
+      _, _, A<csi::v1::ControllerGetVolumeHealthResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
   EXPECT_CALL(*this, DeleteSnapshot(
       _, _, A<csi::v1::DeleteSnapshotResponse*>()))
     .WillRepeatedly(Return(Status::OK));
@@ -269,9 +277,97 @@ MockCSIPlugin::MockCSIPlugin()
   EXPECT_CALL(*this, ListSnapshots(_, _, A<csi::v1::ListSnapshotsResponse*>()))
     .WillRepeatedly(Return(Status::OK));
 
+  EXPECT_CALL(*this, GetSnapshot(_, _, A<csi::v1::GetSnapshotResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
   EXPECT_CALL(*this, ControllerExpandVolume(
       _, _, A<csi::v1::ControllerExpandVolumeResponse*>()))
     .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, ControllerGetVolume(
+      _, _, A<csi::v1::ControllerGetVolumeResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, ControllerModifyVolume(
+      _, _, A<csi::v1::ControllerModifyVolumeResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, GroupControllerGetCapabilities(
+      _, _, A<csi::v1::GroupControllerGetCapabilitiesResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, CreateVolumeGroupSnapshot(
+      _, _, A<csi::v1::CreateVolumeGroupSnapshotResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, DeleteVolumeGroupSnapshot(
+      _, _, A<csi::v1::DeleteVolumeGroupSnapshotResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, GetVolumeGroupSnapshot(
+      _, _, A<csi::v1::GetVolumeGroupSnapshotResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, GetMetadataAllocated(
+      _, _, A<grpc::ServerWriter<csi::v1::GetMetadataAllocatedResponse>*>()))
+    .WillRepeatedly(Invoke([](
+        ServerContext*,
+        const csi::v1::GetMetadataAllocatedRequest* request,
+        grpc::ServerWriter<csi::v1::GetMetadataAllocatedResponse>* writer) {
+      if (request->snapshot_id().empty() || request->starting_offset() < 0) {
+        return Status(
+            grpc::INVALID_ARGUMENT, "invalid allocated metadata request");
+      }
+
+      if (request->snapshot_id() == "error") {
+        return Status(grpc::INTERNAL, "synthetic stream failure");
+      }
+
+      if (request->snapshot_id() == "empty") {
+        return Status::OK;
+      }
+
+      csi::v1::GetMetadataAllocatedResponse response;
+      response.set_volume_capacity_bytes(1);
+      writer->Write(response);
+      if (request->snapshot_id() == "partial-error") {
+        return Status(grpc::INTERNAL, "synthetic allocated receive failure");
+      }
+      response.set_volume_capacity_bytes(2);
+      writer->Write(response);
+      return Status::OK;
+    }));
+
+  EXPECT_CALL(*this, GetMetadataDelta(
+      _, _, A<grpc::ServerWriter<csi::v1::GetMetadataDeltaResponse>*>()))
+    .WillRepeatedly(Invoke([](
+        ServerContext*,
+        const csi::v1::GetMetadataDeltaRequest* request,
+        grpc::ServerWriter<csi::v1::GetMetadataDeltaResponse>* writer) {
+      if (request->base_snapshot_id().empty() ||
+          request->target_snapshot_id().empty() ||
+          request->starting_offset() < 0) {
+        return Status(grpc::INVALID_ARGUMENT, "invalid delta metadata request");
+      }
+
+      if (request->base_snapshot_id() == "error") {
+        return Status(grpc::INTERNAL, "synthetic delta stream failure");
+      }
+
+      if (request->base_snapshot_id() == "empty") {
+        return Status::OK;
+      }
+
+      csi::v1::GetMetadataDeltaResponse response;
+      response.set_volume_capacity_bytes(1);
+      writer->Write(response);
+      if (request->base_snapshot_id() == "partial-error") {
+        return Status(grpc::INTERNAL, "synthetic delta receive failure");
+      }
+      response.set_volume_capacity_bytes(2);
+      writer->Write(response);
+      return Status::OK;
+    }));
 
   EXPECT_CALL(*this, NodeStageVolume(
       _, _, A<csi::v1::NodeStageVolumeResponse*>()))
@@ -291,6 +387,14 @@ MockCSIPlugin::MockCSIPlugin()
 
   EXPECT_CALL(*this, NodeGetVolumeStats(
       _, _, A<csi::v1::NodeGetVolumeStatsResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, NodeGetVolumeHealth(
+      _, _, A<csi::v1::NodeGetVolumeHealthResponse*>()))
+    .WillRepeatedly(Return(Status::OK));
+
+  EXPECT_CALL(*this, NodeGetStorageHealth(
+      _, _, A<csi::v1::NodeGetStorageHealthResponse*>()))
     .WillRepeatedly(Return(Status::OK));
 
   EXPECT_CALL(*this, NodeExpandVolume(
@@ -333,6 +437,10 @@ Try<Connection> MockCSIPlugin::startup(const Option<string>& address)
   builder.RegisterService(static_cast<csi::v0::Node::Service*>(this));
   builder.RegisterService(static_cast<csi::v1::Identity::Service*>(this));
   builder.RegisterService(static_cast<csi::v1::Controller::Service*>(this));
+  builder.RegisterService(
+      static_cast<csi::v1::GroupController::Service*>(this));
+  builder.RegisterService(
+      static_cast<csi::v1::SnapshotMetadata::Service*>(this));
   builder.RegisterService(static_cast<csi::v1::Node::Service*>(this));
 
   server = builder.BuildAndStart();

@@ -113,6 +113,14 @@ message Call {
 
     // Reads the master's own log without exposing an arbitrary file path.
     READ_LOG = 40;
+
+    // CSI 1.13 volume operations. These values are additive and do not
+    // renumber or reuse existing call types.
+    GET_VOLUME_HEALTH = 41;
+    MODIFY_VOLUME = 42;
+    CREATE_VOLUME_GROUP_SNAPSHOT = 43;
+    DELETE_VOLUME_GROUP_SNAPSHOT = 44;
+    GET_VOLUME_GROUP_SNAPSHOT = 45;
   }
 
   // Provides a snapshot of the current metrics tracked by the master.
@@ -218,6 +226,34 @@ message Call {
 
     // See comments in `Value.Scalar` for maximum precision supported.
     required Value.Scalar subtract = 3;
+  }
+
+  message GetVolumeHealth {
+    required AgentID agent_id = 1;
+    required string volume_id = 2;
+  }
+
+  message ModifyVolume {
+    required AgentID agent_id = 1;
+    required string volume_id = 2;
+    map<string, string> parameters = 3;
+  }
+
+  message CreateVolumeGroupSnapshot {
+    required AgentID agent_id = 1;
+    required string group_snapshot_id = 2;
+    repeated string volume_ids = 3;
+    map<string, string> parameters = 4;
+  }
+
+  message DeleteVolumeGroupSnapshot {
+    required AgentID agent_id = 1;
+    required string group_snapshot_id = 2;
+  }
+
+  message GetVolumeGroupSnapshot {
+    required AgentID agent_id = 1;
+    required string group_snapshot_id = 2;
   }
 
   // Updates the cluster's maintenance schedule.
@@ -350,6 +386,11 @@ message Call {
   optional Teardown teardown = 16;
   optional MarkAgentGone mark_agent_gone = 17;
   optional ReadLog read_log = 24;
+  optional GetVolumeHealth get_volume_health = 25;
+  optional ModifyVolume modify_volume = 26;
+  optional CreateVolumeGroupSnapshot create_volume_group_snapshot = 27;
+  optional DeleteVolumeGroupSnapshot delete_volume_group_snapshot = 28;
+  optional GetVolumeGroupSnapshot get_volume_group_snapshot = 29;
 
   optional SetQuota set_quota = 14 [deprecated = true];
   optional RemoveQuota remove_quota = 15 [deprecated = true];

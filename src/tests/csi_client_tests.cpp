@@ -142,15 +142,26 @@ INSTANTIATE_TEST_CASE_P(
         RPCParam::create(&csi::v1::Client::listVolumes),
         RPCParam::create(&csi::v1::Client::getCapacity),
         RPCParam::create(&csi::v1::Client::controllerGetCapabilities),
+        RPCParam::create(&csi::v1::Client::controllerListVolumeHealth),
+        RPCParam::create(&csi::v1::Client::controllerGetVolumeHealth),
         RPCParam::create(&csi::v1::Client::createSnapshot),
         RPCParam::create(&csi::v1::Client::deleteSnapshot),
         RPCParam::create(&csi::v1::Client::listSnapshots),
+        RPCParam::create(&csi::v1::Client::getSnapshot),
         RPCParam::create(&csi::v1::Client::controllerExpandVolume),
+        RPCParam::create(&csi::v1::Client::controllerGetVolume),
+        RPCParam::create(&csi::v1::Client::controllerModifyVolume),
+        RPCParam::create(&csi::v1::Client::groupControllerGetCapabilities),
+        RPCParam::create(&csi::v1::Client::createVolumeGroupSnapshot),
+        RPCParam::create(&csi::v1::Client::deleteVolumeGroupSnapshot),
+        RPCParam::create(&csi::v1::Client::getVolumeGroupSnapshot),
         RPCParam::create(&csi::v1::Client::nodeStageVolume),
         RPCParam::create(&csi::v1::Client::nodeUnstageVolume),
         RPCParam::create(&csi::v1::Client::nodePublishVolume),
         RPCParam::create(&csi::v1::Client::nodeUnpublishVolume),
         RPCParam::create(&csi::v1::Client::nodeGetVolumeStats),
+        RPCParam::create(&csi::v1::Client::nodeGetVolumeHealth),
+        RPCParam::create(&csi::v1::Client::nodeGetStorageHealth),
         RPCParam::create(&csi::v1::Client::nodeExpandVolume),
         RPCParam::create(&csi::v1::Client::nodeGetCapabilities),
         RPCParam::create(&csi::v1::Client::nodeGetInfo)),
@@ -161,6 +172,98 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(CSIClientTest, Call)
 {
   AWAIT_EXPECT_READY(GetParam().call(connection.get(), runtime));
+}
+
+
+TEST_F(CSIClientTest, MetadataStreams)
+{
+  csi::v1::Client client(connection.get(), runtime);
+
+  csi::v1::GetMetadataAllocatedRequest allocatedRequest;
+  allocatedRequest.set_snapshot_id("snapshot");
+  allocatedRequest.set_starting_offset(0);
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataAllocatedResponse>>
+    allocated = client.getMetadataAllocated(allocatedRequest);
+  AWAIT_ASSERT_READY(allocated);
+  ASSERT_SOME(allocated.get());
+  EXPECT_EQ(2u, allocated->get().size());
+  EXPECT_EQ(1, allocated->get()[0].volume_capacity_bytes());
+  EXPECT_EQ(2, allocated->get()[1].volume_capacity_bytes());
+
+  csi::v1::GetMetadataDeltaRequest deltaRequest;
+  deltaRequest.set_base_snapshot_id("base");
+  deltaRequest.set_target_snapshot_id("target");
+  deltaRequest.set_starting_offset(0);
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataDeltaResponse>>
+    delta = client.getMetadataDelta(deltaRequest);
+  AWAIT_ASSERT_READY(delta);
+  ASSERT_SOME(delta.get());
+  EXPECT_EQ(2u, delta->get().size());
+  EXPECT_EQ(1, delta->get()[0].volume_capacity_bytes());
+  EXPECT_EQ(2, delta->get()[1].volume_capacity_bytes());
+
+  csi::v1::GetMetadataAllocatedRequest emptyAllocatedRequest;
+  emptyAllocatedRequest.set_snapshot_id("empty");
+  emptyAllocatedRequest.set_starting_offset(0);
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataAllocatedResponse>>
+    emptyAllocated = client.getMetadataAllocated(emptyAllocatedRequest);
+  AWAIT_ASSERT_READY(emptyAllocated);
+  ASSERT_SOME(emptyAllocated.get());
+  EXPECT_TRUE(emptyAllocated->get().empty());
+
+  csi::v1::GetMetadataDeltaRequest emptyDeltaRequest;
+  emptyDeltaRequest.set_base_snapshot_id("empty");
+  emptyDeltaRequest.set_target_snapshot_id("target");
+  emptyDeltaRequest.set_starting_offset(0);
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataDeltaResponse>>
+    emptyDelta = client.getMetadataDelta(emptyDeltaRequest);
+  AWAIT_ASSERT_READY(emptyDelta);
+  ASSERT_SOME(emptyDelta.get());
+  EXPECT_TRUE(emptyDelta->get().empty());
+
+  csi::v1::GetMetadataAllocatedRequest errorRequest;
+  errorRequest.set_starting_offset(0);
+  errorRequest.set_snapshot_id("error");
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataAllocatedResponse>>
+    error = client.getMetadataAllocated(errorRequest);
+  AWAIT_ASSERT_READY(error);
+  EXPECT_TRUE(error->isError());
+  EXPECT_NE(string::npos, error->error().message.find("synthetic stream failure"));
+
+  csi::v1::GetMetadataDeltaRequest deltaErrorRequest;
+  deltaErrorRequest.set_target_snapshot_id("target");
+  deltaErrorRequest.set_starting_offset(0);
+  deltaErrorRequest.set_base_snapshot_id("error");
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataDeltaResponse>>
+    deltaError = client.getMetadataDelta(deltaErrorRequest);
+  AWAIT_ASSERT_READY(deltaError);
+  EXPECT_TRUE(deltaError->isError());
+  EXPECT_NE(
+      string::npos,
+      deltaError->error().message.find("synthetic delta stream failure"));
+
+  csi::v1::GetMetadataAllocatedRequest partialErrorRequest;
+  partialErrorRequest.set_snapshot_id("partial-error");
+  partialErrorRequest.set_starting_offset(0);
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataAllocatedResponse>>
+    partialError = client.getMetadataAllocated(partialErrorRequest);
+  AWAIT_ASSERT_READY(partialError);
+  EXPECT_TRUE(partialError->isError());
+  EXPECT_NE(
+      string::npos, partialError->error().message.find(
+          "synthetic allocated receive failure"));
+
+  csi::v1::GetMetadataDeltaRequest deltaPartialErrorRequest;
+  deltaPartialErrorRequest.set_base_snapshot_id("partial-error");
+  deltaPartialErrorRequest.set_target_snapshot_id("target");
+  deltaPartialErrorRequest.set_starting_offset(0);
+  Future<csi::v1::StreamingRPCResult<csi::v1::GetMetadataDeltaResponse>>
+    deltaPartialError = client.getMetadataDelta(deltaPartialErrorRequest);
+  AWAIT_ASSERT_READY(deltaPartialError);
+  EXPECT_TRUE(deltaPartialError->isError());
+  EXPECT_NE(
+      string::npos, deltaPartialError->error().message.find(
+          "synthetic delta receive failure"));
 }
 
 } // namespace tests {

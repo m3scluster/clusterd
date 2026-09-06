@@ -369,6 +369,33 @@ Future<Response> Master::Http::api(
     case mesos::master::Call::SHRINK_VOLUME:
       return shrinkVolume(call, principal, acceptType);
 
+    // CSI 1.13 controller operations are validated at the master API boundary
+    // and authorized before the execution/state integration is attempted.
+    case mesos::master::Call::GET_VOLUME_HEALTH:
+      return csiVolumeOperation(
+          call, principal, authorization::GET_VOLUME_HEALTH,
+          call.get_volume_health().volume_id());
+
+    case mesos::master::Call::MODIFY_VOLUME:
+      return csiVolumeOperation(
+          call, principal, authorization::MODIFY_VOLUME,
+          call.modify_volume().volume_id());
+
+    case mesos::master::Call::CREATE_VOLUME_GROUP_SNAPSHOT:
+      return csiVolumeOperation(
+          call, principal, authorization::CREATE_VOLUME_GROUP_SNAPSHOT,
+          call.create_volume_group_snapshot().group_snapshot_id());
+
+    case mesos::master::Call::DELETE_VOLUME_GROUP_SNAPSHOT:
+      return csiVolumeOperation(
+          call, principal, authorization::DELETE_VOLUME_GROUP_SNAPSHOT,
+          call.delete_volume_group_snapshot().group_snapshot_id());
+
+    case mesos::master::Call::GET_VOLUME_GROUP_SNAPSHOT:
+      return csiVolumeOperation(
+          call, principal, authorization::GET_VOLUME_GROUP_SNAPSHOT,
+          call.get_volume_group_snapshot().group_snapshot_id());
+
     case mesos::master::Call::GET_MAINTENANCE_STATUS:
       return getMaintenanceStatus(call, principal, acceptType);
 
@@ -763,6 +790,27 @@ string Master::Http::CREATE_VOLUMES_HELP()
         "the current principal is authorized to create volumes for the",
         "specific role.",
         "See the authorization documentation for details."));
+}
+
+
+Future<Response> Master::Http::csiVolumeOperation(
+    const mesos::master::Call& /*call*/,
+    const Option<Principal>& principal,
+    authorization::Action action,
+    const string& id) const
+{
+  return master->authorize(
+      principal, ActionObject::csiVolumeOperation(action, id))
+    .then(defer(master->self(), [](bool authorized) -> Future<Response> {
+      if (!authorized) {
+        return Forbidden();
+      }
+
+      // The agent-side CSI controller message and response plumbing is not yet
+      // part of the Mesos protocol. Keep the request validated and authorized,
+      // but do not claim that the operation was executed.
+      return NotImplemented();
+    }));
 }
 
 

@@ -99,6 +99,51 @@ TEST(MasterCallValidationTest, ReadLog)
 }
 
 
+TEST(MasterCallValidationTest, CSI113ControllerOperations)
+{
+  mesos::master::Call call;
+
+  call.set_type(mesos::master::Call::GET_VOLUME_HEALTH);
+  EXPECT_SOME(master::validation::master::call::validate(call));
+  call.mutable_get_volume_health()->mutable_slave_id()->set_value("agent");
+  EXPECT_SOME(master::validation::master::call::validate(call));
+  call.mutable_get_volume_health()->set_volume_id("volume");
+  EXPECT_NONE(master::validation::master::call::validate(call));
+
+  call.Clear();
+  call.set_type(mesos::master::Call::MODIFY_VOLUME);
+  call.mutable_modify_volume()->mutable_slave_id()->set_value("agent");
+  call.mutable_modify_volume()->set_volume_id("volume");
+  EXPECT_NONE(master::validation::master::call::validate(call));
+
+  call.Clear();
+  call.set_type(mesos::master::Call::CREATE_VOLUME_GROUP_SNAPSHOT);
+  call.mutable_create_volume_group_snapshot()->mutable_slave_id()->set_value(
+      "agent");
+  call.mutable_create_volume_group_snapshot()->set_group_snapshot_id(
+      "group-snapshot");
+  EXPECT_SOME(master::validation::master::call::validate(call));
+  call.mutable_create_volume_group_snapshot()->add_volume_ids("volume");
+  EXPECT_NONE(master::validation::master::call::validate(call));
+
+  call.Clear();
+  call.set_type(mesos::master::Call::DELETE_VOLUME_GROUP_SNAPSHOT);
+  call.mutable_delete_volume_group_snapshot()->mutable_slave_id()->set_value(
+      "agent");
+  call.mutable_delete_volume_group_snapshot()->set_group_snapshot_id(
+      "group-snapshot");
+  EXPECT_NONE(master::validation::master::call::validate(call));
+
+  call.Clear();
+  call.set_type(mesos::master::Call::GET_VOLUME_GROUP_SNAPSHOT);
+  call.mutable_get_volume_group_snapshot()->mutable_slave_id()->set_value(
+      "agent");
+  call.mutable_get_volume_group_snapshot()->set_group_snapshot_id(
+      "group-snapshot");
+  EXPECT_NONE(master::validation::master::call::validate(call));
+}
+
+
 TEST(MasterCallValidationTest, UpdateQuota)
 {
   Option<Error> error;

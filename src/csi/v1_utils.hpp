@@ -53,6 +53,10 @@ struct PluginCapabilities
           case PluginCapability::Service::VOLUME_ACCESSIBILITY_CONSTRAINTS:
             volumeAccessibilityConstraints = true;
             break;
+          case PluginCapability::Service::GROUP_CONTROLLER_SERVICE:
+          case PluginCapability::Service::SNAPSHOT_METADATA_SERVICE:
+          case PluginCapability::Service::SNAPSHOT_ACCESSIBILITY_CONSTRAINTS:
+            break;
 
           // NOTE: We avoid using a default clause for the following values in
           // proto3's open enum to enable the compiler to detect missing enum
@@ -137,6 +141,12 @@ struct ControllerCapabilities
           case ControllerServiceCapability::RPC::EXPAND_VOLUME:
             expandVolume = true;
             break;
+          case ControllerServiceCapability::RPC::LIST_VOLUME_HEALTH:
+          case ControllerServiceCapability::RPC::GET_VOLUME_HEALTH:
+          case ControllerServiceCapability::RPC::GET_SNAPSHOT:
+          case ControllerServiceCapability::RPC::GET_VOLUME:
+          case ControllerServiceCapability::RPC::MODIFY_VOLUME:
+            break;
 
           // NOTE: We avoid using a default clause for the following values in
           // proto3's open enum to enable the compiler to detect missing enum
@@ -182,6 +192,9 @@ struct NodeCapabilities
             break;
           case NodeServiceCapability::RPC::EXPAND_VOLUME:
             expandVolume = true;
+            break;
+          case NodeServiceCapability::RPC::GET_VOLUME_HEALTH:
+          case NodeServiceCapability::RPC::GET_STORAGE_HEALTH:
             break;
 
           // NOTE: We avoid using a default clause for the following values in

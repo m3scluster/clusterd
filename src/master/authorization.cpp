@@ -318,6 +318,16 @@ ActionObject ActionObject::shrinkVolume(
 }
 
 
+ActionObject ActionObject::csiVolumeOperation(
+    Action action,
+    const string& id)
+{
+  Object object;
+  object.set_value(id);
+  return ActionObject(action, object);
+}
+
+
 Try<ActionObject> ActionObject::createDisk(
     const Offer::Operation::CreateDisk& createDisk)
 {

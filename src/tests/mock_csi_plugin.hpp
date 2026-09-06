@@ -45,6 +45,8 @@ class MockCSIPlugin
     public csi::v0::Node::Service,
     public csi::v1::Identity::Service,
     public csi::v1::Controller::Service,
+    public csi::v1::GroupController::Service,
+    public csi::v1::SnapshotMetadata::Service,
     public csi::v1::Node::Service
 {
 public:
@@ -194,6 +196,16 @@ public:
       const csi::v1::ControllerGetCapabilitiesRequest*,
       csi::v1::ControllerGetCapabilitiesResponse*));
 
+  MOCK_METHOD3(ControllerListVolumeHealth, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::ControllerListVolumeHealthRequest*,
+      csi::v1::ControllerListVolumeHealthResponse*));
+
+  MOCK_METHOD3(ControllerGetVolumeHealth, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::ControllerGetVolumeHealthRequest*,
+      csi::v1::ControllerGetVolumeHealthResponse*));
+
   MOCK_METHOD3(CreateSnapshot, grpc::Status(
       grpc::ServerContext*,
       const csi::v1::CreateSnapshotRequest*,
@@ -209,10 +221,55 @@ public:
       const csi::v1::ListSnapshotsRequest*,
       csi::v1::ListSnapshotsResponse*));
 
+  MOCK_METHOD3(GetSnapshot, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::GetSnapshotRequest*,
+      csi::v1::GetSnapshotResponse*));
+
   MOCK_METHOD3(ControllerExpandVolume, grpc::Status(
       grpc::ServerContext*,
       const csi::v1::ControllerExpandVolumeRequest*,
       csi::v1::ControllerExpandVolumeResponse*));
+
+  MOCK_METHOD3(ControllerGetVolume, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::ControllerGetVolumeRequest*,
+      csi::v1::ControllerGetVolumeResponse*));
+
+  MOCK_METHOD3(ControllerModifyVolume, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::ControllerModifyVolumeRequest*,
+      csi::v1::ControllerModifyVolumeResponse*));
+
+  MOCK_METHOD3(GroupControllerGetCapabilities, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::GroupControllerGetCapabilitiesRequest*,
+      csi::v1::GroupControllerGetCapabilitiesResponse*));
+
+  MOCK_METHOD3(CreateVolumeGroupSnapshot, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::CreateVolumeGroupSnapshotRequest*,
+      csi::v1::CreateVolumeGroupSnapshotResponse*));
+
+  MOCK_METHOD3(DeleteVolumeGroupSnapshot, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::DeleteVolumeGroupSnapshotRequest*,
+      csi::v1::DeleteVolumeGroupSnapshotResponse*));
+
+  MOCK_METHOD3(GetVolumeGroupSnapshot, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::GetVolumeGroupSnapshotRequest*,
+      csi::v1::GetVolumeGroupSnapshotResponse*));
+
+  MOCK_METHOD3(GetMetadataAllocated, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::GetMetadataAllocatedRequest*,
+      grpc::ServerWriter<csi::v1::GetMetadataAllocatedResponse>*));
+
+  MOCK_METHOD3(GetMetadataDelta, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::GetMetadataDeltaRequest*,
+      grpc::ServerWriter<csi::v1::GetMetadataDeltaResponse>*));
 
   MOCK_METHOD3(NodeStageVolume, grpc::Status(
       grpc::ServerContext*,
@@ -238,6 +295,16 @@ public:
       grpc::ServerContext*,
       const csi::v1::NodeGetVolumeStatsRequest*,
       csi::v1::NodeGetVolumeStatsResponse*));
+
+  MOCK_METHOD3(NodeGetVolumeHealth, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::NodeGetVolumeHealthRequest*,
+      csi::v1::NodeGetVolumeHealthResponse*));
+
+  MOCK_METHOD3(NodeGetStorageHealth, grpc::Status(
+      grpc::ServerContext*,
+      const csi::v1::NodeGetStorageHealthRequest*,
+      csi::v1::NodeGetStorageHealthResponse*));
 
   MOCK_METHOD3(NodeExpandVolume, grpc::Status(
       grpc::ServerContext*,

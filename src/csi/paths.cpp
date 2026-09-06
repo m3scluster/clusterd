@@ -44,6 +44,7 @@ namespace paths {
 constexpr char CONTAINER_INFO_FILE[] = "container.info";
 constexpr char ENDPOINT_SOCKET_FILE[] = "endpoint.sock";
 constexpr char VOLUME_STATE_FILE[] = "volume.state";
+constexpr char PLUGIN_STATE_FILE[] = "plugin.state";
 
 
 constexpr char CONTAINERS_DIR[] = "containers";
@@ -270,6 +271,15 @@ string getVolumeStatePath(
   return path::join(
       getVolumePath(rootDir, type, name, volumeId),
       VOLUME_STATE_FILE);
+}
+
+
+string getPluginStatePath(
+    const string& rootDir,
+    const string& type,
+    const string& name)
+{
+  return path::join(rootDir, type, name, PLUGIN_STATE_FILE);
 }
 
 

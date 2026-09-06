@@ -107,6 +107,24 @@ constexpr char NODE_ID[] = "localhost";
 constexpr Bytes DEFAULT_VOLUME_CAPACITY = Megabytes(64);
 
 
+bool isSupportedVolumeCapability(
+    const VolumeCapability& capability,
+    const VolumeCapability& defaultCapability)
+{
+  if (capability == defaultCapability) {
+    return true;
+  }
+
+  return capability.has_mount() &&
+    capability.has_access_mode() &&
+    capability.access_mode().mode() ==
+      VolumeCapability::AccessMode::SINGLE_NODE_WRITER &&
+    capability.mount().fs_type() == "cifs" &&
+    capability.mount().mount_flags_size() == 1 &&
+    capability.mount().mount_flags(0) == "vers=3.0";
+}
+
+
 class Flags : public virtual mesos::internal::logging::Flags
 {
 public:
@@ -1606,7 +1624,7 @@ Try<Nothing, StatusError> TestCSIPlugin::nodeStageVolume(
         "Staging path '" + stagingPath + "' does not exist"));
   }
 
-  if (capability != defaultVolumeCapability) {
+  if (!isSupportedVolumeCapability(capability, defaultVolumeCapability)) {
     return StatusError(Status(
         grpc::INVALID_ARGUMENT, "Unsupported volume capability"));
   }
@@ -1714,7 +1732,7 @@ Try<Nothing, StatusError> TestCSIPlugin::nodePublishVolume(
         "Target path '" + targetPath + "' does not exist"));
   }
 
-  if (capability != defaultVolumeCapability) {
+  if (!isSupportedVolumeCapability(capability, defaultVolumeCapability)) {
     return StatusError(Status(
         grpc::INVALID_ARGUMENT, "Unsupported volume capability"));
   }
