@@ -89,6 +89,7 @@ set(MESOS_TESTS_SRC
   command_executor_tests.cpp
   common_validation_tests.cpp
   consumption_metrics_tests.cpp
+  execute_tests.cpp
   container_daemon_tests.cpp
   cram_md5_authentication_tests.cpp
   credentials_tests.cpp
@@ -174,6 +175,7 @@ if (NOT WIN32)
   list(APPEND MESOS_TESTS_SRC
     container_logger_tests.cpp
     csi_client_tests.cpp
+    csi_api_proto_tests.cpp
     csi_utils_tests.cpp
     disk_profile_adaptor_tests.cpp
     disk_quota_tests.cpp
