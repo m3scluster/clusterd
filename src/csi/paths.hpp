@@ -130,6 +130,12 @@ std::string getVolumeStatePath(
     const std::string& volumeId);
 
 
+std::string getPluginStatePath(
+    const std::string& rootDir,
+    const std::string& type,
+    const std::string& name);
+
+
 std::string getMountRootDir(
     const std::string& rootDir,
     const std::string& type,

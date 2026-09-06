@@ -25,6 +25,32 @@ namespace mesos {
 namespace csi {
 namespace state {
 
+inline bool isValidModifyTransition(
+    const VolumeModifyState::State from,
+    const VolumeModifyState::State to)
+{
+  return
+    (from == VolumeModifyState::UNKNOWN && to == VolumeModifyState::PENDING) ||
+    (from == VolumeModifyState::PENDING &&
+     (to == VolumeModifyState::APPLIED || to == VolumeModifyState::FAILED));
+}
+
+
+inline bool isValidGroupSnapshotTransition(
+    const GroupSnapshotState::State from,
+    const GroupSnapshotState::State to)
+{
+  return
+    (from == GroupSnapshotState::UNKNOWN &&
+     to == GroupSnapshotState::CREATING) ||
+    (from == GroupSnapshotState::CREATING &&
+     (to == GroupSnapshotState::READY || to == GroupSnapshotState::FAILED)) ||
+    (from == GroupSnapshotState::READY && to == GroupSnapshotState::DELETING) ||
+    (from == GroupSnapshotState::DELETING &&
+     (to == GroupSnapshotState::DELETED || to == GroupSnapshotState::FAILED));
+}
+
+
 inline std::ostream& operator<<(
     std::ostream& stream,
     const VolumeState::State& state)

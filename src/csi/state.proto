@@ -85,3 +85,55 @@ message VolumeState {
   // Secrets to be included in `NodePublishVolumeRequest`.
   map<string, Secret> node_publish_secrets = 11;
 }
+
+
+// Durable controller-side state for CSI 1.13 operations. These records are
+// separate from VolumeState because health and group snapshots are not node
+// publish lifecycle states.
+message VolumeHealthState {
+  string volume_id = 1;
+  bool abnormal = 2;
+  string message = 3;
+  int64 observed_at = 4;
+}
+
+message VolumeModifyState {
+  enum State {
+    UNKNOWN = 0;
+    PENDING = 1;
+    APPLIED = 2;
+    FAILED = 3;
+  }
+
+  State state = 1;
+  string volume_id = 2;
+  map<string, string> parameters = 3;
+  map<string, string> volume_context = 4;
+  string error = 5;
+}
+
+message GroupSnapshotState {
+  enum State {
+    UNKNOWN = 0;
+    CREATING = 1;
+    READY = 2;
+    DELETING = 3;
+    DELETED = 4;
+    FAILED = 5;
+  }
+
+  State state = 1;
+  string group_snapshot_id = 2;
+  repeated string volume_ids = 3;
+  repeated string snapshot_ids = 4;
+  map<string, string> parameters = 5;
+  int64 creation_time = 6;
+  string error = 7;
+}
+
+// One atomically checkpointed record for controller-side CSI state.
+message PluginState {
+  map<string, VolumeHealthState> volume_health = 1;
+  map<string, VolumeModifyState> volume_modifications = 2;
+  map<string, GroupSnapshotState> group_snapshots = 3;
+}

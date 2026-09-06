@@ -176,6 +176,7 @@ if (NOT WIN32)
     container_logger_tests.cpp
     csi_client_tests.cpp
     csi_api_proto_tests.cpp
+    csi_state_tests.cpp
     csi_utils_tests.cpp
     disk_profile_adaptor_tests.cpp
     disk_quota_tests.cpp
