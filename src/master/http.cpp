@@ -369,6 +369,16 @@ Future<Response> Master::Http::api(
     case mesos::master::Call::SHRINK_VOLUME:
       return shrinkVolume(call, principal, acceptType);
 
+    // CSI 1.13 controller operations are validated at the master API boundary.
+    // Execution and state integration are intentionally deferred until the
+    // corresponding agent-side operation protocol is available.
+    case mesos::master::Call::GET_VOLUME_HEALTH:
+    case mesos::master::Call::MODIFY_VOLUME:
+    case mesos::master::Call::CREATE_VOLUME_GROUP_SNAPSHOT:
+    case mesos::master::Call::DELETE_VOLUME_GROUP_SNAPSHOT:
+    case mesos::master::Call::GET_VOLUME_GROUP_SNAPSHOT:
+      return NotImplemented();
+
     case mesos::master::Call::GET_MAINTENANCE_STATUS:
       return getMaintenanceStatus(call, principal, acceptType);
 
