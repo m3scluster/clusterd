@@ -1,12 +1,20 @@
 ## Master
 
+- ADD: [csi] support for CSI 1.13.x
+- ADD: [csi, grpc] add server-streaming client support for CSI 1.13
+       SnapshotMetadata RPCs `GetMetadataAllocated` and `GetMetadataDelta`.
+- FIX: [csi, test] accept the CSI CIFS mount capability in both test-plugin
+       node-stage and node-publish paths.
+- TEST: [csi, compose] verify CSI 1.13 SMB volumes end to end with
+       `mesos-compose`, including TASK_FINISHED, CSI cleanup, CNI networking,
+       and a proof file read back from the SMB share.
 - ADD: [master, agent, metrics] live host utilization gauges for CPU, memory,
        disk, GPU, and normalized load. Metrics are exposed as
        `master/*_utilization` and `slave/*_utilization` percentages without
        changing existing capacity or allocation metrics.
        Details: https://m3scluster.github.io/clusterd-docs/monitoring.html#live-host-utilization
 - ADD: [containerizer, docker, mesos] OCI image support for both the Mesos
-       and Docker containerizcharers. Details:
+       and Docker containerizers. Details:
        https://m3scluster.github.io/clusterd-docs/container-image.html#oci-and-multi-architecture-images
 - ADD: [containerizer, gpu] ROCm support for AMD GPUs through the new
        `gpu/rocm` isolator. Agents discover `/dev/kfd` and
