@@ -80,6 +80,12 @@ public:
   static ActionObject shrinkVolume(
       const Offer::Operation::ShrinkVolume& shrink);
 
+  // Returns an action-object pair for a CSI 1.13 controller operation.
+  // The object value contains the addressed volume or group snapshot ID.
+  static ActionObject csiVolumeOperation(
+      Action action,
+      const std::string& id);
+
   // Returns Error if disk type is not supported.
   //
   // TODO(asekretenko): Change return type to ActionObject after

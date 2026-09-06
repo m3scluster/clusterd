@@ -118,6 +118,14 @@ enum Action {
   DESTROY_VOLUME = 7;
   DESTROY_VOLUME_WITH_PRINCIPAL = 7;
 
+  // CSI 1.13 controller operations. The object.value field contains the
+  // volume or group snapshot identifier being addressed.
+  GET_VOLUME_HEALTH = 56;
+  MODIFY_VOLUME = 57;
+  CREATE_VOLUME_GROUP_SNAPSHOT = 58;
+  DELETE_VOLUME_GROUP_SNAPSHOT = 59;
+  GET_VOLUME_GROUP_SNAPSHOT = 60;
+
   GET_ENDPOINT_WITH_PATH = 8;
   VIEW_ROLE = 9;
 

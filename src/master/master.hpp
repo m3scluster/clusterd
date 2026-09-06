@@ -1471,6 +1471,12 @@ private:
         const Option<process::http::authentication::Principal>&
             principal) const;
 
+    process::Future<process::http::Response> csiVolumeOperation(
+        const mesos::master::Call& call,
+        const Option<process::http::authentication::Principal>& principal,
+        authorization::Action action,
+        const std::string& id) const;
+
     // /master/flags
     process::Future<process::http::Response> flags(
         const process::http::Request& request,
