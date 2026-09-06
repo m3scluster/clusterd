@@ -101,9 +101,9 @@ void Runtime::RuntimeProcess::send(SendCallback callback)
 }
 
 
-void Runtime::RuntimeProcess::receive(ReceiveCallback callback)
+void Runtime::RuntimeProcess::receive(ReceiveCallback callback, bool ok)
 {
-  std::move(callback)();
+  std::move(callback)(ok);
 }
 
 
@@ -150,14 +150,10 @@ void Runtime::RuntimeProcess::loop()
   bool ok;
 
   while (queue.Next(&tag, &ok)) {
-    // Currently only unary RPCs are supported, so `ok` should always be true.
-    // See: https://grpc.io/grpc/cpp/classgrpc_1_1_completion_queue.html#a86d9810ced694e50f7987ac90b9f8c1a // NOLINT
-    CHECK(ok);
-
     // Obtain the tag as a `ReceiveCallback` and dispatch it to the runtime
     // process. The tag is then reclaimed here.
     ReceiveCallback* callback = reinterpret_cast<ReceiveCallback*>(tag);
-    dispatch(self(), &RuntimeProcess::receive, std::move(*callback));
+    dispatch(self(), &RuntimeProcess::receive, std::move(*callback), ok);
     delete callback;
   }
 

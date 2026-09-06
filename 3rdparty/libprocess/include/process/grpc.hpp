@@ -14,12 +14,14 @@
 #define __PROCESS_GRPC_HPP__
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <ostream>
 #include <string>
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <google/protobuf/message.h>
 
@@ -91,6 +93,19 @@ struct MethodTraits; // Undefined.
 template <typename Stub, typename Request, typename Response>
 struct MethodTraits<
     std::unique_ptr<::grpc::ClientAsyncResponseReader<Response>>(Stub::*)(
+        ::grpc::ClientContext*,
+        const Request&,
+        ::grpc::CompletionQueue*)>
+{
+  typedef Stub stub_type;
+  typedef Request request_type;
+  typedef Response response_type;
+};
+
+
+template <typename Stub, typename Request, typename Response>
+struct MethodTraits<
+    std::unique_ptr<::grpc::ClientAsyncReader<Response>>(Stub::*)(
         ::grpc::ClientContext*,
         const Request&,
         ::grpc::CompletionQueue*)>
@@ -249,7 +264,8 @@ public:
           // callback itself will later be retrieved and managed in the
           // looper thread.
           void* tag = new ReceiveCallback(
-              [context, reader, response, status, promise]() {
+              [context, reader, response, status, promise](bool ok) {
+                CHECK(ok);
                 CHECK_PENDING(promise->future());
                 if (promise->future().hasDiscard()) {
                   promise->discard();
@@ -261,6 +277,122 @@ public:
               });
 
           reader->Finish(response.get(), status.get(), tag);
+        },
+        std::forward<Request>(request),
+        lambda::_1,
+        lambda::_2));
+
+    return future;
+  }
+
+  /**
+   * Sends an asynchronous server-streaming gRPC call and collects all
+   * responses until the server closes the stream.
+   */
+  template <
+      typename Method,
+      typename Request =
+        typename internal::MethodTraits<Method>::request_type,
+      typename Response =
+        typename internal::MethodTraits<Method>::response_type,
+      typename std::enable_if<
+          std::is_convertible<
+              typename std::decay<Request>::type*,
+              google::protobuf::Message*>::value,
+          int>::type = 0>
+  Future<Try<std::vector<Response>, StatusError>> stream(
+      const Connection& connection,
+      Method&& method,
+      Request&& request,
+      const CallOptions& options)
+  {
+    typedef Try<std::vector<Response>, StatusError> Result;
+
+    std::shared_ptr<Promise<Result>> promise(new Promise<Result>);
+    Future<Result> future = promise->future();
+
+    dispatch(data->pid, &RuntimeProcess::send, std::bind(
+        [connection, method, options, promise](
+            const Request& request,
+            bool terminating,
+            ::grpc::CompletionQueue* queue) {
+          if (terminating) {
+            promise->fail("Runtime has been terminated");
+            return;
+          }
+
+          struct State
+          {
+            std::shared_ptr<::grpc::ClientContext> context;
+            std::shared_ptr<::grpc::ClientAsyncReader<Response>> reader;
+            std::shared_ptr<::grpc::Status> status;
+            std::vector<Response> responses;
+            std::shared_ptr<Promise<Result>> promise;
+          };
+
+          std::shared_ptr<State> state(new State());
+          state->context.reset(new ::grpc::ClientContext());
+          state->context->set_wait_for_ready(options.wait_for_ready);
+
+          auto time_point =
+            std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                std::chrono::system_clock::now() +
+                std::chrono::nanoseconds(options.timeout.ns()));
+          state->context->set_deadline(time_point);
+          state->promise = promise;
+          state->status.reset(new ::grpc::Status());
+
+          promise->future().onDiscard([state] { state->context->TryCancel(); });
+
+          state->reader =
+            (typename internal::MethodTraits<Method>::stub_type(
+                connection.channel).*method)(state->context.get(), request, queue);
+
+          std::shared_ptr<std::function<void()>> read(
+              new std::function<void()>);
+          std::shared_ptr<std::function<void()>> finish(
+              new std::function<void()>);
+
+          *finish = [state, read]() {
+            state->reader->Finish(
+                state->status.get(),
+                new ReceiveCallback([state, read](bool ok) {
+                  CHECK(ok);
+                  // Break the self-reference created by the recursive read
+                  // callback once the RPC has reached its terminal state.
+                  *read = std::function<void()>();
+                  if (state->promise->future().hasDiscard()) {
+                    state->promise->discard();
+                  } else {
+                    state->promise->set(state->status->ok()
+                      ? std::move(state->responses)
+                      : Result::error(std::move(*state->status)));
+                  }
+                }));
+          };
+
+          *read = [state, read, finish]() {
+            std::shared_ptr<Response> response(new Response());
+            state->reader->Read(
+                response.get(),
+                new ReceiveCallback([state, response, read, finish](bool ok) {
+                  if (ok) {
+                    state->responses.push_back(std::move(*response));
+                    (*read)();
+                  } else {
+                    (*finish)();
+                  }
+                }));
+          };
+
+          state->reader->StartCall(
+              new ReceiveCallback([read, finish](bool ok) {
+                if (ok) {
+                  (*read)();
+                } else {
+                  (*finish)();
+                }
+              }));
         },
         std::forward<Request>(request),
         lambda::_1,
@@ -288,7 +420,7 @@ private:
   // or receiving a response.
   typedef lambda::CallableOnce<
       void(bool, ::grpc::CompletionQueue*)> SendCallback;
-  typedef lambda::CallableOnce<void()> ReceiveCallback;
+  typedef lambda::CallableOnce<void(bool)> ReceiveCallback;
 
   class RuntimeProcess : public Process<RuntimeProcess>
   {
@@ -297,7 +429,7 @@ private:
     ~RuntimeProcess() override;
 
     void send(SendCallback callback);
-    void receive(ReceiveCallback callback);
+    void receive(ReceiveCallback callback, bool ok);
     void terminate();
     Future<Nothing> wait();
 
