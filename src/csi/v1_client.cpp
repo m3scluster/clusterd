@@ -146,6 +146,28 @@ Client::controllerGetCapabilities(ControllerGetCapabilitiesRequest request)
 }
 
 
+Future<RPCResult<ControllerListVolumeHealthResponse>>
+Client::controllerListVolumeHealth(ControllerListVolumeHealthRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(Controller, ControllerListVolumeHealth),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<ControllerGetVolumeHealthResponse>>
+Client::controllerGetVolumeHealth(ControllerGetVolumeHealthRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(Controller, ControllerGetVolumeHealth),
+      std::move(request),
+      CallOptions());
+}
+
+
 Future<RPCResult<CreateSnapshotResponse>>
 Client::createSnapshot(CreateSnapshotRequest request)
 {
@@ -179,12 +201,112 @@ Client::listSnapshots(ListSnapshotsRequest request)
 }
 
 
+Future<RPCResult<GetSnapshotResponse>>
+Client::getSnapshot(GetSnapshotRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(Controller, GetSnapshot),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<StreamingRPCResult<GetMetadataAllocatedResponse>>
+Client::getMetadataAllocated(GetMetadataAllocatedRequest request)
+{
+  return runtime.stream(
+      connection,
+      GRPC_CLIENT_METHOD(SnapshotMetadata, GetMetadataAllocated),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<StreamingRPCResult<GetMetadataDeltaResponse>>
+Client::getMetadataDelta(GetMetadataDeltaRequest request)
+{
+  return runtime.stream(
+      connection,
+      GRPC_CLIENT_METHOD(SnapshotMetadata, GetMetadataDelta),
+      std::move(request),
+      CallOptions());
+}
+
+
 Future<RPCResult<ControllerExpandVolumeResponse>>
 Client::controllerExpandVolume(ControllerExpandVolumeRequest request)
 {
   return runtime.call(
       connection,
       GRPC_CLIENT_METHOD(Controller, ControllerExpandVolume),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<ControllerGetVolumeResponse>>
+Client::controllerGetVolume(ControllerGetVolumeRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(Controller, ControllerGetVolume),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<ControllerModifyVolumeResponse>>
+Client::controllerModifyVolume(ControllerModifyVolumeRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(Controller, ControllerModifyVolume),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<GroupControllerGetCapabilitiesResponse>>
+Client::groupControllerGetCapabilities(
+    GroupControllerGetCapabilitiesRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(GroupController, GroupControllerGetCapabilities),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<CreateVolumeGroupSnapshotResponse>>
+Client::createVolumeGroupSnapshot(CreateVolumeGroupSnapshotRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(GroupController, CreateVolumeGroupSnapshot),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<DeleteVolumeGroupSnapshotResponse>>
+Client::deleteVolumeGroupSnapshot(DeleteVolumeGroupSnapshotRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(GroupController, DeleteVolumeGroupSnapshot),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<GetVolumeGroupSnapshotResponse>>
+Client::getVolumeGroupSnapshot(GetVolumeGroupSnapshotRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(GroupController, GetVolumeGroupSnapshot),
       std::move(request),
       CallOptions());
 }
@@ -240,6 +362,28 @@ Client::nodeGetVolumeStats(NodeGetVolumeStatsRequest request)
   return runtime.call(
       connection,
       GRPC_CLIENT_METHOD(Node, NodeGetVolumeStats),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<NodeGetVolumeHealthResponse>>
+Client::nodeGetVolumeHealth(NodeGetVolumeHealthRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(Node, NodeGetVolumeHealth),
+      std::move(request),
+      CallOptions());
+}
+
+
+Future<RPCResult<NodeGetStorageHealthResponse>>
+Client::nodeGetStorageHealth(NodeGetStorageHealthRequest request)
+{
+  return runtime.call(
+      connection,
+      GRPC_CLIENT_METHOD(Node, NodeGetStorageHealth),
       std::move(request),
       CallOptions());
 }
