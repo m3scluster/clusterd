@@ -19,7 +19,8 @@ greatly appreciate any feedback.
 
 ## Important
 
-With Version 1.11.0-0.6.0 CgroupsV2 is mandatory.
+- With the upcoming 1.12.0, CgroupsV1 and CgroupsV2 will be supported.
+- With Version 1.11.0-0.6.0 CgroupsV2 is mandatory.
 
 ## Download
 

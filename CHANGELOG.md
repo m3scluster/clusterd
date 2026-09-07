@@ -1,5 +1,6 @@
 ## Master
 
+- ADD: [manager] follower information into manager state endpoint.
 - ADD: [csi] support for CSI 1.13.x
 - ADD: [master, agent, metrics] live host utilization gauges for CPU, memory,
        disk, GPU, and normalized load. Metrics are exposed as

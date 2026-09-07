@@ -5113,6 +5113,9 @@ TEST_F(MasterTest, StateEndpoint)
       master.get()->pid.address.port,
       leader.values["port"].as<JSON::Number>().as<int>());
 
+  ASSERT_TRUE(state.values["followers"].is<JSON::Array>());
+  EXPECT_TRUE(state.values["followers"].as<JSON::Array>().values.empty());
+
   EXPECT_EQ(0, state.values["activated_slaves"]);
   EXPECT_EQ(0, state.values["deactivated_slaves"]);
 

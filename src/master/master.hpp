@@ -54,6 +54,8 @@
 #include <process/protobuf.hpp>
 #include <process/timer.hpp>
 
+#include <mesos/zookeeper/group.hpp>
+
 #include <process/metrics/counter.hpp>
 
 #include <stout/boundedhashmap.hpp>
@@ -500,6 +502,11 @@ public:
   // Invoked when there is a newly elected leading master.
   // Made public for testing purposes.
   void detected(const process::Future<Option<MasterInfo>>& _leader);
+
+  void watchMasters(const process::Future<std::set<zookeeper::Group::Membership>>& memberships);
+  void fetchedMaster(
+      const zookeeper::Group::Membership& membership,
+      const process::Future<Option<std::string>>& data);
 
   // Invoked when the contender has lost the candidacy.
   // Made public for testing purposes.
@@ -1988,6 +1995,9 @@ private:
   Http http;
 
   Option<MasterInfo> leader; // Current leading master.
+
+  process::Owned<zookeeper::Group> masterGroup;
+  hashmap<int32_t, MasterInfo> masters;
 
   mesos::allocator::Allocator* allocator;
   WhitelistWatcher* whitelistWatcher;

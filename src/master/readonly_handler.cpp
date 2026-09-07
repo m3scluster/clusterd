@@ -860,6 +860,16 @@ pair<Response, Option<Master::ReadOnlyHandler::PostProcessing>>
       });
     }
 
+    writer->field("followers", [master](JSON::ArrayWriter* writer) {
+      foreachvalue (const MasterInfo& info, master->masters) {
+        if (master->leader.isNone() || info.id() != master->leader->id()) {
+          writer->element([&info](JSON::ObjectWriter* writer) {
+            json(writer, info);
+          });
+        }
+      }
+    });
+
     if (approvers->approved<VIEW_FLAGS>()) {
       if (master->flags.cluster.isSome()) {
         writer->field("cluster", master->flags.cluster.get());
