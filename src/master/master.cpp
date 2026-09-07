@@ -40,6 +40,7 @@
 #include <mesos/allocator/allocator.hpp>
 #include <mesos/master/contender.hpp>
 #include <mesos/master/detector.hpp>
+#include <mesos/zookeeper/url.hpp>
 
 #include <mesos/module/authenticator.hpp>
 
@@ -398,6 +399,13 @@ Master::Master(
   if (flags.domain.isSome()) {
     info_.mutable_domain()->CopyFrom(flags.domain.get());
   }
+
+  if (flags.zk.isSome()) {
+    Try<zookeeper::URL> url = zookeeper::URL::parse(flags.zk->value);
+    if (url.isSome()) {
+      masterGroup.reset(new zookeeper::Group(url.get(), Seconds(10)));
+    }
+  }
 }
 
 
@@ -453,6 +461,11 @@ void Master::initialize()
 {
   LOG(INFO) << "Master " << info_.id() << " (" << info_.hostname() << ")"
             << " started on " << string(self()).substr(7);
+
+  if (masterGroup.get() != nullptr) {
+    masterGroup->watch()
+      .onAny(defer(self(), &Master::watchMasters, lambda::_1));
+  }
 
   LOG(INFO) << "Flags at startup: " << flags;
 
@@ -2157,6 +2170,58 @@ void Master::lostCandidacy(const Future<Nothing>& lost)
   LOG(INFO) << "Lost candidacy as a follower... Contend again";
   contender->contend()
     .onAny(defer(self(), &Master::contended, lambda::_1));
+}
+
+
+void Master::watchMasters(
+    const Future<set<zookeeper::Group::Membership>>& _memberships)
+{
+  if (_memberships.isFailed() || _memberships.isDiscarded()) {
+    return;
+  }
+
+  const set<zookeeper::Group::Membership>& memberships = _memberships.get();
+  hashset<int32_t> current;
+
+  foreach (const zookeeper::Group::Membership& membership, memberships) {
+    current.insert(membership.id());
+    masterGroup->data(membership)
+      .onAny(defer(self(), &Master::fetchedMaster, membership, lambda::_1));
+  }
+
+  list<int32_t> stale;
+  foreachkey (const int32_t id, masters) {
+    if (!current.contains(id)) {
+      stale.push_back(id);
+    }
+  }
+
+  foreach (const int32_t id, stale) {
+    masters.erase(id);
+  }
+
+  masterGroup->watch(memberships)
+    .onAny(defer(self(), &Master::watchMasters, lambda::_1));
+}
+
+
+void Master::fetchedMaster(
+    const zookeeper::Group::Membership& membership,
+    const Future<Option<string>>& data)
+{
+  if (data.isFailed() || data.isDiscarded() || data->isNone()) {
+    return;
+  }
+
+  Try<JSON::Object> object = JSON::parse<JSON::Object>(data->get());
+  if (object.isError()) {
+    return;
+  }
+
+  Try<MasterInfo> info = ::protobuf::parse<MasterInfo>(object.get());
+  if (info.isSome()) {
+    masters[membership.id()] = info.get();
+  }
 }
 
 
