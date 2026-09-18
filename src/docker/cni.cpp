@@ -95,6 +95,54 @@ Try<NetworkInfo> parseNetworkInfo(const string& result)
   }
 
   NetworkInfo network;
+
+  // Handle CNI 1.1 ips array format first
+  Result<JSON::Array> ips = json->at<JSON::Array>("ips");
+  if (ips.isSome()) {
+    // Find the first usable IP address (IPv4 or IPv6)
+    bool found = false;
+
+    foreach (const JSON::Value& ip_value, ips->values) {
+      if (!ip_value.is<JSON::Object>()) {
+        continue;
+      }
+
+      const JSON::Object& ip_obj = ip_value.as<JSON::Object>();
+      Result<JSON::String> ip = ip_obj.at<JSON::String>("address");
+      if (ip.isError() || ip.isNone() || ip->value.empty()) {
+        continue;
+      }
+
+      // Extract IP address and protocol
+      string address = ip->value;
+      const size_t slash = address.find('/');
+
+      // For CNI 1.1, we may have a CIDR like "192.0.2.10/24" or "2001:db8::10/64"
+      if (slash != string::npos) {
+        address.erase(slash);
+      }
+
+      // Determine protocol from address
+      NetworkInfo::IPAddress* address_obj = network.add_ip_addresses();
+      address_obj->set_ip_address(address);
+
+      // Check if it's an IPv6 address by looking for colon
+      if (address.find(':') != string::npos) {
+        address_obj->set_protocol(NetworkInfo::IPv6);
+      }
+
+      found = true;
+      break; // Only take the first usable IP address to match existing behavior
+    }
+
+    if (found) {
+      return network;
+    } else {
+      return Error("CNI result ips array contains no valid usable addresses");
+    }
+  }
+
+  // Handle legacy ip4/ip6 format for backward compatibility
   Result<JSON::Object> ip4 = json->at<JSON::Object>("ip4");
   if (ip4.isSome()) {
     Result<JSON::String> ip = ip4->at<JSON::String>("ip");
@@ -124,7 +172,7 @@ Try<NetworkInfo> parseNetworkInfo(const string& result)
     return network;
   }
 
-  return Error("CNI result contains neither ip4 nor ip6");
+  return Error("CNI result contains neither ip4 nor ip6 nor ips array");
 }
 
 } // namespace cni

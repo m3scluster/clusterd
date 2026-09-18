@@ -100,6 +100,25 @@ TEST_F(DockerCniTest, ParsesIPv6AndSetsProtocol)
   EXPECT_EQ(NetworkInfo::IPv6, info.ip_addresses(0).protocol());
 }
 
+TEST_F(DockerCniTest, ParsesIPsArrayIPv4)
+{
+  Try<NetworkInfo> result = parseNetworkInfo(
+      "{\"ips\":[{\"address\":\"192.0.2.10/24\"}]}");
+  ASSERT_SOME(result);
+  ASSERT_EQ(1, result->ip_addresses_size());
+  EXPECT_EQ("192.0.2.10", result->ip_addresses(0).ip_address());
+}
+
+TEST_F(DockerCniTest, ParsesIPsArrayIPv6)
+{
+  Try<NetworkInfo> result = parseNetworkInfo(
+      "{\"ips\":[{\"address\":\"2001:db8::10/64\"}]}");
+  ASSERT_SOME(result);
+  ASSERT_EQ(1, result->ip_addresses_size());
+  EXPECT_EQ("2001:db8::10", result->ip_addresses(0).ip_address());
+  EXPECT_EQ(NetworkInfo::IPv6, result->ip_addresses(0).protocol());
+}
+
 TEST_F(DockerCniTest, RejectsMissingResultAddress)
 {
   EXPECT_ERROR(parseNetworkInfo("{}"));

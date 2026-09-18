@@ -138,6 +138,64 @@ TEST(CniSpecTest, GenerateResolverConfig)
 }
 
 
+TEST(CniSpecTest, UsesCurrentSpecVersionForErrors)
+{
+  Try<JSON::Object> json = JSON::parse<JSON::Object>(
+      spec::error("synthetic error", spec::CNI_ERROR_UNSUPPORTED_FIELD));
+
+  ASSERT_SOME(json);
+  Result<JSON::String> version = json->at<JSON::String>("cniVersion");
+  ASSERT_SOME(version);
+  EXPECT_EQ("1.1.0", version->value);
+}
+
+
+TEST(CniSpecTest, ParsesLegacyAndCurrentNetworkVersions)
+{
+  Try<spec::NetworkConfig> legacy = spec::parseNetworkConfig(R"~(
+    {
+      "name": "legacy",
+      "type": "bridge",
+      "ipam": { "type": "host-local" }
+    })~");
+  ASSERT_SOME(legacy);
+  EXPECT_FALSE(legacy->has_cniversion());
+
+  Try<spec::NetworkConfig> current = spec::parseNetworkConfig(R"~(
+    {
+      "cniVersion": "1.1.0",
+      "name": "current",
+      "type": "bridge",
+      "ipam": { "type": "host-local" },
+      "capabilities": { "bandwidth": true }
+    })~");
+  ASSERT_SOME(current);
+  ASSERT_TRUE(current->has_cniversion());
+  EXPECT_EQ("1.1.0", current->cniversion());
+}
+
+
+TEST(CniSpecTest, ParsesLegacyAndCurrentNetworkResults)
+{
+  Try<spec::NetworkInfo> legacy = spec::parseNetworkInfo(R"~(
+    {
+      "ip4": { "ip": "192.0.2.10/24" }
+    })~");
+  ASSERT_SOME(legacy);
+  EXPECT_FALSE(legacy->has_cniversion());
+
+  Try<spec::NetworkInfo> current = spec::parseNetworkInfo(R"~(
+    {
+      "cniVersion": "1.1.0",
+      "interfaces": [],
+      "ip4": { "ip": "192.0.2.11/24" }
+    })~");
+  ASSERT_SOME(current);
+  ASSERT_TRUE(current->has_cniversion());
+  EXPECT_EQ("1.1.0", current->cniversion());
+}
+
+
 class CniIsolatorTest : public ContainerizerTest<MesosContainerizer>
 {
 public:

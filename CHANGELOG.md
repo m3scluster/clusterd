@@ -1,6 +1,10 @@
 ## Master
 
-- CHANGE: [cni, docker] Optimize CNI support.
+- UPDATE: [cni] update the CNI integration to Spec 1.1.0 while retaining
+        compatibility with legacy 0.2.x and 0.3.x configurations/results.
+- FIX: [docker, cni] Optimize CNI support.
+- ADD: [tests] dedicated Docker Executor CNI unit tests for legacy results,
+       CNI 1.1.0 `ips` results, config lookup, and Docker network contracts.
 - ADD: [manager] follower information into manager state endpoint.
 - ADD: [csi] support for CSI 1.13.x
 - ADD: [master, agent, metrics] live host utilization gauges for CPU, memory,

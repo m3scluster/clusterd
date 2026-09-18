@@ -29,7 +29,9 @@ namespace slave {
 namespace cni {
 namespace spec {
 
-constexpr char CNI_VERSION[] = "0.3.0";
+// CNI Spec 1.1.0 is the current integration version. Older 0.2.x and
+// 0.3.x network configurations remain accepted by the JSON parser.
+constexpr char CNI_VERSION[] = "1.1.0";
 
 
 // CNI commands.
