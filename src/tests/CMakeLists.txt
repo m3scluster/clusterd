@@ -236,6 +236,7 @@ if (LINUX)
     containerizer/cgroups_isolator_tests.cpp
     containerizer/cgroups_tests.cpp
     containerizer/cni_isolator_tests.cpp
+    containerizer/docker_cni_tests.cpp
     containerizer/docker_volume_isolator_tests.cpp
     containerizer/fs_tests.cpp
     containerizer/linux_capabilities_isolator_tests.cpp

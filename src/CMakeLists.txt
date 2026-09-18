@@ -273,7 +273,8 @@ set(CSI_SRC
 
 set(DOCKER_SRC
   docker/docker.cpp
-  docker/executor.cpp)
+  docker/executor.cpp
+  docker/cni.cpp)
 
 if (NOT WIN32)
   list(APPEND DOCKER_SRC

@@ -62,6 +62,7 @@
 #include "common/protobuf_utils.hpp"
 #include "common/status_utils.hpp"
 
+#include "docker/cni.hpp"
 #include "docker/docker.hpp"
 #include "docker/executor.hpp"
 
@@ -119,6 +120,8 @@ public:
       terminated(false),
       killedByHealthCheck(false),
       killedByTaskCompletionTimeout(false),
+      cniAttached(false),
+      cniDetached(false),
       launcherDir(launcherDir),
       docker(docker),
       containerName(containerName),
@@ -307,7 +310,56 @@ public:
           status.mutable_task_id()->CopyFrom(taskId.get());
           status.set_state(TASK_RUNNING);
           status.set_data(container.output);
-          if (container.ipAddress.isSome() || container.ip6Address.isSome()) {
+          bool hasNamedNetwork = false;
+          foreach (const NetworkInfo& networkInfo,
+                   task.container().network_infos()) {
+            hasNamedNetwork =
+              hasNamedNetwork ||
+              (networkInfo.has_name() && !networkInfo.name().empty());
+          }
+          const bool cniConfigured =
+            !network_cni_config_dir.empty() &&
+            !network_cni_plugins_dir.empty() &&
+            hasNamedNetwork;
+
+          bool useDockerNetwork = !cniConfigured;
+          if (cniConfigured) {
+            Try<std::tuple<Subprocess, std::string>> cni = attachCNI(task);
+            if (cni.isError()) {
+              if (strings::startsWith(
+                      cni.error(), "No CNI configuration found")) {
+                useDockerNetwork = true;
+              } else {
+                cniFailure = cni.error();
+                LOG(ERROR) << "Failed to configure CNI network: "
+                           << cniFailure.get();
+                killed = true;
+                stop = docker->stop(containerName, Duration::zero());
+              }
+            } else {
+              Subprocess cniSub = std::get<0>(cni.get());
+              Try<NetworkInfo> cniInfo = attachCNISuccess(cniSub);
+              if (cniInfo.isError()) {
+                cniFailure = cniInfo.error();
+                LOG(ERROR) << "Failed to configure CNI network: "
+                           << cniFailure.get();
+                killed = true;
+                stop = docker->stop(containerName, Duration::zero());
+              } else {
+                NetworkInfo* networkInfo =
+                  status.mutable_container_status()->add_network_infos();
+                networkInfo->CopyFrom(task.container().network_infos(0));
+                networkInfo->clear_ip_addresses();
+                networkInfo->MergeFrom(cniInfo.get());
+                containerNetworkInfo = *networkInfo;
+                cniAttached = true;
+              }
+            }
+          }
+
+          if (!killed &&
+              (container.ipAddress.isSome() || container.ip6Address.isSome()) &&
+              useDockerNetwork) {
             NetworkInfo* networkInfo = status.mutable_container_status()->add_network_infos();
 
             // Copy NetworkInfo if it is specified in  ContainerInfo. 
@@ -330,37 +382,19 @@ public:
               }
             };
 
-            // If the IP comes from the CNI, then do not use the container IP 
-            bool useCNI = false;
-#ifdef __linux__  
-            if (!network_cni_config_dir.empty() && !network_cni_plugins_dir.empty()) {
-              Try<std::tuple<Subprocess, std::string>> cni = attachCNI(task);
-              if (!cni.isError()) {
-                Subprocess cniSub = std::get<0>(cni.get());
-                std::string cniNetworkName = std::get<1>(cni.get());
-            
-                WIFEXITED(cniSub.status().get().get());
-                Try<std::string> cniIP = attachCNISuccess(cniSub);
-                if (cniIP.isError()) {
-                  LOG(ERROR) << cniIP.error();
-                } else {
-                  useCNI = true;
-                  setIPAddresses(cniIP.get(), false);
-                }
-              }
-            }
-#endif
-            if (container.ipAddress.isSome() && !useCNI) {
+            if (container.ipAddress.isSome()) {
               setIPAddresses(container.ipAddress.get(), false);
             }
 
-            if (container.ip6Address.isSome() && !useCNI) {
+            if (container.ip6Address.isSome()) {
               setIPAddresses(container.ip6Address.get(), true);
             }
 
             containerNetworkInfo = *networkInfo;
           }
-          driver->sendStatusUpdate(status);
+          if (cniFailure.isNone()) {
+            driver->sendStatusUpdate(status);
+          }
         }
 
         // This is a workaround for the Docker issue below:
@@ -625,9 +659,6 @@ private:
       if (!killed) {
         killed = true;
 
-        // detach container network
-        detachCNI();
-
         // Send TASK_KILLING if task is not killed by completion timeout and
         // the framework can handle it.
         if (!killedByTaskCompletionTimeout &&
@@ -764,7 +795,10 @@ private:
       CHECK(WIFEXITED(status) || WIFSIGNALED(status))
         << "Unexpected wait status " << status;
 
-      if (killedByTaskCompletionTimeout) {
+      if (cniFailure.isSome()) {
+        state = TASK_FAILED;
+        message = "Failed to configure CNI network: " + cniFailure.get();
+      } else if (killedByTaskCompletionTimeout) {
         state = TASK_FAILED;
         reason = TaskStatus::REASON_MAX_COMPLETION_TIME_REACHED;
       } else if (killed) {
@@ -786,8 +820,13 @@ private:
       message = "Container " + WSTRINGIFY(status);
     }
 
-    // detach container network
-    detachCNI();
+    if (cniAttached && !cniDetached) {
+      Try<std::tuple<Subprocess, std::string>> detached = detachCNI();
+      cniDetached = true;
+      if (detached.isError()) {
+        LOG(ERROR) << "Failed to detach CNI network: " << detached.error();
+      }
+    }
     LOG(INFO) << message;
 
     CHECK_SOME(taskId);
@@ -824,66 +863,17 @@ private:
 
 
   // Return the content of the CNI plugin config file and return it as json object
-  Try<JSON::Object> getNetworkConfigJSON(const string& fname) { 
-    Try<string> read = os::read(fname);
-    if (read.isError()) {
-      return Error("Cannot read CNI plugin file: " + read.error());
-    }
-
-    Try<JSON::Object> parse = JSON::parse<JSON::Object>(read.get());
-    if (parse.isError()) {
-      return Error("Cannot parse CNI plugin file." + parse.error());
-    }
-
-    return parse;
+  Try<JSON::Object> getNetworkConfigJSON(const string& fname)
+  {
+    return cni::getNetworkConfigJSON(fname);
   }
 
   // Search the config file of the network in the path
-  Try<std::string> getNetworkConfigFile(const string& network, const string& path) { 
-    struct dirent *ent;    
-    DIR *dir;
-    JSON::Object parse;
-
-    // path can include mutiple path's seperated by ":".
-    char *sPath = strtok(const_cast<char*>(path.c_str()), ":"); 
-    while (sPath != NULL) {
-      if ((dir = opendir(sPath)) != NULL) {
-        while ((ent = readdir(dir)) != NULL) {
-          if (ent->d_type != DT_REG || !strcmp(ent->d_name, ".") || !strcmp(ent->d_name, "..")) {
-            continue;
-          }
-
-          std::string fname = string(sPath) + "/" + string(ent->d_name);
-          Try<string> read = os::read(fname);
-          if (read.isError()) {
-            LOG(ERROR) << "Cannot read CNI network config file: " <<  fname;
-            continue;
-          }
-
-          Try<JSON::Object> parse = JSON::parse<JSON::Object>(read.get());
-          if (parse.isError()) {
-            LOG(ERROR) << "Cannot parse CNI network config file.";
-            continue;
-          }
-
-          Result<JSON::String> name = parse->at<JSON::String>("name");
-          if (!name.isSome()) {
-            return Error(
-                "Cannot determine the 'name' of the CNI network for this "
-                "configuration " +
-                (name.isNone() ? "'" : ("': " + name.error())));
-          }
-
-          // Verify the configuration is for this network
-          if (network == name->value) {
-            return fname;
-          }
-        }
-        closedir(dir);
-      }
-      sPath = strtok(NULL, ":");
-    }
-    return Error("Cannot find a CNI plugin config for this network name: " + network);
+  Try<std::string> getNetworkConfigFile(
+      const string& network,
+      const string& path)
+  {
+    return cni::getNetworkConfigFile(network, path);
   }
 
   // attach CNI at the container
@@ -899,25 +889,40 @@ private:
   Try<std::tuple<Subprocess, std::string>> commandCNI(const mesos::ContainerInfo& container, const string command) {
     // Loop over all network objects
     int ifIndex = 1;
+    int namedNetworks = 0;
+    bool foundCniConfiguration = false;
     foreach (const mesos::NetworkInfo& networkInfo, container.network_infos()) {
-      if (!networkInfo.has_name()) {
+      if (networkInfo.has_name() && !networkInfo.name().empty()) {
+        namedNetworks++;
+      }
+    }
+    if (namedNetworks > 1) {
+      return Error("Docker executor CNI supports only one network per task");
+    }
+    foreach (const mesos::NetworkInfo& networkInfo, container.network_infos()) {
+      if (!networkInfo.has_name() || networkInfo.name().empty()) {
         continue;
       }
 
       const string networkName = networkInfo.name();
-      const string ifName = "eth" + stringify(ifIndex++);
+      // If the network name is empty, we treat it as a non-CNI network.
+      if (networkName.empty()) {
+        LOG(INFO) << "Empty network name detected. Treating as Docker-native network.";
+        continue;
+      }
 
+      const string ifName = "eth" + stringify(ifIndex++);
       // Find the right plugin config file of the networkname
       Try<std::string> networkConfigFile = getNetworkConfigFile(networkName, network_cni_config_dir);
       if (networkConfigFile.isError()) {
-        LOG(INFO) << "Could not find the CNI plugin to use for network " <<  networkName << ". Deactivate CNI.";
         continue;
       }  
+      foundCniConfiguration = true;
 
       Try<JSON::Object> networkConfigJSON = getNetworkConfigJSON(networkConfigFile.get());
       if (networkConfigJSON.isError()) {
         LOG(INFO) << "Could not get valid CNI configuration for network '"
-                   << networkName  << "': " << networkConfigJSON.error();
+                   << networkName << "': " << networkConfigJSON.error();
         continue;
       }    
 
@@ -927,7 +932,6 @@ private:
         LOG(INFO) << cniPluginType.error();
         continue;
       }
-
       if (!cniPluginType.isSome()) {
         LOG(INFO) << "Could not find CNI plugin type to use for network '" <<  networkName;
         continue;
@@ -937,7 +941,10 @@ private:
       environment["CNI_COMMAND"] = command;
       environment["CNI_CONTAINERID"] = stringify(containerId);
       environment["CNI_PATH"] = network_cni_plugins_dir;
-      environment["CNI_NETNS"] = "/proc/" + std::to_string(containerPid.get()) + "/ns/net";
+      if (containerPid.isSome()) {
+        environment["CNI_NETNS"] =
+          "/proc/" + std::to_string(containerPid.get()) + "/ns/net";
+      }
       environment["CNI_IFNAME"] = ifName;
 
       // set the PATH in case the plugin need to use iptables
@@ -952,10 +959,15 @@ private:
       Option<string> plugin = os::which(
           cniPluginType->value,
           network_cni_plugins_dir);
-
       if (plugin.isNone()) {
-        LOG(INFO) << "Cannot load CNI plugin: " << plugin.get();
-        continue;
+        LOG(INFO) << "Cannot load CNI plugin: " << cniPluginType->value;
+        return Error("Cannot load CNI plugin: " + cniPluginType->value);
+      }
+
+      // We need to ensure the plugin is properly found
+      if (plugin.isSome() && plugin.get().empty()) {
+        LOG(INFO) << "Plugin path is empty for CNI plugin type: " << cniPluginType->value;
+        return Error("Plugin path is empty for CNI plugin type: " + cniPluginType->value);
       }
 
       if (command.compare("ADD") == 0) {
@@ -995,16 +1007,27 @@ private:
 
       return std::make_tuple(s.get(), networkName);
     }
-    return ::Error("Could not match networkinfo to any CNI");
+    if (!foundCniConfiguration) {
+      return ::Error("No CNI configuration found for Docker network");
+    }
+    return ::Error("Could not configure the CNI network");
   }
 
-  Try<std::string> attachCNISuccess(
+  Try<NetworkInfo> attachCNISuccess(
     const Try<Subprocess> sub)
   {
 
     const Future<Option<int>>& subStat = sub->status();
     const Future<string>& output = io::read(sub->out().get());
     const Future<string>& error = io::read(sub->err().get());     
+
+    // CNI plugins run asynchronously. Wait for all three subprocess futures
+    // before inspecting them; treating a pending future as a failure causes
+    // the executor to stop an otherwise healthy container immediately after
+    // CNI ADD.
+    subStat.await();
+    output.await();
+    error.await();
 
     if (!subStat.isReady()) {
       return ::Error("Failed to get the exit status of the CNI plugin subprocess.");
@@ -1033,35 +1056,16 @@ private:
 
     LOG(INFO) << output.get();
 
-    return network->ip_addresses(0).ip_address().c_str();
+    if (network->ip_addresses_size() == 0) {
+      return ::Error("CNI plugin returned no IP address");
+    }
+
+    return network.get();
   }
 
-  Try<NetworkInfo> parseNetworkInfo(const string& s) {
-    NetworkInfo ni;
-    Try<JSON::Object> json = JSON::parse<JSON::Object>(s);
-    if (json.isError()) {
-      return ::Error("JSON parse CNI network info failed: " + json.error());
-    }
-
-    Result<JSON::Object> ip4 = json->at<JSON::Object>("ip4");
-    if (ip4.isError()) {
-      return ::Error("JSON parse CNI network info failed: " + ip4.error());
-    }
-
-    Result<JSON::String> ipAddress = ip4->at<JSON::String>("ip");
-    if (ip4.isError()) {
-      return ::Error("JSON parse CNI network info failed: " + ipAddress.error());
-    }
-
-    // remove the netmask if the IP string
-    std::size_t pos = ipAddress->value.find("/"); 
-    if (pos != std::string::npos) {
-        ipAddress->value.erase(pos);
-    }
-
-    ni.add_ip_addresses()->set_ip_address(ipAddress->value);
-
-    return ni;
+  Try<NetworkInfo> parseNetworkInfo(const string& s)
+  {
+    return cni::parseNetworkInfo(s);
   }
 
   void launchCheck(const TaskInfo& task)
@@ -1123,6 +1127,8 @@ private:
   bool terminated;
   bool killedByHealthCheck;
   bool killedByTaskCompletionTimeout;
+  bool cniAttached;
+  bool cniDetached;
 
   Option<Timer> taskCompletionTimer;
 
@@ -1150,6 +1156,7 @@ private:
   Owned<checks::HealthChecker> checker;
   Option<NetworkInfo> containerNetworkInfo;
   Option<pid_t> containerPid;
+  Option<string> cniFailure;
 };
 
 

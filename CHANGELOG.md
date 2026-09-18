@@ -1,5 +1,6 @@
 ## Master
 
+- CHANGE: [cni, docker] Optimize CNI support.
 - ADD: [manager] follower information into manager state endpoint.
 - ADD: [csi] support for CSI 1.13.x
 - ADD: [master, agent, metrics] live host utilization gauges for CPU, memory,
