@@ -11,13 +11,19 @@ permissions:
 
 jobs:
   build-deb:
-    name: Build DEB package (${{ matrix.os }})
+    name: Build DEB package (${{ matrix.arch }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04]
+        include:
+          - os: ubuntu-22.04
+            arch: amd64
+          - os: ubuntu-24.04
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
 
     steps:
       - name: Check out source
@@ -69,7 +75,7 @@ jobs:
       - name: Upload nightly package
         uses: actions/upload-artifact@v4
         with:
-          name: clusterd-nightly-${{ matrix.os }}-${{ github.run_number }}
+          name: clusterd-nightly-${{ matrix.arch }}-${{ matrix.os }}-${{ github.run_number }}
           path: dist/*.deb
           if-no-files-found: error
           retention-days: 7
